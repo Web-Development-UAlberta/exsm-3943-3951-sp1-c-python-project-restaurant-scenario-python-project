@@ -5,28 +5,24 @@
 - **Creation Date:** April 18, 2026
 - **Associated Design Doc:** Design Document - 15Apr2026
 - **Group Members:** Ajay Paterson, Ashray Sikka, Michael Hubel
-- **Course:** EXSM 3951 - Python Project
+- **Course:** EXSM 3951 Python Project
 
 ## 1. Project Title & Executive Summary
 
 **Project Title:** Restaurant Franchise Reservation & Management System
 
-**Executive Summary:**  
-The Restaurant Franchise Reservation & Management System is a Python-based backend application designed to support a growing restaurant business with reservations, table management, online ordering (dine-in, take-out, and delivery), menu handling, loyalty programs, and basic inventory/stock management. 
-
-The system will initially support a single restaurant location with the flexibility to scale to multiple locations in the future. It aims to streamline operations for restaurant staff and managers while providing customers with a convenient way to make reservations, place orders, and manage loyalty points. 
-
-The ultimate business value is improved operational efficiency, better customer experience, and support for future expansion.
+**Executive Summary:**
+The Restaurant Franchise Reservation & Management System is a Python-based backend application designed to support a growing restaurant business with reservations, table management, online ordering (dine-in, take-out, and delivery), menu handling, loyalty programs, and basic inventory/stock management. The system will initially support a single restaurant location with the flexibility to scale to multiple locations in the future. It aims to streamline operations for restaurant staff and managers while providing customers with a convenient way to make reservations, place orders, and manage loyalty points. The ultimate business value is improved operational efficiency, better customer experience, and support for future expansion.
 
 ## 2. Project Objectives
 
-### 2.1 Business Goals
+**Business Goals:**
 - Enable efficient reservation and order management to maximize table utilization and reduce no-shows.
 - Implement a loyalty program to encourage repeat business (10 points per dollar spent, redeemable for discounts).
 - Support delivery within a 10 km radius with a distance-based fee structure.
 - Provide managers with visibility into inventory levels to prevent stockouts.
 
-### 2.2 Technical Goals
+**Technical Goals:**
 - Build a robust Python backend capable of handling reservations, orders, and inventory logic.
 - Achieve reliable data persistence and basic validation for all core transactions.
 - Ensure the system is modular and extensible to support future multi-location features.
@@ -34,168 +30,152 @@ The ultimate business value is improved operational efficiency, better customer 
 
 ## 3. In-Scope
 
-### 3.1 Core Features / Functionality
-- Reservation system with table layout management (grid data seeded manually in v1; Table layout CSV upload deferred to Phase 2).
-- Menu management (CSV upload) with allergen and dietary tagging.
-- Online ordering for dine-in (pre-order), take-out, and delivery.
-- Delivery fee calculation: $5 within 5 km, $10 within 10 km; flat $10 fallback if tiered calculation is too complex.
-- Loyalty points system: 10 points per dollar spent (excluding tax), redeemable at 1000 pts = $10 off or 2000 pts = $25 off.
-- Basic inventory management with min/max levels and low-stock alerts for managers only.
-- User account management (customer accounts + guest checkout with deposit for reservations).
-- Simple admin/manager panel for viewing reservations, orders, and inventory.
-- Server/Host accounts with ability to update table status (occupied, empty, needs cleaning) from the floor.
-- Delivery driver view showing assigned orders with customer contact info, delivery address, and order details.
-- Cancellation policy: Free cancellation 3+ hours before reservation; $10 fee otherwise. Deposit required for all reservations (including guests).
-- Kitchen dashboard with FIFO order queue and online order cutoff 30 minutes before closing time.
-- Pseudo-payment processing: Visa and Mastercard only, always auto-approved.
+**Core Features/Functionality:**
+- User registration and login for customers, kitchen staff, managers, delivery drivers, and a franchise-level owner account
+- Guest accounts with reservation and takeout support (deposit required for reservations)
+- Table reservation system with a 50x50 grid-based floor plan, date/time selection, and conflict prevention logic
+- Cancellation policy: free cancellation 3+ hours before reservation, $10 fee otherwise. A deposit is always required for reservations including guest accounts
+- Menu browsing with allergen/dietary tags per dish
+- Pre-ordering for dine-in, takeout, and delivery (cutoff: 30 minutes before order needed, cancel-only after commit)
+- Delivery fee structure: $5 within 5km, $10 within 10km, no delivery beyond 10km. Flat $10 fallback if distance calculation is too complex
+- Pseudo-payment processing: Visa and Mastercard only, always auto-approved
+- Loyalty program: 10 points per dollar spent (excluding tax), 1000 points = $10 off, 2000 points = $25 off, no expiry, no partial redemption, max discount $25
+- Kitchen dashboard with FIFO order queue, order status tracking (Received, Preparing, Ready, Delivered), and online order cutoff 30 minutes before closing time
+- Inventory management with per-ingredient min/max levels set by managers, low-stock alerts sent to managers only
+- Branding: trendy, back-to-Earth feel. Color palette to be decided by the team
+- Server/Host accounts with ability to update table status (occupied, empty, needs cleaning) from the floor
+- Delivery driver view showing assigned orders with customer contact info, delivery address, and order details to prevent mix-ups on multi-order runs
 
-### 3.2 API Endpoints
-All key endpoints are defined in the associated **Software Design Document (SDD)**:
-- Auth
-- Reservations
-- Orders
-- Kitchen
-- Inventory
-- Loyalty
-- Admin (CSV upload)
-- Payments
-- Delivery
-- Tables
+**API Endpoints:**
+Full endpoint definitions are documented in the associated Design Document.
 
-### 3.3 Data Models
-The following models will be implemented:
-- User
-- Restaurant
-- TableLayout
-- Table
-- Reservation
-- MenuItem
-- Order
-- OrderItem
-- Inventory
-- LoyaltyTransaction
-- Payment
+**Data Models:**
+Full schema and data model definitions are documented in the associated Design Document.
 
-### 3.4 Deliverables
-- Fully functional v1.0 Python codebase on the `main` branch
-- Entity Relationship Diagram (ERD)
+**Deliverables:**
+Listed are the planned deliverables to be shipped alongside the project:
+- Functional complete version 1.0 Python codebase present on main branch
+- The Entity Relationship Diagram (ERD)
 - All wireframes
 - Complete finalized Scope, Design, and Team Norms documents
-- Test plan and test suite
-- Fully complete, intuitive `README.md` with setup and usage instructions
-- All GitHub Actions CI passing on `main`
+- Test plan used
+- Fully complete, intuitive README file that details setup and usage instructions
+- All GitHub Actions CI passing on main
 
 ## 4. Out-of-Scope
 
-### 4.1 Excluded Features
-- Advanced multi-location support (different menus, layouts, and independent operations per restaurant). The system is designed with future extensibility in mind (e.g., `location_id` / `restaurant_id` fields), but only a single location will be fully implemented in v1.
-- Real-time kitchen display system or advanced order queuing visualizations.
-- Complex reporting or analytics dashboards.
-- Waitlist management or automated table-turn predictions.
-- Support for high concurrent loads, horizontal scaling, or load balancing.
-- Full data encryption at rest beyond SQLite defaults.
-- Reservations larger than 20 people (special events handled via direct email to the restaurant).
+**Excluded Features:**
+- Real payment processing (no Stripe, PayPal, or actual card charging)
+- SMS or email notifications to customers
+- Special event bookings beyond 20 people (handled via direct email to restaurant)
+- Seating preferences (no smoking/non-smoking distinction, entire restaurant is non-smoking)
+- Multi-language support
+- Mobile app
+- Delivery driver route tracking or third-party delivery integration
+- Advanced multi-location support (different menus, layouts, and independent operations per restaurant). The system will be designed with future multi-location extensibility in mind, but only a single location will be fully implemented.
+- Real-time kitchen display system or order queuing visualizations beyond basic status updates
+- Complex reporting or analytics dashboards (e.g., sales reports, peak hour analysis)
+- Waitlist management or automated table-turn predictions
+- System is not designed for high concurrent loads, horizontal scaling, or load balancing
+- Maximum party size is hard capped at 20; special events handled via direct email to the restaurant
 
-### 4.2 Integrations
-- No third-party payment gateways (pseudo-payment only).
-- No external mapping/geolocation services for delivery distance (simplified tiered or flat-fee logic).
-- No email/SMS notification services (notifications may be logged to console).
-- No external loyalty or CRM systems.
+**Integrations:**
+- No integration with third-party payment gateways (Visa/Mastercard will be simulated only; no real transactions).
+- No integration with external mapping or geolocation services for precise delivery distance calculation. Delivery fees will use a simplified tiered or flat-fee logic.
+- No integration with email/SMS notification services for reservations, order confirmations, or low-stock alerts (notifications may be logged or printed to console).
+- No integration with external loyalty or CRM systems.
 
-### 4.3 Frontend / UI Work
-- A functional HTML/CSS frontend using Django templates will be implemented.
-- Mobile responsiveness and a fully polished UI are **not** in scope.
-- No React or separate frontend framework.
+**Frontend/UI Work:**
+- A functional HTML/CSS frontend will be implemented using Django templates for all core user flows.
+- Mobile responsiveness and a fully polished UI are not in scope.
 
-### 4.4 Deferred to Phase 2
-- Table layout CSV upload (only menu CSV uploads supported at launch).
-- Live order status tracking.
-- Delivery driver scope limited to read-only view of assigned orders in v1.
+**Non-functional Boundaries:**
+Listed are features not in scope for this project:
+- Polished, complete UI design
+- No map / GPS data for distance based fee logic
+
+**Deferred to Phase 2:**
+- Table layout CSV upload is out of scope for v1 due to complexity around existing reservations. Only menu CSV uploads are supported at launch.
+- Live order status tracking is deferred to a future phase.
+- Delivery driver scope is limited to read-only view of assigned orders in v1.
 
 ## 5. Target Audience & User Roles
 
-### 5.1 Primary Users
-- Customers (reservations, orders, loyalty points)
-- Restaurant managers (inventory, alerts, oversight)
-- Restaurant staff and delivery drivers (limited access)
+**Primary Users:**
+- Customers (making reservations, placing orders, managing loyalty points)
+- Restaurant managers (viewing alerts, managing inventory, overseeing operations)
+- Restaurant staff and delivery drivers (basic access)
 
-### 5.2 User Roles & Permissions
-- **Customer**: Register/login, make reservations, pre-order, view loyalty points, manage profile.
-- **Guest**: Make reservations (with deposit), place takeout orders. No loyalty access.
-- **Kitchen Staff**: View and update order statuses on kitchen dashboard only.
-- **Delivery Driver**: View assigned delivery orders (customer info, address, order details). Read-only.
-- **Manager**: Full access to inventory, low-stock alerts, all reservations and orders for their location, CSV uploads.
-- **Owner**: Full access across all locations.
-- **Server/Host**: View floor plan and update table status (occupied / empty / needs cleaning). No access to orders or customer data.
+**User Roles & Permissions:**
+- **Customer:** Register/login, make reservations, pre-order meals, view loyalty points, manage profile.
+- **Guest:** Make reservations (deposit required), place takeout orders. No loyalty program access.
+- **Kitchen Staff:** View and update order statuses on kitchen dashboard only. No access to reservations or customer data.
+- **Delivery Driver:** View assigned delivery orders including customer name, phone number, delivery address, and itemized order details. Read-only access, no other system access.
+- **Manager:** Full access to inventory, low-stock alerts, all reservations and orders for their location, CSV uploads.
+- **Owner:** Full access across all locations.
+- **Server/Host:** View floor plan and update individual table status (occupied / empty / needs cleaning). No access to orders, reservations, or customer data.
 
 ## 6. Assumptions & Dependencies
 
-### 6.1 Technical Dependencies
-- Python 3.11+
-- Django
-- Pytest + pytest-django
-- SQLite (for development)
-- GitHub Actions for CI
+**Technical Dependencies:**
+The project uses a Python-based web framework with a relational database. The full technical stack is documented in the Design Document.
 
-### 6.2 External Dependencies
-- None required.
-- Delivery fees use internal simplified logic (no Google Maps or GPS).
-- Payments are fully simulated (pseudo-payment).
+**External Dependencies:**
+- No external third-party services or APIs are required for this project.
 
-### 6.3 Infrastructure
-- Local development machines with Git for version control.
-- Optional simple hosting platform (e.g., Render free tier) for demonstration only.
+**Infrastructure:**
+- Development on local machines with Git for version control.
+- Deployment: Run locally or on a simple hosting platform for demonstration.
 
 ## 7. Constraints
 
-### 7.1 Time / Schedule
-- Final launch/demo required by **May 25, 2026**.
+**Time/Schedule:**
+- Final launch/demo required by May 25, 2026.
 - All MUST-HAVE features must be functional by this date.
 
-### 7.2 Budget
-- No financial budget. Development uses only free and open-source tools.
+**Budget:**
+- No financial budget allocated, development uses free and open-source tools only.
 
-### 7.3 Technical Limitations
+**Technical Limitations:**
 - No real-time payment gateway or live GPS tracking.
-- Not designed for high concurrent load or horizontal scaling.
-- Data not encrypted at rest beyond SQLite defaults.
-- Maximum party size capped at 20.
+- The system is not designed for high concurrent load.
+- No horizontal scaling or load balancing.
+- Data is not encrypted at rest beyond database defaults.
+- Maximum party size capped at 20; special events handled via direct email to the restaurant.
 - Table layout CSV upload not supported in v1.
 
-### 7.4 Regulatory / Security
-- No formal compliance requirements.
-- Passwords hashed using Django’s PBKDF2 (never stored in plain text).
-- No real payment data persisted.
-- Strong input validation on all forms and CSV uploads.
+**Regulatory/Security:**
+No formal compliance requirements are applicable to the project. The following security validations and methods will be in place:
+- All passwords hashed using Django's default PBKDF2 algorithm, will never be stored in plain text
+- No persistence on any real payment data
+- Strong and secure input validation that is required for all forms and CSV uploads
 
 ## 8. Acceptance Criteria
 
-### 8.1 Functional Completion
-- Reservations can be created, viewed, and cancelled with correct fee logic.
-- Menu displayed with allergen/dietary tags.
-- Orders (dine-in/take-out/delivery) can be placed with correct fees.
+**Functional Completion:**
+- Reservations can be made, viewed, and cancelled (with 3-hour rule noted).
+- Menu displayed with allergen tags.
+- Orders (dine-in/take-out/delivery) can be placed with appropriate fees.
 - Loyalty points earned and redeemed correctly.
-- Inventory levels managed with low-stock alerts for managers.
-- Table status updates work for Server/Host role.
-- Delivery driver can view assigned orders with full details.
-- Guest accounts supported with deposit for reservations.
-- Menu CSV upload works and items appear correctly.
-- Single location fully functional with multi-location design extensibility.
+- Inventory levels can be set and low-stock alerts generated for managers.
+- The system supports single location with future multi-location extensibility in design.
+- Table status updates by server/host role function correctly.
+- Delivery driver view shows assigned orders with correct customer contact info and order details.
+- Guest accounts can make reservations with deposit and place takeout orders.
+- Cancellation fee of $10 applies correctly when cancellation is within 3 hours of reservation time.
+- Admin can upload menu CSV and verify items appear in the system.
 
-### 8.2 Performance & Quality Metrics
+**Performance Metrics:**
 - All Pytest unit and integration tests pass.
-- GitHub Actions CI passes on the `main` branch.
-- **80%+** test coverage on critical business logic.
-- Core endpoints respond under 200ms in local testing.
+- GitHub Actions CI passes on the main branch at time of submission.
+- 80%+ test coverage on all critical business logic.
 
-### 8.3 Documentation
-- Complete `README.md` with setup and usage instructions.
-- Code comments and basic feature documentation.
+**Documentation:**
+- README with setup and usage instructions.
+- Comments in code and basic feature documentation.
 
-### Launch Readiness
-- System ready for demo on May 25, 2026 with all MUST-HAVE features working.
-- All pull requests reviewed and merged to `main`.
-- No failing tests on `main` at final submission.
-- All "[TO BE MADE - WEEK 2]" placeholders replaced with actual files by Week 2.
-
-
+**Launch Readiness:**
+- The system is ready for launch on May 25, 2026, with all MUST-HAVE features working as specified.
+- All pull requests reviewed and merged to main with required approvals.
+- No failing tests on the main branch at time of final submission.
+- All "File [TO BE MADE - WEEK 2]" placeholders in documentation will be replaced with actual files by Week 2.
