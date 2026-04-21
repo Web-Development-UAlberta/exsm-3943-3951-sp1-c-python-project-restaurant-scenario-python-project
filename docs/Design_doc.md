@@ -1,8 +1,8 @@
 # Software Design Document (SDD)
 
-**Project Name:** Restaurant Franchise Reservation & Management System  
-**Submitted by:** Ashray Sikka, Ajay Paterson, Michael Hubel  
-**Date:** Apr 18, 2026  
+**Project Name:** Restaurant Franchise Reservation & Management System
+**Submitted by:** Ashray Sikka, Ajay Paterson, Michael Hubel
+**Date:** Apr 18, 2026
 **Course:** EXSM 3951 - Python Project
 
 
@@ -14,34 +14,7 @@ This system is being built for a restaurant franchise owner who currently has no
 
 ### 1.2 Scope
 
-**In-Scope:**
-- User registration and login for customers, kitchen staff, managers, delivery drivers, and a franchise-level owner account
-- Guest accounts with reservation and takeout support (deposit required for reservations)
-- Table reservation system with a 50x50 grid-based floor plan, date/time selection, and conflict prevention logic
-- Cancellation policy: free cancellation 3+ hours before reservation, $10 fee otherwise. A deposit is always required for reservations including guest accounts
-- Menu browsing with allergen/dietary tags per dish
-- Pre-ordering for dine-in, takeout, and delivery (cutoff: 30 minutes before order needed, cancel-only after commit)
-- Delivery fee structure: $5 within 5km, $10 within 10km, no delivery beyond 10km. Flat $10 fallback if distance calculation is too complex
-- Pseudo-payment processing: Visa and Mastercard only, always auto-approved
-- Loyalty program: 10 points per dollar spent (excluding tax), 1000 points = $10 off, 2000 points = $25 off, no expiry, no partial redemption, max discount $25
-- Kitchen dashboard with FIFO order queue, order status tracking (Received, Preparing, Ready, Delivered), and online order cutoff 30 minutes before closing time
-- Inventory management with per-ingredient min/max levels set by managers, low-stock alerts sent to managers only
-- Branding: trendy, back-to-Earth feel. Color palette to be decided by the team
-- Server/Host accounts with ability to update table status (occupied, empty, needs cleaning) from the floor
-- Delivery driver view showing assigned orders with customer contact info, delivery address, and order details to prevent mix-ups on multi-order runs
-
-**Out-of-Scope:**
-- Real payment processing (no Stripe, PayPal, or actual card charging)
-- SMS or email notifications to customers
-- Special event bookings beyond 20 people (handled via direct email to restaurant)
-- Seating preferences (no smoking/non-smoking distinction, entire restaurant is non-smoking)
-- Multi-language support
-- Mobile app
-- Delivery driver route tracking or third-party delivery integration
-
-**Limitations (Deferred to Phase 2):**
-- Table layout CSV upload is out of scope for v1 due to complexity around existing reservations. Only menu CSV uploads will be supported at launch.
-- Live order status tracking is deferred to a future phase.
+This document covers the technical design and implementation details for the Restaurant Franchise Reservation & Management System. For a full list of in-scope and out-of-scope features, refer to the associated Scope Document.
 
 ### 1.3 Definitions
 
@@ -155,6 +128,23 @@ Since we are using Django with server-rendered templates, most interactions happ
 **Payments**
 - `POST /payments/process/` — Process pseudo-payment (always approved)
 
+### 3.3 Business Logic
+
+**Delivery Fee Calculation**
+
+When a customer enters a delivery address at checkout, the system automatically converts the address to GPS coordinates using OpenStreetMap's Nominatim geocoding service, which is free and requires no API key. Once coordinates are obtained, the Haversine formula calculates the straight-line (birds eye view) distance between the customer's address and the restaurant. This happens automatically without any manual input from the customer.
+
+Distance is calculated as straight-line rather than road distance. This is a deliberate simplification; actual road distance may be longer, but straight-line distance is sufficient for a tiered flat-fee structure at this scale.
+
+**Fee Structure:**
+- Within 5km → $5.00 flat fee
+- Within 10km → $10.00 flat fee
+- Beyond 10km → delivery unavailable, customer is prompted to select takeout instead
+
+**Fallback — Customer Self-Reported Zone:**
+
+If geocoding fails or Nominatim returns no result for the provided address, the customer is prompted to self-report their distance zone via a dropdown menu. The same fee structure above is applied based on their selection. This ensures the checkout flow is never blocked by a geocoding failure.
+
 
 ## 4. User Interface Design
 
@@ -233,7 +223,7 @@ Wireframe Document: File [TO BE MADE - WEEK 2]
 
 ### 6.1 Unit Testing
 
-**Tool:** Pytest with pytest-django  
+**Tool:** Pytest with pytest-django
 **Coverage Goal:** 80%+ on all critical business logic
 
 Priority areas to test:
