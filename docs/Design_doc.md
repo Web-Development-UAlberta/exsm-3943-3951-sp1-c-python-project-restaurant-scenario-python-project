@@ -3,7 +3,7 @@
 **Project Name:** Restaurant Franchise Reservation & Management System
 **Submitted by:** Ashray Sikka, Ajay Paterson, Michael Hubel
 **Date:** Apr 18, 2026
-**Course:** EXSM 3951 Python Project
+**Course:** EXSM 3951 - Python Project
 
 
 ## 1. Introduction
