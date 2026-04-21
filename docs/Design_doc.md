@@ -69,7 +69,7 @@ Diagram Reference: File [TO BE MADE - WEEK 2]
 - **TableLayout:** id, restaurant_id (FK → Restaurant), grid_data (JSON representing the 50x50 matrix), uploaded_at — model defined for v1; CSV upload mechanism deferred to Phase 2
 - **Table:** id, restaurant_id (FK → Restaurant), label, seats, grid_squares (JSON list of x/y coordinates the table occupies), status (occupied / empty / needs_cleaning / reserved)
 - **Reservation:** id, user_id (FK → User, nullable for guests), guest_name, guest_email, guest_phone, table_id (FK → Table), restaurant_id (FK → Restaurant), reserved_at (datetime), party_size, status (confirmed / cancelled), deposit_amount, cancellation_fee_applied, created_at
-- **MenuItem:** id, restaurant_id (FK → Restaurant), name, description, price, category, is_available, tags (JSON list, e.g. ["vegan", "contains nuts"])
+- **MenuItem:** id, restaurant_id (FK → Restaurant), name, description, price, category, is_available, tags (JSON list, e.g. ["vegan", "contains nuts"]), image_url (nullable, stores path or URL to menu item image)
 - **Order:** id, user_id (FK → User, nullable for guests), restaurant_id (FK → Restaurant), reservation_id (FK → Reservation, nullable), order_type (dine-in / takeout / delivery), assigned_driver_id (FK → User, nullable, delivery orders only), delivery_address, delivery_fee, subtotal, loyalty_discount, total_price, payment_status, order_status (received / preparing / ready / delivered), created_at
 - **OrderItem:** id, order_id (FK → Order), menu_item_id (FK → MenuItem), quantity, unit_price, special_instructions
 - **Inventory:** id, restaurant_id (FK → Restaurant), ingredient_name, quantity, unit, min_level, max_level, is_low_stock
@@ -161,7 +161,7 @@ If geocoding fails or Nominatim returns no result for the provided address, the 
 - **Step 4:** Guest info or login prompt, then confirmation
 
 **Menu & Ordering**
-- **Menu Page:** Items grouped by category, allergen/dietary tags visible on each item, add to order button
+- **Menu Page:** Items grouped by category, image displayed per menu item where available, allergen/dietary tags visible on each item, add to order button
 - **Order Summary:** Cart view with order type selector (dine-in/takeout/delivery), delivery address field if delivery, loyalty redemption option, total with fee breakdown
 - **Checkout:** Visa/Mastercard input fields, submit button, confirmation screen
 

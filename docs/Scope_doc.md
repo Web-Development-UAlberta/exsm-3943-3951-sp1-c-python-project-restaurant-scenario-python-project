@@ -35,7 +35,7 @@ The Restaurant Franchise Reservation & Management System is a Python-based backe
 - Guest accounts with reservation and takeout support (deposit required for reservations)
 - Table reservation system with a 50x50 grid-based floor plan, date/time selection, and conflict prevention logic
 - Cancellation policy: free cancellation 3+ hours before reservation, $10 fee otherwise. A deposit is always required for reservations including guest accounts
-- Menu browsing with allergen/dietary tags per dish
+- Menu browsing with images, allergen/dietary tags per dish
 - Pre-ordering for dine-in, takeout, and delivery (cutoff: 30 minutes before order needed, cancel-only after commit)
 - Delivery fee structure: $5 within 5km, $10 within 10km, no delivery beyond 10km. Flat $10 fallback if distance calculation is too complex
 - Pseudo-payment processing: Visa and Mastercard only, always auto-approved
