@@ -64,19 +64,7 @@ Diagram Reference: File [TO BE MADE - WEEK 2]
 
 ### 3.1 Database Schema/Data Models
 
-- **User:** id, first_name, last_name, email, password_hash, phone_number, address, role (customer / kitchen_staff / delivery_driver / server / manager / owner), loyalty_points, is_guest, created_at
-- **Restaurant:** id, name, address, city, phone, email, opening_time, closing_time
-- **TableLayout:** id, restaurant_id (FK → Restaurant), grid_data (JSON representing the 50x50 matrix), uploaded_at — model defined for v1; CSV upload mechanism deferred to Phase 2
-- **Table:** id, restaurant_id (FK → Restaurant), label, seats, grid_squares (JSON list of x/y coordinates the table occupies), status (occupied / empty / needs_cleaning / reserved)
-- **Reservation:** id, user_id (FK → User, nullable for guests), guest_name, guest_email, guest_phone, table_id (FK → Table), restaurant_id (FK → Restaurant), reserved_at (datetime), party_size, status (confirmed / cancelled), deposit_amount, cancellation_fee_applied, created_at
-- **MenuItem:** id, restaurant_id (FK → Restaurant), name, description, price, category, is_available, tags (JSON list, e.g. ["vegan", "contains nuts"])
-- **Order:** id, user_id (FK → User, nullable for guests), restaurant_id (FK → Restaurant), reservation_id (FK → Reservation, nullable), order_type (dine-in / takeout / delivery), assigned_driver_id (FK → User, nullable, delivery orders only), delivery_address, delivery_fee, subtotal, loyalty_discount, total_price, payment_status, order_status (received / preparing / ready / delivered), created_at
-- **OrderItem:** id, order_id (FK → Order), menu_item_id (FK → MenuItem), quantity, unit_price, special_instructions
-- **Inventory:** id, restaurant_id (FK → Restaurant), ingredient_name, quantity, unit, min_level, max_level, is_low_stock
-- **LoyaltyTransaction:** id, user_id (FK → User), order_id (FK → Order), points_earned, points_redeemed, created_at
-- **Payment:** id, order_id (FK → Order), method (visa / mastercard), amount, status (always "approved" for this project), processed_at
-
-Full Schema Reference: File [TO BE MADE - WEEK 2]
+ - Full Schema Reference: Please refer to the ERD.draw.io.png file
 
 ### 3.2 API Endpoints
 
@@ -150,47 +138,7 @@ If geocoding fails or Nominatim returns no result for the provided address, the 
 
 ### 4.1 Wireframes/Views
 
-**Public / Guest**
-- **Home / Landing Page:** Franchise intro, location selector, call-to-action to reserve or order
-- **Location Detail Page:** Restaurant info, hours, link to menu and reservation flow
-
-**Reservation Flow**
-- **Step 1:** Date, time, party size, and location selector
-- **Step 2:** 50x50 grid floor plan with available tables highlighted, click to select
-- **Step 3:** Reservation summary with deposit and cancellation policy displayed
-- **Step 4:** Guest info or login prompt, then confirmation
-
-**Menu & Ordering**
-- **Menu Page:** Items grouped by category, allergen/dietary tags visible on each item, add to order button
-- **Order Summary:** Cart view with order type selector (dine-in/takeout/delivery), delivery address field if delivery, loyalty redemption option, total with fee breakdown
-- **Checkout:** Visa/Mastercard input fields, submit button, confirmation screen
-
-**Customer Dashboard (logged-in only)**
-- Active reservations and orders
-- Loyalty points balance and transaction history
-- Profile and address management
-
-**Kitchen Dashboard (kitchen staff only)**
-- Live FIFO order queue with timestamps
-- Status update buttons: Received → Preparing → Ready → Delivered
-- Visual indicator for orders approaching time
-
-**Delivery Driver View (delivery driver role only)**
-- List of orders assigned to the driver for their current shift
-- Per order: customer name, phone number, delivery address, and itemized order details
-- Visual separation between multiple active orders to prevent mix-ups
-
-**Server / Host View (server role only)**
-- Floor view showing table statuses on the grid
-- Ability to update individual table status: Empty → Occupied → Needs Cleaning → Empty
-
-**Manager / Admin Panel**
-- CSV upload forms for menu
-- Inventory table with current levels, min/max settings, low-stock flags
-- All reservations and orders for their location
-- Low-stock alert list
-
-Wireframe Document: File [TO BE MADE - WEEK 2]
+ - Wireframe Document: Please refer to the Wireframes.draw.io.png file
 
 ### 4.2 Navigation Structure
 
@@ -210,6 +158,16 @@ Wireframe Document: File [TO BE MADE - WEEK 2]
 - **Authentication:** Django's built-in session-based authentication. Users log in with email and password. Sessions are managed server-side via Django's session framework.
 - **Authorization:** RBAC with six roles — Customer, Kitchen Staff, Delivery Driver, Server/Host, Manager, Owner. Django's permission system and custom decorators will restrict access to views based on role. For example, the kitchen dashboard is only accessible to kitchen_staff and manager roles, and the delivery view is only accessible to delivery_driver and manager roles.
 
+    - User Roles & Permissions:
+        - Customer: Register/login, make reservations, pre-order meals, view loyalty points, manage profile.
+        - Guest: Make reservations (deposit required), place takeout orders. No loyalty program access.
+        - Kitchen Staff: View and update order statuses on kitchen dashboard only. No access to reservations or customer data.
+        - Delivery Driver: View assigned delivery orders including customer name, phone number, delivery address, and itemized order details. Read-only access, no other system access.
+        - Manager: Full access to inventory, low-stock alerts, all reservations and orders for their location, CSV uploads.
+        - Owner: Full access across all locations.
+        - Server/Host: View floor plan and update individual table status (occupied / empty / needs cleaning). No access to orders, reservations, or customer data.
+
+
 ### 5.2 Data Protection
 
 - Passwords are hashed using Django's default PBKDF2 algorithm. Never stored in plain text.
@@ -224,7 +182,10 @@ Wireframe Document: File [TO BE MADE - WEEK 2]
 ### 6.1 Unit Testing
 
 **Tool:** Pytest with pytest-django
-**Coverage Goal:** 80%+ on all critical business logic
+**Coverage Goal:**
+- 100% on all critical business logic
+- 80%+ on overall codebase coverage
+
 
 Priority areas to test:
 - Reservation conflict detection (is the table actually free in the time window?)
