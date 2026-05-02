@@ -41,6 +41,7 @@ class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE) # FK exists in OneToOneField here, allows one User to have exactly one Customer record
     phone_number = models.CharField(max_length=50)
     address = models.CharField(max_length=255)
+    loyalty_points = models.IntegerField(default=0)
 
 
 class Inventory(models.Model):
@@ -145,6 +146,8 @@ class Order(models.Model):
     payment_status = models.IntegerField(choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     order_status = models.IntegerField(choices=OrderStatus.choices, default=OrderStatus.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
+    points_earned = models.IntegerField(default=0)
+    points_redeemed = models.IntegerField(default=0)
 
 
 class OrderItem(models.Model):
@@ -165,15 +168,3 @@ class Payment(models.Model):
     transaction_id = models.CharField(max_length=50, unique=True)
     processed_at = models.DateTimeField(auto_now_add=True)
 
-
-class PointsLog(models.Model):
-    class TransactionType (models.IntegerChoices):
-        EARNED = 1
-        REDEEMED = 2
-
-    transaction_type = models.IntegerField(choices=TransactionType.choices)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    points_earned = models.IntegerField(default=0)
-    points_redeemed = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
