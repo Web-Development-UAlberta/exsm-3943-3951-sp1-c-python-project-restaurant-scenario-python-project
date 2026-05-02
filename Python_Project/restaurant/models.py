@@ -73,14 +73,17 @@ class TableLayout(models.Model):
 
 
 class MenuItem(models.Model):
-    restaurants = models.ManyToManyField(Restaurant, related_name='menu_items') 
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True) # if category is deleted, menuItem is just marked as NULL for this field
     name = models.CharField(max_length=100)
     description = models.TextField()
     price = models.DecimalField(max_digits=5, decimal_places=2)
-    is_available = models.BooleanField(default=True)
     image = models.ImageField(upload_to='menu_images/', null=True, blank=True)
 
+
+class RestaurantMenuItem(models.Model):
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    is_available = models.BooleanField(default=True)
 
 class MenuItemTag(models.Model):
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
