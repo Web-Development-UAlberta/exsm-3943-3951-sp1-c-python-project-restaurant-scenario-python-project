@@ -57,6 +57,7 @@ class Table(models.Model):
         AVAILABLE = 1
         OCCUPIED = 2
         RESERVED = 3
+        NEEDS_CLEANING = 4
 
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted so are its tables
     label = models.CharField(max_length=20)
