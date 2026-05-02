@@ -46,10 +46,9 @@ class Customer(models.Model):
 class Inventory(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted, inventory is deleted with it
     ingredient_name = models.CharField(max_length=100)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    current_level = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=20)
-    min_level = models.DecimalField(max_digits=10, decimal_places=2)
-    max_level = models.DecimalField(max_digits=10, decimal_places=2)
+    reorder_level = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     last_updated = models.DateTimeField(auto_now=True) # allows filed to save upon update
 
 
@@ -74,7 +73,7 @@ class TableLayout(models.Model):
 
 
 class MenuItem(models.Model):
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted so is Menu Item
+    restaurants = models.ManyToManyField(Restaurant, related_name='menu_items') 
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True) # if category is deleted, menuItem is just marked as NULL for this field
     name = models.CharField(max_length=100)
     description = models.TextField()
@@ -101,12 +100,10 @@ class Reservation(models.Model):
     guest_name = models.CharField(max_length=255, null=True, blank=True)
     guest_email = models.EmailField(null=True, blank=True)
     guest_phone_number = models.CharField(max_length=100, null=True, blank=True)
-    reservation_date = models.DateField()
-    reservation_time = models.TimeField()
+    reservation_datetime = models.DateTimeField()
     party_size = models.IntegerField()
     status = models.IntegerField(choices=Status.choices, default=Status.PENDING)
     deposit_amount = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('10')) # Decimal('10') used instead of 0 to satisfy DecimalField type requirements
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
     cancellation_fee_applied = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
