@@ -41,15 +41,15 @@ class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE) # FK exists in OneToOneField here, allows one User to have exactly one Customer record
     phone_number = models.CharField(max_length=50)
     address = models.CharField(max_length=255)
+    loyalty_points = models.IntegerField(default=0)
 
 
 class Inventory(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted, inventory is deleted with it
     ingredient_name = models.CharField(max_length=100)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    current_level = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=20)
-    min_level = models.DecimalField(max_digits=10, decimal_places=2)
-    max_level = models.DecimalField(max_digits=10, decimal_places=2)
+    reorder_level = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     last_updated = models.DateTimeField(auto_now=True) # allows filed to save upon update
 
 
@@ -58,6 +58,7 @@ class Table(models.Model):
         AVAILABLE = 1
         OCCUPIED = 2
         RESERVED = 3
+        NEEDS_CLEANING = 4
 
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted so are its tables
     label = models.CharField(max_length=20)
@@ -74,14 +75,17 @@ class TableLayout(models.Model):
 
 
 class MenuItem(models.Model):
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted so is Menu Item
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True) # if category is deleted, menuItem is just marked as NULL for this field
     name = models.CharField(max_length=100)
     description = models.TextField()
     price = models.DecimalField(max_digits=5, decimal_places=2)
-    is_available = models.BooleanField(default=True)
     image = models.ImageField(upload_to='menu_images/', null=True, blank=True)
 
+
+class RestaurantMenuItem(models.Model):
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    is_available = models.BooleanField(default=True)
 
 class MenuItemTag(models.Model):
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
@@ -101,12 +105,10 @@ class Reservation(models.Model):
     guest_name = models.CharField(max_length=255, null=True, blank=True)
     guest_email = models.EmailField(null=True, blank=True)
     guest_phone_number = models.CharField(max_length=100, null=True, blank=True)
-    reservation_date = models.DateField()
-    reservation_time = models.TimeField()
+    reservation_datetime = models.DateTimeField()
     party_size = models.IntegerField()
     status = models.IntegerField(choices=Status.choices, default=Status.PENDING)
     deposit_amount = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('10')) # Decimal('10') used instead of 0 to satisfy DecimalField type requirements
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
     cancellation_fee_applied = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -144,6 +146,8 @@ class Order(models.Model):
     payment_status = models.IntegerField(choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
     order_status = models.IntegerField(choices=OrderStatus.choices, default=OrderStatus.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
+    points_earned = models.IntegerField(default=0)
+    points_redeemed = models.IntegerField(default=0)
 
 
 class OrderItem(models.Model):
@@ -164,15 +168,3 @@ class Payment(models.Model):
     transaction_id = models.CharField(max_length=50, unique=True)
     processed_at = models.DateTimeField(auto_now_add=True)
 
-
-class PointsLog(models.Model):
-    class TransactionType (models.IntegerChoices):
-        EARNED = 1
-        REDEEMED = 2
-
-    transaction_type = models.IntegerField(choices=TransactionType.choices)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    points_earned = models.IntegerField(default=0)
-    points_redeemed = models.IntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
