@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4 # this step installs python on the virtual machine (as it is a 'new' machine each time)
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
         # will be upgraing pip to the latest version and then installing our 'requirements.txt' to the virtual machine
       - name: Install dependencies 
@@ -28,4 +28,4 @@ jobs:
         # this will run our test suite using pytest and show if it is pass or fail
       - name: Run tests
         run: |
-          pytest
+          cd Python_Project && pytest
