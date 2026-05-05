@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Restaurant, User
-from.forms import RestaurantForm
+from .models import Restaurant, User, Category
+from.forms import RestaurantForm, CategoryForm
 
 def restaurant_list(request):
     restaurants = Restaurant.objects.all()
@@ -46,3 +46,41 @@ def restaurant_toggle_active(request, pk):
         restaurant.is_active = not restaurant.is_active
         restaurant.save()
     return redirect('restaurant_detail', pk=pk)
+
+
+ #===========Categories==========#
+def category_list(request):
+    categories = Category.objects.all()
+    return render(request, 'restaurant/category_list.html', {'categories': categories})
+
+def category_detail(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    return render(request, 'restaurant/category_detail.html', {'category':category})
+
+def category_create(request):
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save() 
+            return redirect('category_list')
+    else:
+        form = CategoryForm()
+    return render(request, 'restaurant/category_form.html', {'form': form})
+
+def category_edit(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            return redirect ('category_list')
+    else:
+        form = CategoryForm(instance=category)
+    return render(request, 'restaurant/category_form.html', {'form': form})
+
+def category_confirm_delete(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    if request.method == 'POST':
+        category.delete()
+        return redirect('category_list')
+    return render(request, 'restaurant/category_confirm_delete.html', {'category': category})
