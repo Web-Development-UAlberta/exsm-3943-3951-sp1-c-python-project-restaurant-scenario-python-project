@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<ul>
+    {% for restaurant in restaurants %}
+    <li>
+        <a href="{% url 'restaurant_detail' restaurant.pk %}">{{restaurant.name}}</a>
+    </li>
+    {% endfor %}
+</ul>
+<a href="{% url 'restaurant_create' %}">Add New Restaurant</a>
+{% endblock %}

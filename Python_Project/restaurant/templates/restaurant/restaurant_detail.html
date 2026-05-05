@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{restaurant.name}}</h1>
+    <p>Manager: {{restaurant.user}}</p>
+    <p>Address: {{restaurant.address}}</p>
+    <p>Phone Number: {{restaurant.phone_number}}</p>
+    <p>Opening Time: {{restaurant.opening_time}}</p>
+    <p>Closing Time: {{restaurant.closing_time}}</p>
+    <p>Latitude: {{restaurant.latitude}}</p>
+    <p>Longitude: {{restaurant.longitude}}</p>
+    <a href="{% url 'restaurant_edit' restaurant.pk %}">Edit</a>
+    <form action="{% url 'restaurant_confirm_delete' restaurant.pk%}" method="post">
+        {% csrf_token %}
+        <button type="submit">Delete</button>
+    </form>
+
+{% endblock %}
