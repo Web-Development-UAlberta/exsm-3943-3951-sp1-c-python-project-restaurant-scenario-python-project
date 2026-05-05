@@ -1,0 +1,34 @@
+{% extends 'base.html' %} {# Inheriting the base template which contains the header, footer, and nav #}
+
+{% block title %}Confirm Delete | Urban Spark{% endblock %}
+
+{% block content %}
+
+    <div class="confirm-box">
+
+        {% if restaurant %} {# Checks if a restaurant object was passed to the template #}
+            <h2>Delete Restaurant</h2>
+            <p>Are you sure you want to delete <strong>{{ restaurant.name }}</strong>? This will also delete all tables, inventory, and menu items associated with this location.</p>
+
+        {% elif staff_invite %} {# Checks if a staff invite object was passed to the template #}
+            <h2>Delete Staff Invite</h2>
+            <p>Are you sure you want to delete the staff invite for <strong>{{ staff_invite.email }}</strong>? This will revoke their access to sign up.</p>
+
+        {% endif %}
+
+        <div class="confirm-actions"> {# Lines up the confirm and cancel buttons in a horizontal row #}
+            <form method="POST">
+                {% csrf_token %} {# Django's built-in protection against cross-site request forgery attacks #}
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            </form>
+
+            {% if restaurant %}
+                <a href="{% url 'restaurant_list' %}" class="btn btn-secondary">Cancel</a>
+            {% elif staff_invite %}
+                <a href="#" class="btn btn-secondary">Cancel</a>
+            {% endif %}
+        </div>
+
+    </div>
+
+{% endblock %}

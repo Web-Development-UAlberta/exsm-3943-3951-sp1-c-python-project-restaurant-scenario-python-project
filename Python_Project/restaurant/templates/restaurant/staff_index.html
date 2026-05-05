@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+<main>
+    <section class="start-box">
+        <h2>Welcome, {{ request.user.first_name }}!</h2>
+        <p>Urban Spark Staff Dashboard</p>
+    </section>
+
+    <section class="quick-links">
+        <h3>Your Dashboard</h3>
+        <ul>
+            {% if request.user.role == 1 %}
+                <li><a href="{% url 'manager_view' %}">Manager Panel</a></li>
+            {% elif request.user.role == 2 %}
+                <li><a href="{% url 'server_host_view' %}">Floor View</a></li>
+            {% elif request.user.role == 3 %}
+                <li><a href="{% url 'kitchen_view' %}">Kitchen Dashboard</a></li>
+            {% elif request.user.role == 4 %}
+                <li><a href="{% url 'driver_view' %}">My Deliveries</a></li>
+            {% elif request.user.role == 6 %}
+                <li><a href="{% url 'owner_view' %}">Owner Panel</a></li>
+            {% endif %}
+        </ul>
+    </section>
+</main>
+
+{% endblock %}
