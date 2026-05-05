@@ -1,0 +1,31 @@
+name: CI # name of this workflow - I named it Continuous Integration (CI)
+
+on:
+  push:
+    branches: [main] # works whenever code is pushed to the main branch
+  pull_request:
+    branches: [main] # or pushed to a branch affecting main
+
+jobs:
+  test: # first job is running tests
+    runs-on: ubuntu-latest # it runs the tests on virtual ubuntu machine on cloud
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # this step downloads our repo onto the virtual machine
+
+      - name: Set up Python
+        uses: actions/setup-python@v4 # this step installs python on the virtual machine (as it is a 'new' machine each time)
+        with:
+          python-version: '3.12'
+
+        # will be upgraing pip to the latest version and then installing our 'requirements.txt' to the virtual machine
+      - name: Install dependencies 
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+        # this will run our test suite using pytest and show if it is pass or fail
+      - name: Run tests
+        run: |
+          cd Python_Project && pytest
