@@ -15,14 +15,23 @@ class User(AbstractUser):
     role = models.IntegerField(choices=Role.choices) # uses chocies defined in subclass Role
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.name
+
 
 class Tag(models.Model):
     name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
 
 
 class Restaurant(models.Model):
@@ -36,12 +45,17 @@ class Restaurant(models.Model):
     longitude = models.DecimalField(max_digits=8, decimal_places=6)
     is_active = models.BooleanField(default=True) # Restaurant defaults to active as soon as it's created
 
+    def __str__(self):
+        return self.name
 
 class Customer(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE) # FK exists in OneToOneField here, allows one User to have exactly one Customer record
     phone_number = models.CharField(max_length=50)
     address = models.CharField(max_length=255)
     loyalty_points = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.first_name} {self.user.last_name}"
 
 
 class Inventory(models.Model):
@@ -66,6 +80,8 @@ class Table(models.Model):
     grid_squares = models.JSONField()
     status = models.IntegerField(choices=Status.choices, default=Status.AVAILABLE) # as soon as a new table is created, it's made AVAILABLE.  Uses subclass Status as choices
 
+    def __str__(self):
+        return f'{self.label} - {self.restaurant}'
 
 class TableLayout(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted so is its table layout
@@ -80,6 +96,9 @@ class MenuItem(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=5, decimal_places=2)
     image = models.ImageField(upload_to='menu_images/', null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class RestaurantMenuItem(models.Model):
@@ -111,6 +130,9 @@ class Reservation(models.Model):
     deposit_amount = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('10')) # Decimal('10') used instead of 0 to satisfy DecimalField type requirements
     cancellation_fee_applied = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Reservation {self.id} - {self.restaurant}'
 
 
 class Order(models.Model):
@@ -148,6 +170,9 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     points_earned = models.IntegerField(default=0)
     points_redeemed = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f'Order {self.id} - {self.restaurant}'
 
 
 class OrderItem(models.Model):
