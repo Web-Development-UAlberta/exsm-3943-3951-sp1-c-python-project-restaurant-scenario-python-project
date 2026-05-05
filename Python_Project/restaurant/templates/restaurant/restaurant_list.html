@@ -1,10 +1,16 @@
 {% extends 'base.html' %}
 
+{% block title %}
+    Restaurants
+{% endblock %}
+ 
 {% block content %}
 <ul>
     {% for restaurant in restaurants %}
     <li>
-        <a href="{% url 'restaurant_detail' restaurant.pk %}">{{restaurant.name}}</a>
+        <a href="{% url 'restaurant_detail' restaurant.pk %}">{{restaurant.name}}</a> 
+        - {{restaurant.address}}
+        {% if restaurant.is_active %} (Active) {% else %} (Inactive) {% endif %}
     </li>
     {% endfor %}
 </ul>

@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Restaurant
+from .models import Restaurant, User
 from.forms import RestaurantForm
 
 def restaurant_list(request):
@@ -33,12 +33,16 @@ def restaurant_edit(request, pk):
         form = RestaurantForm(instance=restaurant)
     return render(request, 'restaurant/restaurant_form.html', {'form': form})
 
-def restaurant_delete(request, pk):
+def restaurant_confirm_delete(request, pk):
     restaurant = get_object_or_404(Restaurant, pk=pk)
     if request.method == 'POST':
         restaurant.delete()
         return redirect('restaurant_list')
     return render(request, 'restaurant/restaurant_confirm_delete.html', {'restaurant': restaurant})
 
-        
-
+def restaurant_toggle_active(request, pk):
+    restaurant = get_object_or_404(Restaurant, pk=pk)
+    if request.user.role == User.Role.MANAGER:
+        restaurant.is_active = not restaurant.is_active
+        restaurant.save()
+    return redirect('restaurant_detail', pk=pk)
