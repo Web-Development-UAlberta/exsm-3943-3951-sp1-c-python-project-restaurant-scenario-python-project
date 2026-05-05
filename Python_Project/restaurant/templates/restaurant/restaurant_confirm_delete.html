@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Delete Restaurant
+{% endblock%}
+
+{% block content %}
+<h1>Delete Restaurant</h1>
+<p>Are you sure you want to delete {{restaurant.name}}?</p>
+<form action="{% url 'restaurant_confirm_delete' restaurant.pk %}" method="post">
+    {% csrf_token %}
+    <button type="submit">Delete</button>
+</form>
+<a href="{% url 'restaurant_list' %}">Cancel</a>
+{% endblock %}
