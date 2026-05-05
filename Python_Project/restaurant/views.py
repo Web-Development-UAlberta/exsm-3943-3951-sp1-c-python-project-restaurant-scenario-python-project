@@ -44,7 +44,12 @@ def confirm_delete(request, pk):
     if request.method == 'POST':
         restaurant.delete()
         return redirect('restaurant_list')
-    return render(request, 'restaurant/confirm_delete.html', {'restaurant': restaurant})
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Restaurant',
+        'object_display': restaurant.name,
+        'cancel_url': 'restaurant_list',
+        'delete_url': request.path
+    })
 
 def restaurant_toggle_active(request, pk):
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
