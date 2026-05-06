@@ -4,6 +4,7 @@ from django.contrib.auth import login as auth_login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from restaurant import forms
+from django.urls import reverse
 
 
 def restaurant_list(request):
@@ -47,7 +48,7 @@ def confirm_delete(request, pk):
     return render(request, 'restaurant/confirm_delete.html', {
         'object_name': 'Restaurant',
         'object_display': restaurant.name,
-        'cancel_url': 'restaurant_list',
+        'cancel_url': reverse('restaurant_list'),
         'delete_url': request.path
     })
 
