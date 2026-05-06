@@ -10,6 +10,7 @@ class User(AbstractUser):
             KITCHEN_STAFF = 3
             DELIVERY_DRIVER = 4
             CUSTOMER = 5
+            OWNER = 6
 
     email = models.EmailField() # field type contains email validation
     role = models.IntegerField(choices=Role.choices) # uses chocies defined in subclass Role
@@ -41,8 +42,8 @@ class Restaurant(models.Model):
     phone_number = models.CharField(max_length=20)
     opening_time = models.TimeField()
     closing_time = models.TimeField()
-    latitude = models.DecimalField(max_digits=8, decimal_places=6)
-    longitude = models.DecimalField(max_digits=8, decimal_places=6)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=10, decimal_places=6)
     is_active = models.BooleanField(default=True) # Restaurant defaults to active as soon as it's created
 
     def __str__(self):
@@ -57,6 +58,14 @@ class Customer(models.Model):
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"
 
+class StaffInvite(models.Model):
+    email = models.EmailField(unique=True)
+    role = models.IntegerField(choices=User.Role.choices)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} - {self.get_role_display()}"
 
 class Inventory(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE) # if restaurant is deleted, inventory is deleted with it

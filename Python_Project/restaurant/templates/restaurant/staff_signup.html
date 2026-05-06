@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Sign Up | Urban Spark{% endblock %}
+
+{% block content %}
+
+    <div class="auth-box"> {# Will be using the names in the css file for editing #}
+        <h2>Staff Sign Up</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p class="auth-message {{ message.tags }}">{{ message }}</p> {# Will be using the 'tags' in the css file for editing #}
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="auth-button">Sign Up</button>
+        </form>
+
+        <p class="auth-redirect">Already have an account? <a href="{% url 'staff_login' %}">Login</a></p>
+    </div>
+
+{% endblock %}
