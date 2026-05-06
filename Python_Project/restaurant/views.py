@@ -284,7 +284,6 @@ def staff_list(request):
     return render(request, 'restaurant/staff_list.html', context)
 
 
-<<<<<<< Updated upstream
 
 #===========Categories==========#
 def category_list(request):
@@ -395,7 +394,6 @@ def tag_confirm_delete(request, pk):
         'cancel_url': reverse('tag_list'),
         'delete_url': request.path
         })
-=======
 @login_required
 @user_passes_test(is_manager_or_owner)
 def staff_detail(request, pk):
@@ -502,4 +500,3 @@ def update_order_status(request, order_id):
         'status_choices': models.Order.OrderStatus.choices,
     }
     return render(request, 'restaurant/update_order_status.html', context)
->>>>>>> Stashed changes

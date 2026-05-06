@@ -20,7 +20,6 @@ urlpatterns = [
     path('restaurant/kitchen/', views.kitchen_view, name='kitchen_view'),
     path('restaurant/driver/', views.driver_view, name='driver_view'),
     path('restaurant/owner/', views.owner_view, name='owner_view'),
-<<<<<<< Updated upstream
     #======== Category ========
     path('category/', views.category_list, name='category_list'),
     path('category/<int:pk>/', views.category_detail, name='category_detail'),
@@ -33,7 +32,6 @@ urlpatterns = [
     path('tag/new/', views.tag_create, name='tag_create'),
     path('tag/<int:pk>/edit/', views.tag_edit, name='tag_edit'),
     path('tag/<int:pk>/delete/', views.tag_confirm_delete, name='tag_confirm_delete'),
-=======
 
     # ====================== STAFF BUSINESS LOGIC ======================
     path('staff/', views.staff_list, name='staff_list'),
@@ -43,5 +41,4 @@ urlpatterns = [
 
     # ====================== SERVER/HOST TABLE MANAGEMENT ======================
     path('tables/<int:table_id>/update_status/', views.update_table_status, name='update_table_status'),
->>>>>>> Stashed changes
 ]
