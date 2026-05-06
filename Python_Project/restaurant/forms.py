@@ -40,3 +40,8 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         model = models.Category
         fields = ['name']
+
+class TableForm(forms.ModelForm):
+    class Meta:
+        model = models.Table
+        fields = ['label', 'seats']

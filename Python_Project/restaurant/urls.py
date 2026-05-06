@@ -25,4 +25,9 @@ urlpatterns = [
     path('category/new/', views.category_create, name='category_create'),
     path('category/<int:pk>/edit/', views.category_edit, name='category_edit'),
     path('category/<int:pk>/delete/', views.confirm_delete, name='confirm_delete'),
+    path('restaurant/<int:restaurant_pk/table/', views.table_list, name='table_list'),
+    path('table/<int:pk>/', views.table_detail, name='table_detail'),
+    path('restaurant/<int:restaurant_pk>/table/new/', views.table_create, name='table_create'),
+    path('table/<int:pk>/edit/', views.table_edit, name='table_edit'),
+    path('table/<int:pk>/delete/', views.table_confirm_delete, name='table_confirm_delete'),
 ]

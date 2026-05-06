@@ -313,3 +313,65 @@ def category_confirm_delete(request, pk):
         'cancel_url': reverse('category_list'),
         'delete_url': request.path
         })
+    
+    
+#=========== Table ==========
+
+def table_list(request, restaurant_pk):
+    """takes in restaurant_pk as context identifier for referencing tables  belonging to specific restaurant"""
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+    tables = models.Table.objects.filter(restaurant=restaurant)
+    return render(request, 'restaurant/table_list.html', {'tables': tables, 'restaurant':restaurant})
+
+def table_detail(request, pk):
+    table = get_object_or_404(models.Table, pk=pk)
+    return render(request, 'restaurant/table_detail.html', {'table':table})
+
+@login_required
+def table_create(request, restaurant_pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('table_list')
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk) # grabs pk of restaurant and assings uses it during table add
+    if request.method == 'POST':
+        form = forms.TableForm(request.POST)
+        if form.is_valid():
+            table = form.save(commit=False) # builds object but doesn't save yet
+            table.restaurant = restaurant # pulled from restaurant_pk
+            table.grid_squares = []
+            table.save() # will write to database now with the update
+            return redirect('table_list')
+    else:
+        form = forms.TableForm()
+    return render(request, 'restaurant/table_create.html', {'form': form})
+
+@login_required
+def table_edit(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('restaurant_list')
+    table = get_object_or_404(models.Table, pk=pk)
+    if request.method == 'POST':
+        form = forms.TableForm(request.POST, instance=table)
+        if form.is_valid():
+            form.save()
+            return redirect ('table_list')
+    else:
+        form = forms.TableForm(instance=table)
+    return render(request, 'restaurant/table_create.html', {'form': form})
+
+@login_required
+def table_confirm_delete(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('restaurant_list')
+    table = get_object_or_404(models.Table, pk=pk)
+    if request.method == 'POST':
+        table.delete()
+        return redirect('table_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Table',
+        'object_display': table.label,
+        'cancel_url': reverse('table_list'),
+        'delete_url': request.path
+    })
