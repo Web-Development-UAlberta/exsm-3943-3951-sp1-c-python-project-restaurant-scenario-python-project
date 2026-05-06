@@ -1,10 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from restaurant import models
 from django.contrib.auth import login as auth_login, logout, authenticate
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from restaurant import forms
 from django.urls import reverse
+from django.db.models import Q
 
 
 def restaurant_list(request):
@@ -209,23 +210,40 @@ def manager_view(request):
     
     return render(request, 'restaurant/manager_view.html')
 
-# View for the Server/Host (role 2)
+# View for the Server/Host (role 2) - 
 @login_required
 def server_host_view(request):
     if request.user.role != models.User.Role.SERVER_HOST and request.user.role != models.User.Role.OWNER:
         messages.error(request, 'Unauthorized User, Access Denied!')
         return redirect('staff_index')
     
-    return render(request, 'restaurant/server_host_view.html')
+    # Fetch tables for the server/host dashboard
+    tables = models.Table.objects.all().order_by('label')
+    
+    context = {
+        'tables': tables,
+    }
+    return render(request, 'restaurant/server_host_view.html', context)
 
-# View for the Kitchen Staff (role 3)
+# View for the Kitchen Staff (role 3) - IMPROVED
 @login_required
 def kitchen_view(request):
     if request.user.role != models.User.Role.KITCHEN_STAFF and request.user.role != models.User.Role.OWNER:
         messages.error(request, 'Unauthorized User, Access Denied!')
         return redirect('staff_index')
     
-    return render(request, 'restaurant/kitchen_view.html')
+    # Fetch pending and preparing orders for kitchen
+    orders = models.Order.objects.filter(
+        order_status__in=[
+            models.Order.OrderStatus.PENDING,
+            models.Order.OrderStatus.PREPARING
+        ]
+    ).order_by('created_at')
+    
+    context = {
+        'orders': orders,
+    }
+    return render(request, 'restaurant/kitchen_view.html', context)
 
 # View for Delivery driver (role 4)
 @login_required
@@ -247,18 +265,26 @@ def owner_view(request):
     return render(request, 'restaurant/owner_view.html')
     
 
-# View to add staff from admin panel
-#@login_required
-#def add_staff(request):
+# ====================== NEW STAFF BUSINESS LOGIC ======================
+
+def is_manager_or_owner(user):
+    """Helper function - only managers and owners can manage staff"""
+    return user.role in [models.User.Role.MANAGER, models.User.Role.OWNER]
 
 
-# View to place an order
-#@login_required
-# def order_create(request)
+@login_required
+@user_passes_test(is_manager_or_owner)
+def staff_list(request):
+    """List all staff members with shift info and status"""
+    staff_members = models.User.objects.exclude(role=models.User.Role.CUSTOMER).order_by('role', 'first_name')
+    context = {
+        'staff_members': staff_members,
+        'total_staff': staff_members.count()
+    }
+    return render(request, 'restaurant/staff_list.html', context)
 
-# View to book a table
-# def book_table(request)
 
+<<<<<<< Updated upstream
 
 #===========Categories==========#
 def category_list(request):
@@ -369,3 +395,111 @@ def tag_confirm_delete(request, pk):
         'cancel_url': reverse('tag_list'),
         'delete_url': request.path
         })
+=======
+@login_required
+@user_passes_test(is_manager_or_owner)
+def staff_detail(request, pk):
+    """Detailed view of individual staff member + assigned orders"""
+    staff = get_object_or_404(models.User, pk=pk)
+    assigned_orders = models.Order.objects.filter(
+        Q(assigned_server=staff) | Q(assigned_driver=staff)
+    ).order_by('-created_at')
+    
+    context = {
+        'staff': staff,
+        'assigned_orders': assigned_orders,
+    }
+    return render(request, 'restaurant/staff_detail.html', context)
+
+
+@login_required
+def assign_server_to_order(request, order_id):
+    """Business logic: Assign a server to a specific order"""
+    order = get_object_or_404(models.Order, id=order_id)
+    
+    if request.method == 'POST':
+        server_id = request.POST.get('server_id')
+        server = get_object_or_404(models.User, id=server_id, role=models.User.Role.SERVER_HOST)
+        
+        order.assigned_server = server
+        order.save()
+        
+        messages.success(request, f"Order #{order.id} assigned to {server.get_full_name() or server.username}")
+        return redirect('kitchen_view')
+    
+    # GET request - show available servers
+    available_servers = models.User.objects.filter(
+        role=models.User.Role.SERVER_HOST,
+        is_active_staff=True
+    )
+    
+    context = {
+        'order': order,
+        'servers': available_servers,
+    }
+    return render(request, 'restaurant/assign_server.html', context)
+
+
+# ====================== SERVER/HOST TABLE MANAGEMENT ======================
+
+@login_required
+def update_table_status(request, table_id):
+    """Server/Host can update table status (Available, Occupied, Reserved, Needs Cleaning)"""
+    table = get_object_or_404(models.Table, id=table_id)
+    
+    # Only Server/Host, Manager, or Owner allowed
+    allowed_roles = [
+        models.User.Role.SERVER_HOST, 
+        models.User.Role.MANAGER, 
+        models.User.Role.OWNER
+    ]
+    if request.user.role not in allowed_roles:
+        messages.error(request, 'Unauthorized - Only Server/Host or Manager can update tables')
+        return redirect('server_host_view')
+
+    if request.method == 'POST':
+        new_status = int(request.POST.get('status'))
+        table.status = new_status
+        table.save()
+        messages.success(request, f'Table {table.label} status updated to {table.get_status_display()}')
+        return redirect('server_host_view')
+    
+    # GET request - show form
+    context = {
+        'table': table,
+        'status_choices': models.Table.Status.choices,
+    }
+    return render(request, 'restaurant/update_table_status.html', context)
+
+
+# ====================== KITCHEN STAFF ORDER MANAGEMENT ======================
+
+@login_required
+def update_order_status(request, order_id):
+    """Kitchen Staff can update order status (Pending → Preparing → Ready → Completed)"""
+    order = get_object_or_404(models.Order, id=order_id)
+    
+    # Only Kitchen Staff, Manager, or Owner allowed
+    allowed_roles = [
+        models.User.Role.KITCHEN_STAFF, 
+        models.User.Role.MANAGER, 
+        models.User.Role.OWNER
+    ]
+    if request.user.role not in allowed_roles:
+        messages.error(request, 'Unauthorized - Only Kitchen Staff or Manager can update orders')
+        return redirect('kitchen_view')
+
+    if request.method == 'POST':
+        new_status = int(request.POST.get('status'))
+        order.order_status = new_status
+        order.save()
+        messages.success(request, f'Order #{order.id} status updated to {order.get_order_status_display()}')
+        return redirect('kitchen_view')
+    
+    # GET request - show form
+    context = {
+        'order': order,
+        'status_choices': models.Order.OrderStatus.choices,
+    }
+    return render(request, 'restaurant/update_order_status.html', context)
+>>>>>>> Stashed changes

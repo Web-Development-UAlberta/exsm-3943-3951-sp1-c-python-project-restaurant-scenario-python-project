@@ -16,6 +16,12 @@ class User(AbstractUser):
     role = models.IntegerField(choices=Role.choices) # uses chocies defined in subclass Role
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # === STAFF BUSINESS FIELDS (Michael - Week 4) ===
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    shift_start = models.TimeField(blank=True, null=True)
+    shift_end = models.TimeField(blank=True, null=True)
+    is_active_staff = models.BooleanField(default=True)
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
