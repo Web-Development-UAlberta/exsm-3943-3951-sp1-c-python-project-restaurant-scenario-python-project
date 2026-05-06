@@ -17,6 +17,9 @@ def restaurant_detail(request, pk):
 
 
 def restaurant_create(request):
+    if request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('restaurant_list')
     if request.method == 'POST':
         form = forms.RestaurantForm(request.POST)
         if form.is_valid():
@@ -29,6 +32,9 @@ def restaurant_create(request):
     return render(request, 'restaurant/restaurant_create.html', {'form': form})
 
 def restaurant_edit(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('restaurant_list')
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
     if request.method == 'POST':
         form = forms.RestaurantForm(request.POST, instance=restaurant)
@@ -40,7 +46,9 @@ def restaurant_edit(request, pk):
     return render(request, 'restaurant/restaurant_create.html', {'form': form})
 
 def confirm_delete(request, pk):
-    #just using it for restaurant at the moment, will be using it for more as we me move along
+    if request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('restaurant_list')
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
     if request.method == 'POST':
         restaurant.delete()
@@ -54,10 +62,11 @@ def confirm_delete(request, pk):
 
 def restaurant_toggle_active(request, pk):
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
-    if request.user.role == models.User.Role.MANAGER:
+    if request.user.role == models.User.Role.MANAGER or request.user.role == models.User.Role.OWNER:
         restaurant.is_active = not restaurant.is_active
         restaurant.save()
     return redirect('restaurant_detail', pk=pk)
+
 
 
 # View to display the homepage of the web-app for customers
@@ -250,3 +259,57 @@ def owner_view(request):
 # View to book a table
 # def book_table(request)
 
+
+#===========Categories==========#
+def category_list(request):
+    categories = models.Category.objects.all()
+    return render(request, 'restaurant/category_list.html', {'categories': categories})
+
+def category_detail(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    return render(request, 'restaurant/category_detail.html', {'category':category})
+
+@login_required
+def category_create(request):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('category_list')
+    if request.method == 'POST':
+        form = forms.CategoryForm(request.POST)
+        if form.is_valid():
+            form.save() 
+            return redirect('category_list')
+    else:
+        form = forms.CategoryForm()
+    return render(request, 'restaurant/category_form.html', {'form': form})
+
+@login_required
+def category_edit(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('category_list')
+    category = get_object_or_404(models.Category, pk=pk)
+    if request.method == 'POST':
+        form = forms.CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            return redirect ('category_list')
+    else:
+        form = forms.CategoryForm(instance=category)
+    return render(request, 'restaurant/category_form.html', {'form': form})
+
+@login_required
+def category_confirm_delete(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('category_list')
+    category = get_object_or_404(models.Category, pk=pk)
+    if request.method == 'POST':
+        category.delete()
+        return redirect('category_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Category',
+        'object_display': category.name,
+        'cancel_url': reverse('category_list'),
+        'delete_url': request.path
+        })

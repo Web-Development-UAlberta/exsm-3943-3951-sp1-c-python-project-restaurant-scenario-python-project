@@ -35,3 +35,8 @@ class AddStaffForm(forms.ModelForm):
     class Meta:
         model = models.StaffInvite
         fields = ['email', 'role']
+        
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = models.Category
+        fields = ['name']
