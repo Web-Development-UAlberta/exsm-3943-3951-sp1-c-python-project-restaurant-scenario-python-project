@@ -40,3 +40,8 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         model = models.Category
         fields = ['name']
+
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = models.Tag
+        fields = ['name']
