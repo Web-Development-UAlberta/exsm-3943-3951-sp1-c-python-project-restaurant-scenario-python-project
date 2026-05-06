@@ -1,6 +1,4 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import Restaurant, User, Category
-from.forms import RestaurantForm, CategoryForm
 from restaurant import models
 from django.contrib.auth import login as auth_login, logout, authenticate
 from django.contrib.auth.decorators import login_required
@@ -62,42 +60,7 @@ def restaurant_toggle_active(request, pk):
     return redirect('restaurant_detail', pk=pk)
 
 
- #===========Categories==========#
-def category_list(request):
-    categories = Category.objects.all()
-    return render(request, 'restaurant/category_list.html', {'categories': categories})
 
-def category_detail(request, pk):
-    category = get_object_or_404(Category, pk=pk)
-    return render(request, 'restaurant/category_detail.html', {'category':category})
-
-def category_create(request):
-    if request.method == 'POST':
-        form = CategoryForm(request.POST)
-        if form.is_valid():
-            form.save() 
-            return redirect('category_list')
-    else:
-        form = CategoryForm()
-    return render(request, 'restaurant/category_form.html', {'form': form})
-
-def category_edit(request, pk):
-    category = get_object_or_404(Category, pk=pk)
-    if request.method == 'POST':
-        form = CategoryForm(request.POST, instance=category)
-        if form.is_valid():
-            form.save()
-            return redirect ('category_list')
-    else:
-        form = CategoryForm(instance=category)
-    return render(request, 'restaurant/category_form.html', {'form': form})
-
-def category_confirm_delete(request, pk):
-    category = get_object_or_404(Category, pk=pk)
-    if request.method == 'POST':
-        category.delete()
-        return redirect('category_list')
-    return render(request, 'restaurant/category_confirm_delete.html', {'category': category})
 # View to display the homepage of the web-app for customers
 def customer_index(request):
     return render(request, 'restaurant/customer_index.html')
@@ -288,3 +251,45 @@ def owner_view(request):
 # View to book a table
 # def book_table(request)
 
+
+#===========Categories==========#
+def category_list(request):
+    categories = models.Category.objects.all()
+    return render(request, 'restaurant/category_list.html', {'categories': categories})
+
+def category_detail(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    return render(request, 'restaurant/category_detail.html', {'category':category})
+
+def category_create(request):
+    if request.method == 'POST':
+        form = forms.CategoryForm(request.POST)
+        if form.is_valid():
+            form.save() 
+            return redirect('category_list')
+    else:
+        form = forms.CategoryForm()
+    return render(request, 'restaurant/category_form.html', {'form': form})
+
+def category_edit(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    if request.method == 'POST':
+        form = forms.CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            return redirect ('category_list')
+    else:
+        form = forms.CategoryForm(instance=category)
+    return render(request, 'restaurant/category_form.html', {'form': form})
+
+def category_confirm_delete(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    if request.method == 'POST':
+        category.delete()
+        return redirect('category_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Category',
+        'object_display': category.name,
+        'cancel_url': reverse('category_list'),
+        'delete_url': request.path
+        })
