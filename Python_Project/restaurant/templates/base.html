@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>{% block title %} Urban Spark {% endblock %}</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="preconnect" href="https://fonts.googleapis.com"> {# Connecting google fonts to load successfully into my template #}
+        <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="{% static 'restaurant/style.css' %}">
+        <link rel="icon" href="{% static 'restaurant/Images/icon.jpg' %}">
+    </head>
+    <body>
+        <header>
+            <img src="{% static 'restaurant/Images/logo.png' %}" alt="Urban Spark Logo" width="120">
+            <h1>Urban Spark</h1>
+            <nav> 
+                <ul>
+                    <li><a href="{% url 'index' %}">Home</a></li>
+                    <li><a href="#">Place an Order</a></li>
+                    {# Will be showing the 'login' button to the logged out customers #}
+                    {% if user.is_authenticated %}
+                        <li class="logout-button"><a href="{% url 'user_logout' %}">Logout</a></li>
+                    {% else %}
+                        <li class="logout-button"><a href="{% url 'customer_login' %}">Login</a></li>
+                        <li><a href="{% url 'staff_login' %}">Staff View</a></li>
+                    {% endif %} 
+                </ul>
+            </nav>
+        </header>
+        {% block content %}
+        {% endblock %} 
+        <footer>
+            <p>&copy; 2026 Urban Spark. All rights reserved.</p>
+            <p>Last Updated on: <time datetime="2026-05-01">May 01, 2026</time></p>
+        </footer>
+    </body>
+</html>
