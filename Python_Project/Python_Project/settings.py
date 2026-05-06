@@ -117,6 +117,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-LOGIN_URL = 'login'
+LOGIN_URL = 'customer_login'
 
 AUTH_USER_MODEL = 'restaurant.User'
