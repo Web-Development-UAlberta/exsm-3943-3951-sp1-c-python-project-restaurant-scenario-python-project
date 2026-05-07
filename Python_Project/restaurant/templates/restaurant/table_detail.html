@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Table Details
+{% endblock %}
+
+{% block content %}
+<h1>{{table.restaurant}}</h1>
+    <p>Table Name: {{table.label}}</p>
+    <p># of Seats: {{table.seats}}</p>
+    <p>Assigned Server:
+    {% if table.assigned_server %}
+        {{table.assigned_server}}
+    {% else %}
+        Unassigned
+       {% endif %} 
+    <p>Status: {{table.status}}</p>
+    
+    {% if request.user.role == 1 or request.user.role == 6 %}
+    <a href="{% url 'table_edit' table.pk %}">Edit</a>    
+    <a href="{% url 'table_confirm_delete' table.pk %}">Delete</a>
+    {% endif %}
+
+{% endblock %}

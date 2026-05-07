@@ -356,3 +356,161 @@ def update_order_status(request, order_id):
         'status_choices': models.Order.OrderStatus.choices,
     }
     return render(request, 'restaurant/update_order_status.html', context)
+
+
+#========= CATEGORY VIEWS ========
+
+def category_list(request):
+    categories = models.Category.objects.all()
+    return render(request, 'restaurant/category_list.html', {'categories': categories})
+
+
+def category_detail(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    return render(request, 'restaurant/category_detail.html', {'category': category})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def category_create(request):
+    if request.method == 'POST':
+        form = forms.CategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('category_list')
+    else:
+        form = forms.CategoryForm()
+    return render(request, 'restaurant/category_create.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def category_edit(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    if request.method == 'POST':
+        form = forms.CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            return redirect('category_list')
+    else:
+        form = forms.CategoryForm(instance=category)
+    return render(request, 'restaurant/category_create.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def category_confirm_delete(request, pk):
+    category = get_object_or_404(models.Category, pk=pk)
+    if request.method == 'POST':
+        category.delete()
+        return redirect('category_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Category',
+        'object_display': category.name,
+        'cancel_url': reverse('category_list'),
+        'delete_url': request.path
+    })
+
+
+#========= TAG VIEWS ========
+
+def tag_list(request):
+    tags = models.Tag.objects.all()
+    return render(request, 'restaurant/tag_list.html', {'tags': tags})
+
+
+def tag_detail(request, pk):
+    tag = get_object_or_404(models.Tag, pk=pk)
+    return render(request, 'restaurant/tag_detail.html', {'tag': tag})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def tag_create(request):
+    if request.method == 'POST':
+        form = forms.TagForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('tag_list')
+    else:
+        form = forms.TagForm()
+    return render(request, 'restaurant/tag_create.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def tag_edit(request, pk):
+    tag = get_object_or_404(models.Tag, pk=pk)
+    if request.method == 'POST':
+        form = forms.TagForm(request.POST, instance=tag)
+        if form.is_valid():
+            form.save()
+            return redirect('tag_list')
+    else:
+        form = forms.TagForm(instance=tag)
+    return render(request, 'restaurant/tag_create.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def tag_confirm_delete(request, pk):
+    tag= get_object_or_404(models.Tag, pk=pk)
+    if request.method == 'POST':
+        tag.delete()
+        return redirect('tag_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Tag',
+        'object_display': tag.name,
+        'cancel_url': reverse('tag_list'),
+        'delete_url': request.path
+    })
+    
+    
+#=========== TABLE VIEWS ==========
+
+def table_list(request, restaurant_pk):
+    """takes in restaurant_pk as context identifier for referencing tables  belonging to specific restaurant"""
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+    tables = models.Table.objects.filter(restaurant=restaurant)
+    return render(request, 'restaurant/table_list.html', {'tables': tables, 'restaurant':restaurant})
+
+def table_detail(request, pk):
+    table = get_object_or_404(models.Table, pk=pk)
+    return render(request, 'restaurant/table_detail.html', {'table':table})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def table_create(request, restaurant_pk):
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk) # grabs pk of restaurant and assings uses it during table add
+    if request.method == 'POST':
+        form = forms.TableForm(request.POST)
+        if form.is_valid():
+            table = form.save(commit=False) # builds object but doesn't save yet
+            table.restaurant = restaurant # pulled from restaurant_pk
+            table.grid_squares = []
+            table.save() # will write to database now with the update
+            return redirect('table_list', restaurant_pk=restaurant.pk)
+    else:
+        form = forms.TableForm()
+    return render(request, 'restaurant/table_create.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def table_edit(request, pk):
+    table = get_object_or_404(models.Table, pk=pk)
+    if request.method == 'POST':
+        form = forms.TableForm(request.POST, instance=table)
+        if form.is_valid():
+            form.save()
+            return redirect ('table_list', restaurant_pk=restaurant.pk)
+    else:
+        form = forms.TableForm(instance=table)
+    return render(request, 'restaurant/table_create.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def table_confirm_delete(request, pk):
+    table = get_object_or_404(models.Table, pk=pk)
+    if request.method == 'POST':
+        table.delete()
+        return redirect('table_list', restaurant_pk=restaurant.pk)
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Table',
+        'object_display': table.label,
+        'cancel_url': reverse('table_list'),
+        'delete_url': request.path
+    })
