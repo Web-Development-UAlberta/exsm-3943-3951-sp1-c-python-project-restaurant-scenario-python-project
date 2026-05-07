@@ -281,7 +281,7 @@ def category_create(request):
             return redirect('category_list')
     else:
         form = forms.CategoryForm()
-    return render(request, 'restaurant/category_form.html', {'form': form})
+    return render(request, 'restaurant/category_create.html', {'form': form})
 
 @login_required
 def category_edit(request, pk):
@@ -337,7 +337,7 @@ def tag_create(request):
             return redirect('tag_list')
     else:
         form = forms.TagForm()
-    return render(request, 'restaurant/tag_form.html', {'form': form})
+    return render(request, 'restaurant/tag_create.html', {'form': form})
 
 @login_required
 def tag_edit(request, pk):
