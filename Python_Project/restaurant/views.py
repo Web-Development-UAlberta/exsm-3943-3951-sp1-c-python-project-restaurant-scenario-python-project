@@ -369,3 +369,58 @@ def tag_confirm_delete(request, pk):
         'cancel_url': reverse('tag_list'),
         'delete_url': request.path
         })
+    
+#======= Menu Item =======
+    
+def menu_item_list(request):
+    menuitems = models.MenuItem.objects.all()
+    return render(request, 'restaurant/menu_item_list.html', {'menuitems': menuitems})
+
+def menu_item_detail(request, pk):
+    menuitem = get_object_or_404(models.MenuItem, pk=pk)
+    return render(request, 'restaurant/menu_item_detail.html', {'menuitem':menuitem })
+
+@login_required
+def menu_item_create(request):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('menu_item_list')
+    if request.method == 'POST':
+        form = forms.MenuItemForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save() 
+            return redirect('menu_item_list')
+    else:
+        form = forms.MenuItemForm()
+    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+
+@login_required
+def menu_item_edit(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('menu_item_list')
+    menuitem = get_object_or_404(models.MenuItem, pk=pk)
+    if request.method == 'POST':
+        form = forms.MenuItemForm(request.POST, request.FILES, instance=menuitem)
+        if form.is_valid():
+            form.save()
+            return redirect ('menu_item_list')
+    else:
+        form = forms.MenuItemForm(instance=menuitem)
+    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+
+@login_required
+def menu_item_confirm_delete(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('menu_item_list')
+    menuitem = get_object_or_404(models.MenuItem, pk=pk)
+    if request.method == 'POST':
+        menuitem.delete()
+        return redirect('menu_item_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'MenuItem',
+        'object_display': menuitem.name,
+        'cancel_url': reverse('menu_item_list'),
+        'delete_url': request.path
+        })

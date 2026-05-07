@@ -32,4 +32,10 @@ urlpatterns = [
     path('tag/new/', views.tag_create, name='tag_create'),
     path('tag/<int:pk>/edit/', views.tag_edit, name='tag_edit'),
     path('tag/<int:pk>/delete/', views.tag_confirm_delete, name='tag_confirm_delete'),
+    #======== Menu Item ========
+    path('menu-item/', views.menu_item_list, name='menu_item_list'),
+    path('menu-item/<int:pk>/', views.menu_item_detail, name='menu_item_detail'),
+    path('menu-item/new/', views.menu_item_create, name='menu_item_create'),
+    path('menu-item/<int:pk>/edit/', views.menu_item_edit, name='menu_item_edit'),
+    path('menu-item/<int:pk>/delete/', views.menu_item_confirm_delete, name='menu_item_confirm_delete'),
 ]

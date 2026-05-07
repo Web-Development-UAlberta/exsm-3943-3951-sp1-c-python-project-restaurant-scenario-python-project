@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %} Edit Menu Item {% else %} Add New Menu Item {% endif %}
+{% endblock%}
+
+{% block content %}
+<h1>{% if form.instance.pk %} Edit Menu Item {% else %} Add New Menu Item {% endif %}</h1>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{form.as_p}}
+    <button type="submit">Save</button>
+</form>
+<a href="{% url 'menu_item_list' %}">Cancel</a>
+{% endblock %}
