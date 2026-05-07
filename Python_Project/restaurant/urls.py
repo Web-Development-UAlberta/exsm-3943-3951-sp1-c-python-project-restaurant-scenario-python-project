@@ -33,7 +33,7 @@ urlpatterns = [
     path('tag/<int:pk>/edit/', views.tag_edit, name='tag_edit'),
     path('tag/<int:pk>/delete/', views.tag_confirm_delete, name='tag_confirm_delete'),
     #======== Table ========
-    path('restaurant/<int:restaurant_pk/table/', views.table_list, name='table_list'),
+    path('restaurant/<int:restaurant_pk>/table/', views.table_list, name='table_list'),
     path('table/<int:pk>/', views.table_detail, name='table_detail'),
     path('restaurant/<int:restaurant_pk>/table/new/', views.table_create, name='table_create'),
     path('table/<int:pk>/edit/', views.table_edit, name='table_edit'),
