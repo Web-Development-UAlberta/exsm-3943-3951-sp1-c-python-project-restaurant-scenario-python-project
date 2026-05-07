@@ -45,3 +45,8 @@ class TableForm(forms.ModelForm):
     class Meta:
         model = models.Table
         fields = ['label', 'seats']
+        
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = models.Tag
+        fields = ['name']

@@ -14,20 +14,29 @@ urlpatterns = [
     path('restaurant/<int:pk>/', views.restaurant_detail, name='restaurant_detail'),
     path('restaurant/<int:pk>/edit/', views.restaurant_edit, name='restaurant_edit'),
     path('restaurant/<int:pk>/toggle/', views.restaurant_toggle_active, name='restaurant_toggle_active'),
-    path('restaurant/<int:pk>/delete/', views.confirm_delete, name='confirm_delete'),
+    path('restaurant/<int:pk>/delete/', views.restaurant_confirm_delete, name='restaurant_confirm_delete'),
     path('restaurant/manager/', views.manager_view, name='manager_view'),
     path('restaurant/server/', views.server_host_view, name='server_host_view'),
     path('restaurant/kitchen/', views.kitchen_view, name='kitchen_view'),
     path('restaurant/driver/', views.driver_view, name='driver_view'),
     path('restaurant/owner/', views.owner_view, name='owner_view'),
+    #======== Category ========
     path('category/', views.category_list, name='category_list'),
     path('category/<int:pk>/', views.category_detail, name='category_detail'),
     path('category/new/', views.category_create, name='category_create'),
     path('category/<int:pk>/edit/', views.category_edit, name='category_edit'),
-    path('category/<int:pk>/delete/', views.confirm_delete, name='confirm_delete'),
+    path('category/<int:pk>/delete/', views.category_confirm_delete, name='category_confirm_delete'),
+    #======== Tag ========
+    path('tag/', views.tag_list, name='tag_list'),
+    path('tag/<int:pk>/', views.tag_detail, name='tag_detail'),
+    path('tag/new/', views.tag_create, name='tag_create'),
+    path('tag/<int:pk>/edit/', views.tag_edit, name='tag_edit'),
+    path('tag/<int:pk>/delete/', views.tag_confirm_delete, name='tag_confirm_delete'),
+    #======== Table ========
     path('restaurant/<int:restaurant_pk/table/', views.table_list, name='table_list'),
     path('table/<int:pk>/', views.table_detail, name='table_detail'),
     path('restaurant/<int:restaurant_pk>/table/new/', views.table_create, name='table_create'),
     path('table/<int:pk>/edit/', views.table_edit, name='table_edit'),
     path('table/<int:pk>/delete/', views.table_confirm_delete, name='table_confirm_delete'),
-]
+]   
+    

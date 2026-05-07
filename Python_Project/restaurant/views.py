@@ -45,7 +45,7 @@ def restaurant_edit(request, pk):
         form = forms.RestaurantForm(instance=restaurant)
     return render(request, 'restaurant/restaurant_create.html', {'form': form})
 
-def confirm_delete(request, pk):
+def restaurant_confirm_delete(request, pk):
     if request.user.role != models.User.Role.OWNER:
         messages.error(request, 'Unauthorized User, Access Denied!')
         return redirect('restaurant_list')
@@ -375,3 +375,59 @@ def table_confirm_delete(request, pk):
         'cancel_url': reverse('table_list'),
         'delete_url': request.path
     })
+
+
+#=======Tag=======
+
+def tag_list(request):
+    tags = models.Tag.objects.all()
+    return render(request, 'restaurant/tag_list.html', {'tags': tags})
+
+def tag_detail(request, pk):
+    tag = get_object_or_404(models.Tag, pk=pk)
+    return render(request, 'restaurant/tag_detail.html', {'tag':tag })
+
+@login_required
+def tag_create(request):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('tag_list')
+    if request.method == 'POST':
+        form = forms.TagForm(request.POST)
+        if form.is_valid():
+            form.save() 
+            return redirect('tag_list')
+    else:
+        form = forms.TagForm()
+    return render(request, 'restaurant/tag_form.html', {'form': form})
+
+@login_required
+def tag_edit(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('tag_list')
+    tag = get_object_or_404(models.Tag, pk=pk)
+    if request.method == 'POST':
+        form = forms.TagForm(request.POST, instance=tag)
+        if form.is_valid():
+            form.save()
+            return redirect ('tag_list')
+    else:
+        form = forms.TagForm(instance=tag)
+    return render(request, 'restaurant/tag_form.html', {'form': form})
+
+@login_required
+def tag_confirm_delete(request, pk):
+    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
+        messages.error(request, 'Unauthorized User, Access Denied!')
+        return redirect('tag_list')
+    tag = get_object_or_404(models.Tag, pk=pk)
+    if request.method == 'POST':
+        tag.delete()
+        return redirect('tag_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Tag',
+        'object_display': tag.name,
+        'cancel_url': reverse('tag_list'),
+        'delete_url': request.path
+        })

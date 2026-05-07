@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Tag Details
+{% endblock %}
+
+{% block content %}
+<h1>{{tag.name}}</h1>
+    
+    <a href="{% url 'tag_edit' tag.pk %}">Edit</a>
+    
+    <form action="{% url 'tag_confirm_delete' tag.pk%}" method="post">
+        {% csrf_token %}
+        <button type="submit">Delete</button>
+    </form>
+
+{% endblock %}
