@@ -24,8 +24,13 @@
             <td>{{ table.get_status_display }}</td>
             <td>
                 <a href="{% url 'update_table_status' table.id %}" 
-                   style="background-color: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
+                   style="background-color: #007bff; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px;">
                     Update Status
+                </a>
+                
+                <a href="{% url 'assign_server_to_table' table.id %}" 
+                   style="background-color: #28a745; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; margin-left: 8px;">
+                    Assign Server
                 </a>
             </td>
         </tr>
