@@ -306,7 +306,7 @@ def assign_server_to_table(request, table_id):
     # GET request - show form
     available_servers = models.User.objects.filter(
         role=models.User.Role.SERVER_HOST,
-        is_active=True
+        is_active_staff=True
     )
 
     context = {
