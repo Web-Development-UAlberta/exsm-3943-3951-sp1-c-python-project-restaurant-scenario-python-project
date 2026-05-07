@@ -357,10 +357,6 @@ def update_order_status(request, order_id):
     }
     return render(request, 'restaurant/update_order_status.html', context)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> main
 #========= CATEGORY VIEWS ========
 
 def category_list(request):
@@ -410,12 +406,7 @@ def category_confirm_delete(request, pk):
         'cancel_url': reverse('category_list'),
         'delete_url': request.path
     })
-<<<<<<< HEAD
     
-=======
-
-
->>>>>>> main
 #========= TAG VIEWS ========
 
 def tag_list(request):
@@ -464,12 +455,7 @@ def tag_confirm_delete(request, pk):
         'object_display': tag.name,
         'cancel_url': reverse('tag_list'),
         'delete_url': request.path
-<<<<<<< HEAD
     })    
-=======
-    })
-    
->>>>>>> main
     
 #=========== TABLE VIEWS ==========
 
