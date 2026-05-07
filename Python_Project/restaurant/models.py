@@ -16,6 +16,12 @@ class User(AbstractUser):
     role = models.IntegerField(choices=Role.choices) # uses chocies defined in subclass Role
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # === STAFF BUSINESS FIELDS (Michael - Week 4) ===
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    shift_start = models.TimeField(blank=True, null=True)
+    shift_end = models.TimeField(blank=True, null=True)
+    is_active_staff = models.BooleanField(default=True)
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -88,6 +94,16 @@ class Table(models.Model):
     seats = models.IntegerField()
     grid_squares = models.JSONField()
     status = models.IntegerField(choices=Status.choices, default=Status.AVAILABLE) # as soon as a new table is created, it's made AVAILABLE.  Uses subclass Status as choices
+
+    # ==================== NEW FIELD ====================
+    assigned_server = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='assigned_tables'
+    )
+    # ===================================================
 
     def __str__(self):
         return f'{self.label} - {self.restaurant}'
