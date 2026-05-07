@@ -50,3 +50,8 @@ class TagForm(forms.ModelForm):
     class Meta:
         model = models.Tag
         fields = ['name']
+        
+class MenuItemForm(forms.ModelForm):
+    class Meta:
+        model = models.MenuItem
+        fields = ['category', 'name', 'description', 'price', 'image']

@@ -32,6 +32,28 @@ urlpatterns = [
     # ====================== KITCHEN ORDER MANAGEMENT ======================
     path('orders/<int:order_id>/update_status/', views.update_order_status, name='update_order_status'),
     
+       #======== Category ========
+       
+    path('category/', views.category_list, name='category_list'),
+    path('category/<int:pk>/', views.category_detail, name='category_detail'),
+    path('category/new/', views.category_create, name='category_create'),
+    path('category/<int:pk>/edit/', views.category_edit, name='category_edit'),
+    path('category/<int:pk>/delete/', views.category_confirm_delete, name='category_confirm_delete'),
+    #======== Tag ========
+    
+    path('tag/', views.tag_list, name='tag_list'),
+    path('tag/<int:pk>/', views.tag_detail, name='tag_detail'),
+    path('tag/new/', views.tag_create, name='tag_create'),
+    path('tag/<int:pk>/edit/', views.tag_edit, name='tag_edit'),
+    path('tag/<int:pk>/delete/', views.tag_confirm_delete, name='tag_confirm_delete'),
+    #======== Menu Item ========
+    
+    path('menu-item/', views.menu_item_list, name='menu_item_list'),
+    path('menu-item/<int:pk>/', views.menu_item_detail, name='menu_item_detail'),
+    path('menu-item/new/', views.menu_item_create, name='menu_item_create'),
+    path('menu-item/<int:pk>/edit/', views.menu_item_edit, name='menu_item_edit'),
+    path('menu-item/<int:pk>/delete/', views.menu_item_confirm_delete, name='menu_item_confirm_delete'),
+    
       #======== Category ========
     path('category/', views.category_list, name='category_list'),
     path('category/<int:pk>/', views.category_detail, name='category_detail'),

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Menu Items
+{% endblock %}
+ 
+{% block content %}
+<ul>
+    {% for menuitem in menuitems %}
+    <li>
+        <h2><a href="{% url 'menu_item_detail' menuitem.pk %}">{{menuitem.name}}</a></h2>
+        {% if menuitem.image %}
+        <img src="{{menuitem.image.url}}" alt="{{menuitem.name}}">
+        {% endif %}
+        <p>${{menuitem.price}}</p>
+        <h3><a href="{% url 'category_detail' menuitem.category.pk %}">{{menuitem.category}}</a></h3>    
+    </li>
+    {% endfor %}
+</ul>
+<a href="{% url 'menu_item_create' %}">Add New Menu Item</a>
+{% endblock %}

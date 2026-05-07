@@ -357,7 +357,6 @@ def update_order_status(request, order_id):
     }
     return render(request, 'restaurant/update_order_status.html', context)
 
-
 #========= CATEGORY VIEWS ========
 
 def category_list(request):
@@ -407,8 +406,7 @@ def category_confirm_delete(request, pk):
         'cancel_url': reverse('category_list'),
         'delete_url': request.path
     })
-
-
+    
 #========= TAG VIEWS ========
 
 def tag_list(request):
@@ -457,8 +455,7 @@ def tag_confirm_delete(request, pk):
         'object_display': tag.name,
         'cancel_url': reverse('tag_list'),
         'delete_url': request.path
-    })
-    
+    })    
     
 #=========== TABLE VIEWS ==========
 
@@ -496,7 +493,7 @@ def table_edit(request, pk):
         form = forms.TableForm(request.POST, instance=table)
         if form.is_valid():
             form.save()
-            return redirect ('table_list', restaurant_pk=restaurant.pk)
+            return redirect ('table_list', restaurant_pk=table.restaurant.pk)
     else:
         form = forms.TableForm(instance=table)
     return render(request, 'restaurant/table_create.html', {'form': form})
@@ -506,11 +503,61 @@ def table_edit(request, pk):
 def table_confirm_delete(request, pk):
     table = get_object_or_404(models.Table, pk=pk)
     if request.method == 'POST':
+        restaurant_pk = table.restaurant.pk
         table.delete()
-        return redirect('table_list', restaurant_pk=restaurant.pk)
+        return redirect('table_list', restaurant_pk=restaurant_pk)
     return render(request, 'restaurant/confirm_delete.html', {
         'object_name': 'Table',
         'object_display': table.label,
-        'cancel_url': reverse('table_list'),
+        'cancel_url': reverse('table_list', kwargs={'restaurant_pk': table.restaurant.pk}),
         'delete_url': request.path
     })
+    
+#======= Menu Item =======
+
+def menu_item_list(request):
+    menuitems = models.MenuItem.objects.all()
+    return render(request, 'restaurant/menu_item_list.html', {'menuitems': menuitems})
+
+def menu_item_detail(request, pk):
+    menuitem = get_object_or_404(models.MenuItem, pk=pk)
+    return render(request, 'restaurant/menu_item_detail.html', {'menuitem':menuitem })
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def menu_item_create(request):
+    if request.method == 'POST':
+        form = forms.MenuItemForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save() 
+            return redirect('menu_item_list')
+    else:
+        form = forms.MenuItemForm()
+    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def menu_item_edit(request, pk):
+    menuitem = get_object_or_404(models.MenuItem, pk=pk)
+    if request.method == 'POST':
+        form = forms.MenuItemForm(request.POST, request.FILES, instance=menuitem)
+        if form.is_valid():
+            form.save()
+            return redirect('menu_item_list')
+    else:
+        form = forms.MenuItemForm(instance=menuitem)
+    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def menu_item_confirm_delete(request, pk):
+    menuitem = get_object_or_404(models.MenuItem, pk=pk)
+    if request.method == 'POST':
+        menuitem.delete()
+        return redirect('menu_item_list')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'MenuItem',
+        'object_display': menuitem.name,
+        'cancel_url': reverse('menu_item_list'),
+        'delete_url': request.path
+        })

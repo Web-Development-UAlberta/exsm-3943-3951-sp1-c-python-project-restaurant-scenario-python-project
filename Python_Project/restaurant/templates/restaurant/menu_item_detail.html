@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{menuitem.name}}
+{% endblock %}
+
+{% block content %}
+<h2>{{menuitem.name}}</h2>
+{% if menuitem.image %}
+    <img src="{{menuitem.image.url}}" alt="{{menuitem.name}}">
+{% endif %}
+<p>{{menuitem.description}}</p>
+<p>${{menuitem.price}}</p>
+<h3><a href="{% url 'category_detail' menuitem.category.pk %}">{{menuitem.category}}</a></h3>  
+
+{% if request.user.role == 1 or request.user.role == 6 %}  
+<a href="{% url 'menu_item_edit' menuitem.pk %}">Edit</a>
+    
+<form action="{% url 'menu_item_confirm_delete' menuitem.pk%}" method="post">
+    {% csrf_token %}
+    <button type="submit">Delete</button>
+</form>
+{% endif %}
+
+{% endblock %}
