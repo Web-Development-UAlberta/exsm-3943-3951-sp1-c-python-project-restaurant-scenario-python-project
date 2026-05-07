@@ -95,6 +95,16 @@ class Table(models.Model):
     grid_squares = models.JSONField()
     status = models.IntegerField(choices=Status.choices, default=Status.AVAILABLE) # as soon as a new table is created, it's made AVAILABLE.  Uses subclass Status as choices
 
+    # ==================== NEW FIELD ====================
+    assigned_server = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='assigned_tables'
+    )
+    # ===================================================
+
     def __str__(self):
         return f'{self.label} - {self.restaurant}'
 

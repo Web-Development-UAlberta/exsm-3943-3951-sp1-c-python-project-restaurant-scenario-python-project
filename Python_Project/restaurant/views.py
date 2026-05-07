@@ -8,8 +8,6 @@ from django.urls import reverse
 from django.db.models import Q
 
 
-
-
 # ====================== CONSISTENT ROLE HELPERS ======================
 
 
@@ -18,13 +16,9 @@ def is_manager_or_owner(user):
     return user.role in [models.User.Role.MANAGER, models.User.Role.OWNER]
 
 
-
-
 def is_server_or_manager(user):
     """Server/Host + Manager/Owner can manage tables"""
     return user.role in [models.User.Role.SERVER_HOST, models.User.Role.MANAGER, models.User.Role.OWNER]
-
-
 
 
 def is_kitchen_or_manager(user):
@@ -32,6 +26,9 @@ def is_kitchen_or_manager(user):
     return user.role in [models.User.Role.KITCHEN_STAFF, models.User.Role.MANAGER, models.User.Role.OWNER]
 
 
+def is_driver_or_manager(user):
+    """Delivery Driver + Manager/Owner"""
+    return user.role in [models.User.Role.DELIVERY_DRIVER, models.User.Role.MANAGER, models.User.Role.OWNER]
 
 
 # ====================== EXISTING VIEWS ======================
@@ -100,8 +97,6 @@ def restaurant_toggle_active(request, pk):
         restaurant.is_active = not restaurant.is_active
         restaurant.save()
     return redirect('restaurant_detail', pk=pk)
-
-
 
 
 # ====================== BASIC VIEWS ======================
@@ -208,24 +203,21 @@ def staff_signup(request):
     return render(request, 'restaurant/staff_signup.html', {'form': form})
 
 
-
-
 # ====================== STAFF DASHBOARDS ======================
 
 
 @login_required
+@user_passes_test(is_manager_or_owner)
 def manager_view(request):
-    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
-        messages.error(request, 'Unauthorized User, Access Denied!')
-        return redirect('staff_index')
+    """Manager Dashboard"""
     return render(request, 'restaurant/manager_view.html')
 
 
 @login_required
 @user_passes_test(is_server_or_manager)
 def server_host_view(request):
-    """Server/Host Dashboard"""
-    tables = models.Table.objects.all().order_by('label')
+    """Server/Host Dashboard - Now includes assigned servers"""
+    tables = models.Table.objects.all().order_by('label').select_related('assigned_server')
     context = {'tables': tables}
     return render(request, 'restaurant/server_host_view.html', context)
 
@@ -242,15 +234,17 @@ def kitchen_view(request):
 
 
 @login_required
+@user_passes_test(is_driver_or_manager)
 def driver_view(request):
+    """Driver Dashboard"""
     return render(request, 'restaurant/driver_view.html')
 
 
 @login_required
+@user_passes_test(is_manager_or_owner)
 def owner_view(request):
+    """Owner Dashboard"""
     return render(request, 'restaurant/owner_view.html')
-
-
 
 
 # ====================== STAFF BUSINESS LOGIC ======================
@@ -268,8 +262,6 @@ def staff_list(request):
     return render(request, 'restaurant/staff_list.html', context)
 
 
-
-
 @login_required
 @user_passes_test(is_manager_or_owner)
 def staff_detail(request, pk):
@@ -285,37 +277,43 @@ def staff_detail(request, pk):
     return render(request, 'restaurant/staff_detail.html', context)
 
 
-
-
 # ====================== SERVER TO TABLE ASSIGNMENT ======================
-
 
 @login_required
 @user_passes_test(is_server_or_manager)
 def assign_server_to_table(request, table_id):
     """Assign a server to a specific table"""
     table = get_object_or_404(models.Table, id=table_id)
-   
+
     if request.method == 'POST':
         server_id = request.POST.get('server_id')
-        server = get_object_or_404(models.User, id=server_id, role=models.User.Role.SERVER_HOST)
-       
-        messages.success(request, f"Server {server.get_full_name() or server.username} assigned to Table {table.label}")
+        server = get_object_or_404(
+            models.User, 
+            id=server_id, 
+            role=models.User.Role.SERVER_HOST
+        )
+
+        # === SAVE THE ASSIGNMENT ===
+        table.assigned_server = server
+        table.save()
+
+        messages.success(
+            request, 
+            f"Server {server.get_full_name() or server.username} assigned to Table {table.label}"
+        )
         return redirect('server_host_view')
-   
+
+    # GET request - show form
     available_servers = models.User.objects.filter(
         role=models.User.Role.SERVER_HOST,
-        is_active_staff=True
+        is_active=True
     )
-   
+
     context = {
         'table': table,
         'servers': available_servers,
     }
     return render(request, 'restaurant/assign_server_to_table.html', context)
-
-
-
 
 # ====================== TABLE & ORDER MANAGEMENT ======================
 
@@ -326,21 +324,18 @@ def update_table_status(request, table_id):
     """Server/Host can update table status"""
     table = get_object_or_404(models.Table, id=table_id)
 
-
     if request.method == 'POST':
         new_status = int(request.POST.get('status'))
         table.status = new_status
         table.save()
         messages.success(request, f'Table {table.label} status updated to {table.get_status_display()}')
         return redirect('server_host_view')
-   
+
     context = {
         'table': table,
         'status_choices': models.Table.Status.choices,
     }
     return render(request, 'restaurant/update_table_status.html', context)
-
-
 
 
 @login_required
@@ -349,17 +344,15 @@ def update_order_status(request, order_id):
     """Kitchen Staff can update order status"""
     order = get_object_or_404(models.Order, id=order_id)
 
-
     if request.method == 'POST':
         new_status = int(request.POST.get('status'))
         order.order_status = new_status
         order.save()
         messages.success(request, f'Order #{order.id} status updated to {order.get_order_status_display()}')
         return redirect('kitchen_view')
-   
+
     context = {
         'order': order,
         'status_choices': models.Order.OrderStatus.choices,
     }
     return render(request, 'restaurant/update_order_status.html', context)
-
