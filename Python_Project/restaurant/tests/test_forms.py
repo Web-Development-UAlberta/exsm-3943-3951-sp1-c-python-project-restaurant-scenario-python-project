@@ -239,6 +239,3 @@ def test_add_staff_form_duplicate_email():
     })
     assert not form.is_valid()
     assert 'email' in form.errors
-
-
-
