@@ -6,6 +6,7 @@ from django.contrib import messages
 from restaurant import forms
 from django.urls import reverse
 from django.db.models import Q, F
+from django.utils import timezone
 
 
 # ====================== CONSISTENT ROLE HELPERS ======================
@@ -434,16 +435,15 @@ def update_order_status(request, order_id):
     if request.method == 'POST':
         new_status = int(request.POST.get('status'))
         order.order_status = new_status
-        order.save()
 
         # award loyalty points when order is marked as completed
         if new_status == models.Order.OrderStatus.COMPLETED and order.customer:
             points_to_award = int(order.sub_total) * 10  # 10 points per dollar, excluding tax
             order.points_earned = points_to_award
-            order.save()
             order.customer.loyalty_points += points_to_award
             order.customer.save()
-
+        
+        order.save()
         messages.success(request, f'Order #{order.id} status updated to {order.get_order_status_display()}')
         return redirect('kitchen_view')
 
@@ -909,7 +909,6 @@ def reservation_cancel(request, pk):
     reservation = get_object_or_404(models.Reservation, pk=pk)
 
     if request.method == 'POST':
-        from django.utils import timezone
         now = timezone.now()
         time_until = reservation.reservation_datetime - now
         hours_until = time_until.total_seconds() / 3600
