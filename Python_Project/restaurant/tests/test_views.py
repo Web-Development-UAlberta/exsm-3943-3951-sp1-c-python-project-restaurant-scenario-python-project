@@ -566,3 +566,64 @@ def test_loyalty_points_awarded_on_order_completion(client, customer_user, resta
     customer.refresh_from_db()
     assert order.points_earned == 500  # 50 dollars x 10 points
     assert customer.loyalty_points == 500
+    
+    
+# ====================== DRIVER VIEWS ======================
+
+@pytest.mark.django_db
+def test_assign_driver_requires_manager(client, customer_user, restaurant):
+    """Customers cannot assign drivers to orders"""
+    order = Order.objects.create(
+        restaurant=restaurant,
+        order_type=Order.OrderType.DELIVERY,
+        sub_total=20.00,
+        total_price=20.00,
+        order_status=Order.OrderStatus.READY,
+        payment_status=Order.PaymentStatus.UNPAID
+    )
+    client.login(username='testcustomer', password='TestPass123!')
+    response = client.get(reverse('assign_driver_to_order', args=[order.id]))
+    assert response.status_code == 302
+    
+@pytest.mark.django_db
+def test_manager_assigns_driver(client, manager_user, restaurant):
+    """Manager can assign drivers to orders"""
+    driver = User.objects.create_user(
+        username='testdriver',
+        password='TestPass123!',
+        role=User.Role.DELIVERY_DRIVER
+    )
+    order = Order.objects.create(
+        restaurant=restaurant,
+        order_type=Order.OrderType.DELIVERY,
+        sub_total=20.00,
+        total_price=20.00,
+        order_status=Order.OrderStatus.READY,
+        payment_status=Order.PaymentStatus.UNPAID
+    )
+    client.login(username='testmanager', password='TestPass123!')
+    response = client.post(reverse('assign_driver_to_order', args=[order.id]), {
+        'driver_id': driver.id
+    })
+    assert response.status_code == 302
+    order.refresh_from_db()
+    assert order.assigned_driver == driver
+
+@pytest.mark.django_db
+def test_driver_can_access_driver_view(client):
+    """Driver can access their dashbaord"""
+    driver = User.objects.create_user(
+        username='testdriver',
+        password='TestPass123!',
+        role=User.Role.DELIVERY_DRIVER
+    )
+    client.login(username='testdriver', password='TestPass123!')
+    response = client.get(reverse('driver_view'))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_customer_cannot_access_driver_view(client, customer_user):
+    """Customer cannot access driver dashbaord"""
+    client.login(username='testcustomer', password='TestPass123!')
+    response = client.get(reverse('driver_view'))
+    assert response.status_code == 302

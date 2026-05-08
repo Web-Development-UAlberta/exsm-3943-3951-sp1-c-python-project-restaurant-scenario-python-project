@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Delivery Driver Dashboard - Urban Spark{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ request.user.get_full_name|default:request.user.username }} (Delivery Driver)</h1>
+
+<h2>Current orders</h2>
+
+<table border="1" cellpadding="10" style="width:100%; border-collapse: collapse; margin-top: 15px;">
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Delivery Address</th>
+            <th>Customer Name</th>
+            <th>Mark As Delivered</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for order in orders %}
+        <tr>
+            <td><strong>{{ order.id }}</strong></td>
+            <td>{{ order.delivery_address }}</td>
+            <td>{% if order.customer %}{{ order.customer}} {% else %} Guest {% endif %}</td>
+            <td>
+                <a href="{% url 'delivery_complete' order.id %}" 
+                   style="background-color: #007bff; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px;">
+                    Mark As Delivered
+                </a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="4">No orders found. Please assign some deliveries in the admin panel first.</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<br><br>
+
+{% endblock %}
