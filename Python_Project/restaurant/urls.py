@@ -92,4 +92,8 @@ urlpatterns = [
     path('restaurant/<int:restaurant_pk>/inventory/new/', views.inventory_create, name='inventory_create'),
     path('inventory/<int:pk>/edit/', views.inventory_edit, name='inventory_edit'),
     path('inventory/<int:pk>/delete/', views.inventory_confirm_delete, name='inventory_confirm_delete'),
+    
+    # ====================== Delivery ======================
+    path('order/<int:order_id>/assign-driver/', views.assign_driver_to_order, name='assign_driver_to_order'),
+    path('order/<int:order_id>/complete-delivery/', views.delivery_complete, name='delivery_complete'),
 ]

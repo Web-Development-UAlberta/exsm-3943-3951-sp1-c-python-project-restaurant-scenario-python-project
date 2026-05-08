@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Driver to Order {{ order.id }}{% endblock %}
+
+{% block content %}
+<h1>Assign Driver to Order {{ order.id }}</h1>
+
+<p><strong>Current Order Status:</strong> {{ order.get_order_status_display }}</p>
+
+<form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    
+    <label for="driver_id"><strong>Select Driver:</strong></label><br><br>
+    <select name="driver_id" id="driver_id" required style="padding: 8px; width: 300px;">
+        {% for driver in drivers %}
+            <option value="{{ driver.id }}">
+                {{ driver.get_full_name|default:driver.username }} 
+                ({{ driver.get_role_display }})
+            </option>
+        {% endfor %}
+    </select>
+    
+    <br><br>
+    <button type="submit" style="padding: 10px 20px;">Assign Driver</button>
+    <a href="{% url 'order_list' %}" style="margin-left: 15px; color: #666;">Cancel</a>
+</form>
+
+{% endblock %}

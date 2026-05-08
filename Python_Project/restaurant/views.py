@@ -316,12 +316,7 @@ def kitchen_view(request):
     return render(request, 'restaurant/kitchen_view.html', context)
 
 
-# View for the Kitchen dashboard
-@login_required
-@user_passes_test(is_driver_or_manager)
-def driver_view(request):
-    """Driver Dashboard"""
-    return render(request, 'restaurant/driver_view.html')
+
 
 
 # View for the Owner dashboard
@@ -1099,3 +1094,81 @@ def inventory_confirm_delete(request, pk):
         'cancel_url': reverse('inventory_list', kwargs={'restaurant_pk': item.restaurant.pk}),
         'delete_url': request.path
     })
+    
+    
+# ====================== DELIVERY VIEWS ======================
+
+# View for the Driver dashboard
+@login_required
+@user_passes_test(is_driver_or_manager)
+def driver_view(request):
+    """Driver Dashboard shows orders ready for delivery"""
+    orders = models.Order.objects.filter(
+        assigned_driver = request.user,
+        order_type=models.Order.OrderType.DELIVERY,
+        order_status=models.Order.OrderStatus.READY
+    ).order_by('created_at')
+    context = {'orders':orders}
+    return render(request, 'restaurant/driver_view.html', context)
+
+
+@login_required
+@user_passes_test(is_driver_or_manager)
+def delivery_complete(request, order_id):
+    """Driver marks a delivery order as complete"""
+    order = get_object_or_404(models.Order, id=order_id)
+    
+    # ensures the driver is assigned to this specific order
+    if order.assigned_driver != request.user and not is_manager_or_owner(request.user):
+        messages.error(request, 'You can only complete your own deliveries')
+        return redirect('driver_view')
+    
+    if request.method == 'POST':
+        order.order_status = models.Order.OrderStatus.COMPLETED
+        order.save()
+        messages.success(request, f'Order #{order.id} marked as delivered!')
+        return redirect('driver_view')
+    
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Delivery',
+        'object_display': f'Order #{order.id}',
+        'cancel_url': reverse('driver_view'),
+        'delete_url': request.path
+    })
+    
+    
+@login_required
+@user_passes_test(is_manager_or_owner)
+def assign_driver_to_order(request, order_id):
+    """Assign a driver to a specific order"""
+    order = get_object_or_404(models.Order, id=order_id)
+
+    if request.method == 'POST':
+        driver_id = request.POST.get('driver_id')
+        driver = get_object_or_404(
+            models.User,
+            id=driver_id,
+            role=models.User.Role.DELIVERY_DRIVER
+        )
+
+        # === SAVE THE ASSIGNMENT ===
+        order.assigned_driver = driver
+        order.save()
+
+        messages.success(
+            request,
+            f"Driver {driver.get_full_name() or driver.username} assigned to Order #{order.id}"
+        )
+        return redirect('order_list') # manager redirected to order list view 
+
+    # GET request - show form
+    available_drivers = models.User.objects.filter(
+        role=models.User.Role.DELIVERY_DRIVER,
+        is_active_staff=True
+    )
+
+    context = {
+        'order': order,
+        'available_drivers': available_drivers,
+    }
+    return render(request, 'restaurant/assign_driver_to_order.html', context)
