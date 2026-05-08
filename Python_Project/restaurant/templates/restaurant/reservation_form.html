@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Book a Table | Urban Spark{% endblock %}
+{% block content %}
+
+
+    <h2>Book a Table</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <p class="auth-message {{ message.tags }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-button">Confirm Reservation</button>
+    </form>
+    <a href="{% url 'reservation_list' %}">Back to Reservations</a>
+
+    
+{% endblock %}

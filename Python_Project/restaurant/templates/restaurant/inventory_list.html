@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Inventory | Urban Spark{% endblock %}
+{% block content %}
+
+    <h2>Inventory — {{ restaurant.name }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p class="auth-message {{ message.tags }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    {% if low_stock %}
+        <div class="low-stock-alert">
+            <p><strong>Low Stock Alert:</strong> The following ingredients are at or below reorder level:</p>
+            <ul>
+                {% for item in low_stock %}
+                    <li>{{ item.ingredient_name }} — {{ item.current_level }} {{ item.unit }} remaining (reorder at {{ item.reorder_level }})</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if inventory %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Ingredient</th>
+                    <th>Current Level</th>
+                    <th>Unit</th>
+                    <th>Reorder Level</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in inventory %}
+                <tr>
+                    <td>{{ item.ingredient_name }}</td>
+                    <td>{{ item.current_level }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.reorder_level }}</td>
+                    <td>{{ item.last_updated|date:"M d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'inventory_edit' item.pk %}">Edit</a>
+                        <a href="{% url 'inventory_confirm_delete' item.pk %}">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No ingredients found.</p>
+    {% endif %}
+
+    <a href="{% url 'inventory_create' restaurant.pk %}">Add Ingredient</a>
+    <a href="{% url 'restaurant_detail' restaurant.pk %}">Back to Restaurant</a>
+
+{% endblock %}

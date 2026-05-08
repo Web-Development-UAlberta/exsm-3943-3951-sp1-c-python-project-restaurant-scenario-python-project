@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Reservation #{{ reservation.id }} | Urban Spark{% endblock %}
+{% block content %}
+
+
+    <h2>Reservation #{{ reservation.id }}</h2>
+    <p><strong>Date & Time:</strong> {{ reservation.reservation_datetime|date:"M d, Y H:i" }}</p>
+    <p><strong>Party Size:</strong> {{ reservation.party_size }}</p>
+    <p><strong>Status:</strong> {{ reservation.get_status_display }}</p>
+    <p><strong>Deposit:</strong> ${{ reservation.deposit_amount }}</p>
+    {% if reservation.cancellation_fee_applied %}
+        <p><strong>Cancellation Fee:</strong> $10.00 applied</p>
+    {% endif %}
+    {% if reservation.table %}
+        <p><strong>Table:</strong> {{ reservation.table.label }}</p>
+    {% endif %}
+    {% if reservation.status == 1 or reservation.status == 2 %}
+        <a href="{% url 'reservation_cancel' reservation.pk %}">Cancel Reservation</a>
+    {% endif %}
+    <a href="{% url 'reservation_list' %}">Back to Reservations</a>
+
+
+{% endblock %}
