@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
-{% block title %}Sign Up | Urban Spark{% endblock %}
+{% block title %}{% if customer_form %}Edit Profile{% else %}Sign Up{% endif %} | Urban Spark{% endblock %}
 
 {% block content %}
 
     <div class="auth-box"> {# Will be using the names in the css file for editing #}
-        <h2>Sign Up</h2>
+        <h2>{% if customer_form %}Edit Profile{% else %}Sign Up{% endif %}</h2>
 
         {% if messages %}
             {% for message in messages %}
@@ -15,11 +15,18 @@
 
         <form method="POST" class="auth-form">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="auth-button">Sign Up</button>
+            {% if customer_form %}
+                {{ customer_form.as_p }}
+                <button type="submit" class="auth-button">Save Changes</button>
+            {% else %}
+                {{ form.as_p }}
+                <button type="submit" class="auth-button">Sign Up</button>
+            {% endif %}
         </form>
 
-        <p class="auth-redirect">Already have an account? <a href="{% url 'customer_login' %}">Login</a></p>
+        {% if not customer_form %}
+            <p class="auth-redirect">Already have an account? <a href="{% url 'customer_login' %}">Login</a></p>
+        {% endif %}
     </div>
 
 {% endblock %}

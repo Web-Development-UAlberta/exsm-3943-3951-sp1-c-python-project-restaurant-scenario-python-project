@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Reservations | Urban Spark{% endblock %}
+{% block content %}
+
+
+    <h2>Reservations</h2>
+    {% if reservations %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date & Time</th>
+                    <th>Party Size</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                <tr>
+                    <td>{{ reservation.id }}</td>
+                    <td>{{ reservation.reservation_datetime|date:"M d, Y H:i" }}</td>
+                    <td>{{ reservation.party_size }}</td>
+                    <td>{{ reservation.get_status_display }}</td>
+                    <td>
+                        <a href="{% url 'reservation_detail' reservation.pk %}">View</a>
+                        {% if reservation.status == 1 or reservation.status == 2 %}
+                            <a href="{% url 'reservation_cancel' reservation.pk %}">Cancel</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No reservations found.</p>
+    {% endif %}
+    <a href="{% url 'reservation_create' %}">Make a Reservation</a>
+
+
+{% endblock %}

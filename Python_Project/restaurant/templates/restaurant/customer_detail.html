@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ customer.user.first_name }} {{ customer.user.last_name }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+    <section class="order-detail-box">
+        <h2>{{ customer.user.first_name }} {{ customer.user.last_name }}</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p class="auth-message {{ message.tags }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+
+        {# ====== CUSTOMER INFO ====== #}
+        <div class="order-info">
+            <p><strong>Email:</strong> {{ customer.user.email }}</p>
+            <p><strong>Phone:</strong> {{ customer.phone_number }}</p>
+            <p><strong>Address:</strong> {{ customer.address }}</p>
+            <p><strong>Loyalty Points:</strong> {{ customer.loyalty_points }} pts
+                {% if customer.loyalty_points >= 2000 %}
+                    — Eligible for $25 discount
+                {% elif customer.loyalty_points >= 1000 %}
+                    — Eligible for $10 discount
+                {% endif %}
+            </p>
+            <p><strong>Member Since:</strong> {{ customer.user.created_at|date:"M d, Y" }}</p>
+        </div>
+
+        {# ====== ORDER HISTORY ====== #}
+        <div class="order-items">
+            <h3>Order History</h3>
+            {% if orders %}
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.get_order_type_display }}</td>
+                            <td>{{ order.get_order_status_display }}</td>
+                            <td>${{ order.total_price }}</td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'order_detail' order.pk %}">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No orders found for this customer.</p>
+            {% endif %}
+        </div>
+
+        {# ====== ACTIONS ====== #}
+        <div class="order-actions">
+            <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-danger">Delete Customer</a>
+            <a href="{% url 'customer_list' %}">Back to Customers</a>
+        </div>
+
+    </section>
+
+{% endblock %}
