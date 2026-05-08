@@ -180,26 +180,27 @@ And sign up using the email address that was added
     
     Project-Repo/
     ├── requirements.txt          # All Python packages needed
-    ├── pytest.ini                # Pytest configuration
     ├── docs/                     # Project documentation
     │   └── README.md             # This file
     └── Python_Project/
-    ├── manage.py             # Django management tool
-    ├── Python_Project/       # Django settings and URL config
-    │   ├── settings.py
-    │   └── urls.py
-    └── restaurant/           # Main app
-    ├── models.py         # Database tables
-    ├── views.py          # Page logic
-    ├── forms.py          # Form definitions
-    ├── urls.py           # URL routing
-    ├── templates/        # HTML pages
-    ├── static/           # CSS and images
-    ├── migrations/       # Database migration history
-    └── tests/            # All test files
-    ├── test_models.py
-    ├── test_forms.py
-    └── test_staff.py
+        ├── manage.py             # Django management tool
+        ├── pytest.ini            # Pytest configuration
+        ├── Python_Project/       # Django settings and URL config
+        │   ├── settings.py
+        │   └── urls.py
+        └── restaurant/           # Main app
+            ├── models.py         # Database tables
+            ├── views.py          # Page logic
+            ├── forms.py          # Form definitions
+            ├── urls.py           # URL routing
+            ├── templates/        # HTML pages
+            ├── static/           # CSS and images
+            ├── migrations/       # Database migration history
+            └── tests/            # All test files
+                ├── test_models.py
+                ├── test_forms.py
+                ├── test_views.py
+                └── test_staff.py
 
 ---
 
