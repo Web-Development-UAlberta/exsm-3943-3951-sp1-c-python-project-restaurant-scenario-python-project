@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory | Urban Spark{% endblock %}
+
+{% block content %}
+
+<main>
+    <h2>{% if form.instance.pk %}Edit Ingredient{% else %}Add Ingredient{% endif %}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p class="auth-message {{ message.tags }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-button">
+            {% if form.instance.pk %}Save Changes{% else %}Add Ingredient{% endif %}
+        </button>
+    </form>
+
+    {# Back link uses the restaurant pk from the form instance if editing, otherwise falls back to the restaurant list #}
+    {% if form.instance.pk %}
+        <a href="{% url 'inventory_list' form.instance.restaurant.pk %}">Back to Inventory</a>
+    {% else %}
+        <a href="{% url 'restaurant_list' %}">Back to Restaurants</a>
+    {% endif %}
+</main>
+
+{% endblock %}

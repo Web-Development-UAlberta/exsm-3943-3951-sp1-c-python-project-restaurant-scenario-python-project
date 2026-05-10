@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Invites | Urban Spark{% endblock %}
+
+{% block content %}
+
+<main>
+    <h2>Staff Invites</h2>
+    <a href="{% url 'staff_invite_create' %}">Add New Invite</a>
+
+    {% if invites %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invite in invites %}
+                <tr>
+                    <td>{{ invite.email }}</td>
+                    <td>{{ invite.get_role_display }}</td>
+                    <td>{% if invite.is_used %}Used{% else %}Pending{% endif %}</td>
+                    <td>{{ invite.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        {% if not invite.is_used %}
+                            {# Only unused invites can be revoked #}
+                            <a href="{% url 'staff_invite_delete' invite.pk %}">Revoke</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No invites found.</p>
+    {% endif %}
+</main>
+
+{% endblock %}

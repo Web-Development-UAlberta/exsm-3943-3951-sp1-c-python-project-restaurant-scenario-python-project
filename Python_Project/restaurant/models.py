@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 
 class User(AbstractUser):
@@ -22,6 +23,14 @@ class User(AbstractUser):
     shift_end = models.TimeField(blank=True, null=True)
     is_active_staff = models.BooleanField(default=True)
 
+    
+    # Adding validation to make sure that the end time and the start time is correct for the shift
+    def clean(self):
+        if self.shift_start and self.shift_end:
+            if self.shift_end <= self.shift_start:
+                raise ValidationError('Shift end must be after shift start.')
+
+    
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -52,6 +61,12 @@ class Restaurant(models.Model):
     longitude = models.DecimalField(max_digits=10, decimal_places=6)
     is_active = models.BooleanField(default=True) # Restaurant defaults to active as soon as it's created
 
+    # Adding model level validation to ensure data integrity
+    def clean(self):
+        if self.opening_time and self.closing_time:
+            if self.closing_time <= self.opening_time:
+                raise ValidationError('Closing time must be after opening time.')
+
     def __str__(self):
         return self.name
 
@@ -80,6 +95,9 @@ class Inventory(models.Model):
     unit = models.CharField(max_length=20)
     reorder_level = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     last_updated = models.DateTimeField(auto_now=True) # allows filed to save upon update
+
+    def __str__(self):
+        return f'{self.ingredient_name} - {self.restaurant}'    
 
 
 class Table(models.Model):
@@ -131,9 +149,15 @@ class RestaurantMenuItem(models.Model):
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
     is_available = models.BooleanField(default=True)
 
+    def __str__(self):
+        return f'{self.restaurant} - {self.menu_item}'
+
 class MenuItemTag(models.Model):
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
     tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.menu_item} - {self.tag}'
 
 
 class Reservation(models.Model):
@@ -156,6 +180,11 @@ class Reservation(models.Model):
     cancellation_fee_applied = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Adding validation rule to make sure that the party size is always 1 or more
+    def clean(self):
+        if self.party_size is not None and self.party_size <= 0:
+            raise ValidationError('Party size must be greater than 0.')
+    
     def __str__(self):
         return f'Reservation {self.id} - {self.restaurant}'
 
@@ -206,6 +235,9 @@ class OrderItem(models.Model):
     quantity = models.IntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def __str__(self):
+        return f'Order {self.order.id} - {self.menu_item}'
+
 
 class Payment(models.Model):
     class PaymentMethod (models.IntegerChoices):
@@ -217,3 +249,6 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_id = models.CharField(max_length=50, unique=True)
     processed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Payment {self.transaction_id} - Order {self.order.id}'

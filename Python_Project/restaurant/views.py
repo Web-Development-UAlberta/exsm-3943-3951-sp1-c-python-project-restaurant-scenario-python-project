@@ -640,7 +640,7 @@ def menu_item_create(request):
             return redirect('menu_item_list')
     else:
         form = forms.MenuItemForm()
-    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+    return render(request, 'restaurant/menu_item_create.html', {'form': form})
 
 
 @login_required
@@ -654,7 +654,7 @@ def menu_item_edit(request, pk):
             return redirect('menu_item_list')
     else:
         form = forms.MenuItemForm(instance=menuitem)
-    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+    return render(request, 'restaurant/menu_item_create.html', {'form': form})
 
 
 @login_required
