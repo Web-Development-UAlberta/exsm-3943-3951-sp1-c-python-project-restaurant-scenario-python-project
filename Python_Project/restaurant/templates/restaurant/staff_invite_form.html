@@ -1,0 +1,27 @@
+{% extends base.html %}
+
+{% block title %}Add Staff Invite | Urban Spark{% endblock %}
+
+{% block content %}
+
+<main>
+    <h2>Add Staff Invite</h2>
+    <p>Enter the email and role for the staff member you want to invite.</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <p class="auth-message {{message.tag}}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-button">Send Invite</button>
+    </form>
+
+    <a href="{% url 'staff_invite_list' %}">Back to Invites</a>
+
+</main>
+
+{% endblock %}

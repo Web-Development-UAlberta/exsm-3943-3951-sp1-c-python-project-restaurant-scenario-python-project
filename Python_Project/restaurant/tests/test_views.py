@@ -4,8 +4,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from restaurant.models import (
     Customer, Restaurant, Category, Tag,
-    MenuItem, Table, Order, StaffInvite,
-    Reservation, Inventory
+    Table, Order, StaffInvite
 )
 from restaurant import models
 
@@ -545,7 +544,8 @@ def test_inventory_create_allowed_for_manager(client, manager_user, restaurant):
 @pytest.mark.django_db
 def test_loyalty_points_awarded_on_order_completion(client, customer_user, restaurant):
     # verifies 10 points per dollar are awarded when kitchen marks order as completed
-    kitchen = User.objects.create_user(
+    # we need to create the object for the test, however will not be referencing to it directly
+    _ = User.objects.create_user(
         username='kitchenstaff', password='TestPass123!', role=User.Role.KITCHEN_STAFF
     )
     customer = Customer.objects.get(user=customer_user)
@@ -612,7 +612,7 @@ def test_manager_assigns_driver(client, manager_user, restaurant):
 @pytest.mark.django_db
 def test_driver_can_access_driver_view(client):
     """Driver can access their dashbaord"""
-    driver = User.objects.create_user(
+    _ = User.objects.create_user(
         username='testdriver',
         password='TestPass123!',
         role=User.Role.DELIVERY_DRIVER
@@ -626,4 +626,83 @@ def test_customer_cannot_access_driver_view(client, customer_user):
     """Customer cannot access driver dashbaord"""
     client.login(username='testcustomer', password='TestPass123!')
     response = client.get(reverse('driver_view'))
+    assert response.status_code == 302
+
+
+# ====================== DELIVERY COMPLETE ======================
+
+@pytest.mark.django_db
+def test_driver_can_complete_delivery(client, restaurant):
+    # verifies driver can mark their assigned order as delivered
+    driver = User.objects.create_user(
+        username='testdriver', password='TestPass123!', role=User.Role.DELIVERY_DRIVER
+    )
+    order = Order.objects.create(
+        restaurant=restaurant,
+        order_type=Order.OrderType.DELIVERY,
+        sub_total=20.00,
+        total_price=20.00,
+        order_status=Order.OrderStatus.READY,
+        payment_status=Order.PaymentStatus.UNPAID,
+        assigned_driver=driver
+    )
+    client.login(username='testdriver', password='TestPass123!')
+    response = client.post(reverse('delivery_complete', args=[order.id]))
+    assert response.status_code == 302
+    order.refresh_from_db()
+    assert order.order_status == Order.OrderStatus.COMPLETED
+
+
+@pytest.mark.django_db
+def test_driver_cannot_complete_unassigned_order(client, restaurant):
+    # verifies a driver cannot complete an order they are not assigned to
+    _ = User.objects.create_user(
+        username='testdriver', password='TestPass123!', role=User.Role.DELIVERY_DRIVER
+    )
+    other_driver = User.objects.create_user(
+        username='otherdriver', password='TestPass123!', role=User.Role.DELIVERY_DRIVER
+    )
+    order = Order.objects.create(
+        restaurant=restaurant,
+        order_type=Order.OrderType.DELIVERY,
+        sub_total=20.00,
+        total_price=20.00,
+        order_status=Order.OrderStatus.READY,
+        payment_status=Order.PaymentStatus.UNPAID,
+        assigned_driver=other_driver
+    )
+    client.login(username='testdriver', password='TestPass123!')
+    response = client.post(reverse('delivery_complete', args=[order.id]))
+    assert response.status_code == 302
+    order.refresh_from_db()
+    assert order.order_status == Order.OrderStatus.READY  # unchanged
+
+
+# ====================== STAFF INVITE DELETE ======================
+
+@pytest.mark.django_db
+def test_staff_invite_delete_allowed_for_manager(client, manager_user):
+    # verifies managers can revoke an unused invite
+    invite = StaffInvite.objects.create(email='revoke@test.com', role=User.Role.SERVER_HOST)
+    client.login(username='testmanager', password='TestPass123!')
+    response = client.post(reverse('staff_invite_delete', args=[invite.pk]))
+    assert response.status_code == 302
+    assert not StaffInvite.objects.filter(email='revoke@test.com').exists()
+
+
+# ====================== OWNER VIEW ======================
+
+@pytest.mark.django_db
+def test_owner_view_accessible_for_owner(client, owner_user):
+    # verifies owner can access their dashboard
+    client.login(username='testowner', password='TestPass123!')
+    response = client.get(reverse('owner_view'))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_customer_cannot_access_owner_view(client, customer_user):
+    # verifies customers cannot access the owner dashboard
+    client.login(username='testcustomer', password='TestPass123!')
+    response = client.get(reverse('owner_view'))
     assert response.status_code == 302
