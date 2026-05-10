@@ -27,5 +27,7 @@ jobs:
 
         # this will run our test suite using pytest and show if it is pass or fail
       - name: Run tests
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
         run: |
           cd Python_Project && pytest
