@@ -113,7 +113,7 @@ class OrderForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         order_type = cleaned_data.get('order_type')
-        delivery_address = cleaned_data.get('deliver_address')
+        delivery_address = cleaned_data.get('delivery_address')
 
         # delivery address is required if order type is delivery
         if order_type == models.Order.OrderType.DELIVERY and not delivery_address:
