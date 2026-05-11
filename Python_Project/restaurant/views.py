@@ -94,6 +94,7 @@ def restaurant_toggle_active(request, pk):
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
     restaurant.is_active = not restaurant.is_active
     restaurant.save()
+    messages.success(request, f'{restaurant.name} has been {"deactivated" if not restaurant.is_active else "activated"}.')
     return redirect('restaurant_detail', pk=pk)
 
 

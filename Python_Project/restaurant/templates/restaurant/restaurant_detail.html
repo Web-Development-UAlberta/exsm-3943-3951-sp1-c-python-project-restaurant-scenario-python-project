@@ -15,7 +15,7 @@
     <p>Longitude: {{restaurant.longitude}}</p>
     <p>Status: {% if restaurant.is_active %} Active {% else %} Inactive {% endif %}</p>
     <a href="{% url 'restaurant_edit' restaurant.pk %}">Edit</a>
-    {% if request.user.role == 1 %}
+    {% if request.user.role == 1 or request.user.role == 6 %}
     
     <form action="{% url 'restaurant_toggle_active' restaurant.pk%}" method="post">
         {% csrf_token %}
@@ -24,7 +24,7 @@
         </button>
     </form>
 
-    <a href="{% url 'confirm_delete' restaurant.pk %}">Delete</a>
+    <a href="{% url 'restaurant_confirm_delete' restaurant.pk %}">Delete</a>
     
     {# <form action="{% url 'confirm_delete' restaurant.pk%}" method="post"> #}
         {# {% csrf_token %} #}
