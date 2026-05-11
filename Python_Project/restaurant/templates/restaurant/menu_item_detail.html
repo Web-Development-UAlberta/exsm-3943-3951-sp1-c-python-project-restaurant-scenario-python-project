@@ -17,7 +17,7 @@
 
 
     {% if request.user.role == 1 or request.user.role == 6 %}
-    <div class="menu-item-detail actions">  
+    <div class="menu-item-detail-actions">  
     <a href="{% url 'menu_item_edit' menuitem.pk %}">Edit</a>
     
     <form action="{% url 'menu_item_confirm_delete' menuitem.pk%}" method="post">
