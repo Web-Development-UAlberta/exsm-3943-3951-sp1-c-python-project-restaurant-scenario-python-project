@@ -25,6 +25,7 @@
     </form>
 
     <a href="{% url 'restaurant_confirm_delete' restaurant.pk %}">Delete</a>
+    <a href="{% url 'restaurant_list' %}">Cancel</a>
     
     {# <form action="{% url 'confirm_delete' restaurant.pk%}" method="post"> #}
         {# {% csrf_token %} #}
