@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Table Layout - {{restaurant.name}}
+{% endblock %}
+
+{% block content %}
+<h2> Table Layout - {{restaurant.name}}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div class="layout-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Table</th>
+                    <th>Seats</th>
+                    <th>Column (x)</th>
+                    <th>Row (y)</th>
+                </th>
+            </thead>
+            <tbody>
+                {% for form in formset %}
+                {{ form.id }}
+                <tr>
+                    <td>{{form.label}}</td>
+                    <td>{{form.seats}}</td>
+                    <td>{{form.x}}</td>
+                    <td>{{form.y}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <button type="submit" class="btn">Save Layout</button>
+</form>
+
+{% endblock %}

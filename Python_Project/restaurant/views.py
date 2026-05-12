@@ -667,7 +667,86 @@ def table_confirm_delete(request, pk):
         'cancel_url': reverse('table_list', kwargs={'restaurant_pk': table.restaurant.pk}),
         'delete_url': request.path
     })
-
+    
+#======= Table Layout =======
+@login_required
+@user_passes_test(is_manager_or_owner)
+def table_layout_edit(request, restaurant_pk):
+    """Allows owner to assign grid positions to all restaurant tables in one submission.
+    GET will load current table positions from grid_squares for pre population.
+    POST will validate posistions, saves grid_squares per table, and updates the TableLayout snapshot"""
+    
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+    tables = models.Table.objects.filter(restaurant=restaurant)
+    grid_positions = {}
+    
+    if request.method == 'POST':
+        # queryset is used to know which table instances each form corresponds to.  
+        formset = forms.TableLayoutFormSet(request.POST, queryset=tables)
+        
+        if formset.is_valid():
+            print("Formset is valid")
+            # loop that runs through each form in formset.  Ex: if there's 5 tables, this runs 5 times, once per table.
+            for form in formset:
+                table = form.save(commit=False)
+                x = form.cleaned_data.get('x')
+                y = form.cleaned_data.get('y')
+                
+                # calculates grid size based on seat count (auto sizing)
+                if table.seats <= 4:
+                    w, h = 1, 1
+                elif table.seats <= 6:
+                    w, h = 2, 1
+                else:
+                    w, h = 2, 2
+                    
+                # save position and size to grid_squares on the table
+                table.grid_squares = {'x': x, 'y': y, 'w':w, 'h':h }
+                table.save()
+                
+            # save overall layout to TableLayout
+            grid_data = [
+                {
+                    'table_id': t.id,
+                    'label': t.label,
+                    'seats': t.seats,
+                    **t.grid_squares # dictionary unpacking, spreads four keys directly into dictionary.
+                }
+                for t in tables
+            ]
+            
+            # if a layout exists for this restaurant, update it; otherwise create a new one.
+            models.TableLayout.objects.update_or_create(
+                restaurant=restaurant,
+                defaults={
+                    'grid_data': grid_data,
+                    'uploaded_by': request.user
+                }
+            )
+            
+            messages.success(request, 'Table layout saved successfully!')
+            return redirect('table_layout_edit', restaurant_pk=restaurant.pk)
+        
+    else:
+        # fill x and y from existing gird_squares if they exist
+        initial = []
+        
+        for table in tables:
+            gs = table.grid_squares
+            initial.append({
+                'x':gs.get('x', 0), # dictionary lookup which gets the x (or y) key, but if it doesn't exist it returns 0
+                'y':gs.get('y', 0),
+            })
+            grid_positions[table.id] = {'x': gs.get('x', 0), 'y': gs.get('y', 0)}
+            
+        # create formset without any POST data using queryset to know which tables to show and initial prepopulate teh coordinate fields    
+        formset = forms.TableLayoutFormSet(queryset=tables, initial=initial)
+            
+    return render(request, 'restaurant/table_layout_form.html', {
+        'formset':formset,
+        'restaurant': restaurant,
+        'grid_positions': grid_positions
+    })
 
 #======= Menu Item =======
 
