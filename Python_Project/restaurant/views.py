@@ -728,7 +728,10 @@ def order_create(request):
                 
                 # coordinates are returned as tuple.  delivery lat and lon get unpakced take restaurant object and calculate distance between them 
                 delivery_lat, delivery_long = coords
-                restaurant = order.restaurant
+                restaurant = models.Restaurant.objects.filter(is_active=True).first()
+                if restaurant is None:
+                    messages.error(request, 'No active restaurant found.')
+                    return render(request, 'restaurant/order_form.html', {'form':form})
                 distance = haversine_distance(restaurant.latitude, restaurant.longitude, delivery_lat, delivery_long)
                 
                 # display message for over 10km delivery address distance and formats to 1 decimal place.
