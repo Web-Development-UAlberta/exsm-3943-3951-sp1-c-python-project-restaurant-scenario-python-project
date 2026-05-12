@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Owner Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+<main>
+    <h2>Owner Dashboard</h2>
+    <p>Welcome, {{ request.user.first_name }}!</p>
+
+    <section class="quick-links">
+        <h3>Manage</h3>
+        <ul>
+            <li><a href="{% url 'restaurant_list' %}">Restaurants</a></li>
+            <li><a href="{% url 'staff_list' %}">Staff</a></li>
+            <li><a href="{% url 'staff_invite_list' %}">Staff Invites</a></li>
+            <li><a href="{% url 'customer_list' %}">Customers</a></li>
+            <li><a href="{% url 'order_list' %}">Orders</a></li>
+            <li><a href="{% url 'reservation_list' %}">Reservations</a></li>
+        </ul>
+    </section>
+</main>
+
+{% endblock %}

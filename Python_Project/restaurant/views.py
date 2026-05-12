@@ -31,6 +31,10 @@ def is_driver_or_manager(user):
     """Delivery Driver + Manager/Owner"""
     return user.role in [models.User.Role.DELIVERY_DRIVER, models.User.Role.MANAGER, models.User.Role.OWNER]
 
+def is_owner(user):
+    """Only owners can create restaurants"""
+    return user.role == models.User.Role.OWNER
+
 
 # ====================== EXISTING VIEWS ======================
 
@@ -44,11 +48,9 @@ def restaurant_detail(request, pk):
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
     return render(request, 'restaurant/restaurant_detail.html', {'restaurant': restaurant})
 
-
+@login_required
+@user_passes_test(is_owner)
 def restaurant_create(request):
-    if request.user.role != models.User.Role.OWNER:
-        messages.error(request, 'Unauthorized User, Access Denied!')
-        return redirect('restaurant_list')
     if request.method == 'POST':
         form = forms.RestaurantForm(request.POST)
         if form.is_valid():
@@ -60,11 +62,9 @@ def restaurant_create(request):
         form = forms.RestaurantForm()
     return render(request, 'restaurant/restaurant_create.html', {'form': form})
 
-
+@login_required
+@user_passes_test(is_manager_or_owner)
 def restaurant_edit(request, pk):
-    if request.user.role != models.User.Role.MANAGER and request.user.role != models.User.Role.OWNER:
-        messages.error(request, 'Unauthorized User, Access Denied!')
-        return redirect('restaurant_list')
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
     if request.method == 'POST':
         form = forms.RestaurantForm(request.POST, instance=restaurant)
@@ -75,11 +75,9 @@ def restaurant_edit(request, pk):
         form = forms.RestaurantForm(instance=restaurant)
     return render(request, 'restaurant/restaurant_create.html', {'form': form})
 
-
+@login_required
+@user_passes_test(is_owner)
 def restaurant_confirm_delete(request, pk):
-    if request.user.role != models.User.Role.OWNER:
-        messages.error(request, 'Unauthorized User, Access Denied!')
-        return redirect('restaurant_list')
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
     if request.method == 'POST':
         restaurant.delete()
@@ -91,12 +89,13 @@ def restaurant_confirm_delete(request, pk):
         'delete_url': request.path
     })
 
-
+@login_required
+@user_passes_test(is_manager_or_owner)
 def restaurant_toggle_active(request, pk):
     restaurant = get_object_or_404(models.Restaurant, pk=pk)
-    if request.user.role == models.User.Role.MANAGER or request.user.role == models.User.Role.OWNER:
-        restaurant.is_active = not restaurant.is_active
-        restaurant.save()
+    restaurant.is_active = not restaurant.is_active
+    restaurant.save()
+    messages.success(request, f'{restaurant.name} has been {"deactivated" if not restaurant.is_active else "activated"}.')
     return redirect('restaurant_detail', pk=pk)
 
 
@@ -159,6 +158,11 @@ def staff_index(request):
 @login_required
 def customer_edit(request, pk):
     customer = get_object_or_404(models.Customer, pk=pk)
+    
+    # checks logged in user owns this customer profile, unless they're a manager or owner
+    if customer.user != request.user and not is_manager_or_owner(request.user):
+        messages.error(request, 'You can only edit your own profile.')
+        return redirect('index')
 
     if request.method == 'POST':
         customer_form = forms.CustomerEditForm(request.POST, instance=customer)
@@ -641,7 +645,7 @@ def menu_item_create(request):
             return redirect('menu_item_list')
     else:
         form = forms.MenuItemForm()
-    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+    return render(request, 'restaurant/menu_item_create.html', {'form': form})
 
 
 @login_required
@@ -655,7 +659,7 @@ def menu_item_edit(request, pk):
             return redirect('menu_item_list')
     else:
         form = forms.MenuItemForm(instance=menuitem)
-    return render(request, 'restaurant/menu_item_form.html', {'form': form})
+    return render(request, 'restaurant/menu_item_create.html', {'form': form})
 
 
 @login_required

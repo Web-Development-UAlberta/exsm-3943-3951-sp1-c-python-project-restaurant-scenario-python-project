@@ -32,3 +32,6 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# .env file
+.env

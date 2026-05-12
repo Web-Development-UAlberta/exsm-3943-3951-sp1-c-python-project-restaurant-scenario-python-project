@@ -5,17 +5,19 @@
 {% endblock %}
  
 {% block content %}
-<ul>
+<div class="menu-item-list">
     {% for menuitem in menuitems %}
-    <li>
-        <h2><a href="{% url 'menu_item_detail' menuitem.pk %}">{{menuitem.name}}</a></h2>
+    <div class="menu-item-card">
         {% if menuitem.image %}
-        <img src="{{menuitem.image.url}}" alt="{{menuitem.name}}">
+        <img src="{{menuitem.image.url}}" alt="{{menuitem.name}} " class="menu-item-image">
         {% endif %}
-        <p>${{menuitem.price}}</p>
+        <div class="menu-item-info">
+        <h2><a href="{% url 'menu_item_detail' menuitem.pk %}">{{menuitem.name}}</a></h2>
+        <p class="menu-item-price">${{menuitem.price}}</p>
         <h3><a href="{% url 'category_detail' menuitem.category.pk %}">{{menuitem.category}}</a></h3>    
-    </li>
+        </div>
+    </div>
     {% endfor %}
-</ul>
+</div>
 <a href="{% url 'menu_item_create' %}">Add New Menu Item</a>
 {% endblock %}
