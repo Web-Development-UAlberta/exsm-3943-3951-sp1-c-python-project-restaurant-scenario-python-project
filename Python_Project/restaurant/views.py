@@ -7,6 +7,7 @@ from restaurant import forms
 from django.urls import reverse
 from django.db.models import Q, F
 from django.utils import timezone
+from .utils import haversine_distance, geocode_address
 
 
 # ====================== CONSISTENT ROLE HELPERS ======================
@@ -714,6 +715,30 @@ def order_create(request):
             order.sub_total = 0 # this will be calculated when the items are added
             order.total_price = 0
             order.loyalty_discount = 0
+            
+            # validate delivery distance
+            distance = None # initialize distance so it's available later for fee calculation
+            if order.order_type == models.Order.OrderType.DELIVERY:
+                delivery_address = form.cleaned_data.get('delivery_address')
+                coords = geocode_address(delivery_address)
+                
+                # calls geocode_address function from utils.py and sends delivery address to Nominatim to get coordinates.  Returns None if fails
+                if coords is None:
+                    messages.error(request, 'Could not verify delivery address.  Please check your address and try again.')
+                    return render(request, 'restaurant/order_form.html', {'form':form})
+                
+                # coordinates are returned as tuple.  delivery lat and lon get unpakced take restaurant object and calculate distance between them 
+                delivery_lat, delivery_long = coords
+                restaurant = models.Restaurant.objects.filter(is_active=True).first()
+                if restaurant is None:
+                    messages.error(request, 'No active restaurant found.')
+                    return render(request, 'restaurant/order_form.html', {'form':form})
+                distance = haversine_distance(restaurant.latitude, restaurant.longitude, delivery_lat, delivery_long)
+                
+                # display message for over 10km delivery address distance and formats to 1 decimal place.
+                if distance > 10:
+                    messages.error(request, f"Sorry, your address is {distance:.1f}km away. We only deliver within 10km.")
+                    return render(request, 'restaurant/order_form.html', {'form': form})
 
             # linking the order to the customer if logged in
             if request.user.is_authenticated and request.user.role == models.User.Role.CUSTOMER:
@@ -742,8 +767,12 @@ def order_create(request):
                 order.customer = None
 
             # calculating the delivery fee based on the order type
-            if order.order_type == models.Order.OrderType.DELIVERY:
-                order.delivery_fee = 10 # default - will be updated with Haversine formula later
+            # within 5km = $5, 5-10km $10m over 10km = rejected as per calculation above
+            if order.order_type == models.Order.OrderType.DELIVERY and distance is not None:
+                if distance <= 5:
+                    order.delivery_fee = 5
+                else:
+                    order.delivery_fee = 10 
             else:
                 order.delivery_fee = None
 
