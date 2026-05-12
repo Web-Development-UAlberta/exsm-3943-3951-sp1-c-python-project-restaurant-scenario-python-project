@@ -7,12 +7,6 @@
     <section class="order-detail-box">
         <h2>Order #{{ order.id }}</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-
         {# ====== ORDER INFO ====== #}
         <div class="order-info">
             <p><strong>Order Type:</strong> {{ order.get_order_type_display }}</p>

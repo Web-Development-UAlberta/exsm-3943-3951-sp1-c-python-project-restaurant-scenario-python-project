@@ -85,7 +85,7 @@ def test_customer_login_valid_credentials(client, customer_user):
         'password': 'TestPass123!'
     })
     assert response.status_code == 302
-    assert response.url == reverse('index')
+    assert response.url == reverse('customer_dashboard')
 
 
 @pytest.mark.django_db
@@ -299,15 +299,23 @@ def test_tag_create_allowed_for_manager(client, manager_user):
 
 @pytest.mark.django_db
 def test_order_create_page_loads_for_guest(client):
-    # verifies guests can access the order creation page
+    # verifies guests with items in cart can access the order creation page
+    # empty cart redirects to menu: add a cart item to session first
+    session = client.session
+    session['cart'] = {'1': {'item_id': 1, 'name': 'Test Item', 'price': '10.00', 'quantity': 1}}
+    session.save()
     response = client.get(reverse('order_create'))
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
 def test_order_create_page_loads_for_customer(client, customer_user):
-    # verifies logged in customers can access the order creation page
+    # verifies logged in customers with items in cart can access the order creation page
+    # empty cart redirects to menu: add a cart item to session first
     client.login(username='testcustomer', password='TestPass123!')
+    session = client.session
+    session['cart'] = {'1': {'item_id': 1, 'name': 'Test Item', 'price': '10.00', 'quantity': 1}}
+    session.save()
     response = client.get(reverse('order_create'))
     assert response.status_code == 200
 

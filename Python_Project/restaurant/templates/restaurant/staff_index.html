@@ -6,7 +6,7 @@
 
 <main>
     <section class="start-box">
-        <h2>Welcome, {{ request.user.first_name }}!</h2>
+        <h2>Welcome{% if user.is_authenticated %}, {{ request.user.first_name }}{% endif %}!</h2>
         <p>Urban Spark Staff Dashboard</p>
     </section>
 

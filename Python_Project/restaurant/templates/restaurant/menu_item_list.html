@@ -1,23 +1,102 @@
 {% extends 'base.html' %}
 
-{% block title %}
-    Menu Items
-{% endblock %}
- 
+{% block title %}Menu | Urban Spark{% endblock %}
+
 {% block content %}
-<div class="menu-item-list">
-    {% for menuitem in menuitems %}
-    <div class="menu-item-card">
-        {% if menuitem.image %}
-        <img src="{{menuitem.image.url}}" alt="{{menuitem.name}} " class="menu-item-image">
+
+<div class="menu-page">
+
+    {# ====== LEFT: CATEGORY NAV ====== #}
+    <aside class="menu-categories">
+        <h3>Categories</h3>
+        <ul>
+            <li><a href="#all">All</a></li>
+            {% for category in categories %}
+                <li><a href="#cat-{{ category.pk }}">{{ category.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    {# ====== CENTER: MENU ITEMS ====== #}
+    <section class="menu-items" id="all">
+        {% for category in categories %}
+            <div class="menu-category-section" id="cat-{{ category.pk }}">
+                <div class="menu-category-header">
+                    <span>{{ category.name }}</span>
+                </div>
+                {% for item in menuitems %}
+                    {% if item.category == category %}
+                    <div class="menu-item-card">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="menu-item-image">
+                        {% else %}
+                            <div class="menu-item-image-placeholder"></div>
+                        {% endif %}
+                        <div class="menu-item-info">
+                            <div class="menu-item-top">
+                                <h3 class="menu-item-title">
+                                    <a href="{% url 'menu_item_detail' item.pk %}">{{ item.name }}</a>
+                                </h3>
+                                <span class="menu-item-price">${{ item.price }}</span>
+                            </div>
+                            <p class="menu-item-desc">{{ item.description }}</p>
+                            {# only show Add to Cart for guests and customers: staff are browsing only #}
+                            {% if not user.is_authenticated or user.role == 5 %}
+                                <a href="{% url 'cart_add' item.pk %}" class="btn btn-sm cart-add-btn">+ Add to Cart</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </section>
+
+    {# ====== RIGHT: CART SUMMARY ====== #}
+    <aside class="cart-summary">
+        {% if user.is_authenticated and user.role != 5 %}
+            {# staff are viewing the menu in browse-only mode #}
+            <h3>Menu Preview</h3>
+            <p class="cart-empty">You are viewing the menu as staff. Orders cannot be placed from this view.</p>
+        {% else %}
+            <h3>Your Cart</h3>
+            {% if cart_items %}
+                <ul class="cart-item-list">
+                    {% for item in cart_items %}
+                    <li class="cart-item">
+                        <div class="cart-item-name">{{ item.name }}</div>
+                        <div class="cart-item-row">
+                            <span class="cart-item-total">${{ item.line_total }}</span>
+                            <div class="cart-item-controls">
+                                <a href="{% url 'cart_remove' item.item_id %}" class="cart-qty-btn cart-delete" title="Remove">🗑</a>
+                                <form method="post" action="{% url 'cart_update' item.item_id %}" class="qty-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quantity" value="{{ item.quantity|add:'-1' }}">
+                                    <button type="submit" class="cart-qty-btn">−</button>
+                                </form>
+                                <span class="cart-qty-display">{{ item.quantity }}</span>
+                                <form method="post" action="{% url 'cart_update' item.item_id %}" class="qty-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quantity" value="{{ item.quantity|add:'1' }}">
+                                    <button type="submit" class="cart-qty-btn">+</button>
+                                </form>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="cart-total">
+                    <span>Subtotal (before tax)</span>
+                    <strong>${{ cart_total }}</strong>
+                </div>
+                <a href="{% url 'order_create' %}" class="btn cart-checkout-btn">
+                    Proceed to Checkout
+                </a>
+            {% else %}
+                <p class="cart-empty">Your cart is empty.</p>
+            {% endif %}
         {% endif %}
-        <div class="menu-item-info">
-        <h2><a href="{% url 'menu_item_detail' menuitem.pk %}">{{menuitem.name}}</a></h2>
-        <p class="menu-item-price">${{menuitem.price}}</p>
-        <h3><a href="{% url 'category_detail' menuitem.category.pk %}">{{menuitem.category}}</a></h3>    
-        </div>
-    </div>
-    {% endfor %}
+    </aside>
 </div>
-<a href="{% url 'menu_item_create' %}">Add New Menu Item</a>
+
 {% endblock %}

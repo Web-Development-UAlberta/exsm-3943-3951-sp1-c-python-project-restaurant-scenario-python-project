@@ -4,12 +4,14 @@
 
 {% block content %}
 
-<main>
-    <h2>Staff Invites</h2>
-    <a href="{% url 'staff_invite_create' %}">Add New Invite</a>
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Staff Invites</h2>
+        <a href="{% url 'staff_invite_create' %}" class="btn btn-sm">+ Add New Invite</a>
+    </div>
 
     {% if invites %}
-        <table>
+        <table class="orders-table">
             <thead>
                 <tr>
                     <th>Email</th>
@@ -24,12 +26,18 @@
                 <tr>
                     <td>{{ invite.email }}</td>
                     <td>{{ invite.get_role_display }}</td>
-                    <td>{% if invite.is_used %}Used{% else %}Pending{% endif %}</td>
+                    <td>
+                        {% if invite.is_used %}
+                            <span class="badge-inactive">Used</span>
+                        {% else %}
+                            <span class="badge-active">Pending</span>
+                        {% endif %}
+                    </td>
                     <td>{{ invite.created_at|date:"M d, Y" }}</td>
                     <td>
                         {% if not invite.is_used %}
                             {# Only unused invites can be revoked #}
-                            <a href="{% url 'staff_invite_delete' invite.pk %}">Revoke</a>
+                            <a href="{% url 'staff_invite_delete' invite.pk %}" class="btn btn-sm btn-danger">Revoke</a>
                         {% endif %}
                     </td>
                 </tr>
@@ -39,6 +47,7 @@
     {% else %}
         <p>No invites found.</p>
     {% endif %}
-</main>
+
+</div>
 
 {% endblock %}

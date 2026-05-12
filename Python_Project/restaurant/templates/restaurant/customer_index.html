@@ -6,15 +6,15 @@
 
 <main> {# Adding main as this is the homepage of my web-app #}
     <section class="start-box"> {# Will be using the names in the css file for editing #}
-        <h2>Welcome to Urban Spark {{ request.user.first_name }}!</h2>
+        <h2>Welcome to Urban Spark{% if user.is_authenticated %}, {{ user.first_name }}{% endif %}!</h2>
         <p>Discover, explore, and taste our delicious recipes. We want to electrify your tastebuds!</p>
     </section>
 
     <section class="quick-links">
         <h3>Get Started</h3>
         <ul>
-            <li><a href="#">Place an Order</a></li>
-            <li><a href="#">Book a table</a></li>
+            <li><a href="{% url 'menu_item_list' %}">Place an Order</a></li>
+            <li><a href="{% url 'reservation_create' %}">Book a table</a></li>
         </ul>
     </section>
 </main>

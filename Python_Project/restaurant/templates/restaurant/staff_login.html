@@ -7,11 +7,6 @@
     <div class="auth-box"> {# Will be using the names in the css file for editing #}
         <h2>Staff Login</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p> {# Will be using the 'tags' in the css file for editing #}
-            {% endfor %}
-        {% endif %}
 
         <form method="POST" class="auth-form">
             {% csrf_token %}
