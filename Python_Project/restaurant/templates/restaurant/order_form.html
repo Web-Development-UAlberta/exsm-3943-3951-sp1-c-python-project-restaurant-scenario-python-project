@@ -11,12 +11,6 @@
             {% if form.instance.pk %}Edit Order #{{ form.instance.pk }}{% else %}Place an Order{% endif %}
         </h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-
         {% if user.is_authenticated and user.role == 5 %}
             {# show loyalty points balance to logged in customers only #}
             <p class="loyalty-info">

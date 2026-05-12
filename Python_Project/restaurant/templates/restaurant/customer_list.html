@@ -7,12 +7,6 @@
     <section class="orders-box">
         <h2>All Customers</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-
         {% if customers %}
             <table class="orders-table">
                 <thead>

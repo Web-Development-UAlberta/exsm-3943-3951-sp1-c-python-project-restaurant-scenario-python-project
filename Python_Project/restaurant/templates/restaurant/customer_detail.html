@@ -7,11 +7,6 @@
     <section class="order-detail-box">
         <h2>{{ customer.user.first_name }} {{ customer.user.last_name }}</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
 
         {# ====== CUSTOMER INFO ====== #}
         <div class="order-info">

@@ -4,12 +4,6 @@
 
     <h2>Inventory — {{ restaurant.name }}</h2>
 
-    {% if messages %}
-        {% for message in messages %}
-            <p class="auth-message {{ message.tags }}">{{ message }}</p>
-        {% endfor %}
-    {% endif %}
-
     {% if low_stock %}
         <div class="low-stock-alert">
             <p><strong>Low Stock Alert:</strong> The following ingredients are at or below reorder level:</p>

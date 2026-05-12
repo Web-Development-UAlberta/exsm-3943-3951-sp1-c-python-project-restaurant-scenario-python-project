@@ -10,12 +10,6 @@
     <section class="review-form-section">
         <h2>Review Your Order</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-
         <form method="POST" class="review-form" id="review-form">
             {% csrf_token %}
 
@@ -25,13 +19,13 @@
                 {{ form.order_type }}
             </div>
 
-            {# ====== DELIVERY ADDRESS — shown/hidden by JS based on order type ====== #}
+            {# ====== DELIVERY ADDRESS: shown/hidden by JS based on order type ====== #}
             <div class="review-field-group" id="delivery-fields">
                 <h3>Delivery Address</h3>
                 {{ form.delivery_address }}
             </div>
 
-            {# ====== GUEST FIELDS — only shown to non-logged-in users ====== #}
+            {# ====== GUEST FIELDS: only shown to non-logged-in users ====== #}
             {% if not user.is_authenticated %}
             <div class="review-field-group">
                 <h3>Your Details</h3>
@@ -40,7 +34,7 @@
             </div>
             {% endif %}
 
-            {# ====== LOYALTY POINTS — only shown to logged in customers ====== #}
+            {# ====== LOYALTY POINTS: only shown to logged in customers ====== #}
             {% if user.is_authenticated and user.role == 5 and customer %}
             <div class="review-field-group">
                 <h3>Loyalty Points</h3>

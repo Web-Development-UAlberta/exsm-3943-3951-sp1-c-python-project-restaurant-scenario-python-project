@@ -4,11 +4,6 @@
 
 
     <h2>Book a Table</h2>
-    {% if messages %}
-        {% for message in messages %}
-            <p class="auth-message {{ message.tags }}">{{ message }}</p>
-        {% endfor %}
-    {% endif %}
     <form method="POST" class="auth-form">
         {% csrf_token %}
         {{ form.as_p }}
