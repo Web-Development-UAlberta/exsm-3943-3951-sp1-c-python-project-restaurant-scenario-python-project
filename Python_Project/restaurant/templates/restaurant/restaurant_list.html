@@ -5,14 +5,16 @@
 {% endblock %}
  
 {% block content %}
-<ul>
-    {% for restaurant in restaurants %}
-    <li>
-        <a href="{% url 'restaurant_detail' restaurant.pk %}">{{restaurant.name}}</a> 
-        - {{restaurant.address}}
-        {% if restaurant.is_active %} (Active) {% else %} (Inactive) {% endif %}
-    </li>
-    {% endfor %}
-</ul>
-<a href="{% url 'restaurant_create' %}">Add New Restaurant</a>
+    <ul>
+        {% for restaurant in restaurants %}
+        <li>
+            <a href="{% url 'restaurant_detail' restaurant.pk %}">{{restaurant.name}}</a> 
+            - {{restaurant.address}}
+            {% if restaurant.is_active %} (Active) {% else %} (Inactive) {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% if request.user.is_authenticated and request.user.role == 6 %}
+        <a href="{% url 'restaurant_create' %}">Add New Restaurant</a>
+    {% endif %}
 {% endblock %}

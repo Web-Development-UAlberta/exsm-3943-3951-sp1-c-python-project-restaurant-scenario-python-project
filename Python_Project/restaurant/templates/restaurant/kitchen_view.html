@@ -21,8 +21,12 @@
         <tr>
             <td><strong>#{{ order.id }}</strong></td>
             <td>
-                {{ order.table|default:"Takeout/Delivery" }} 
-                {% if order.customer %}({{ order.customer.user.get_full_name|default:"Guest" }}){% endif %}
+                {% if order.order_type == 1 %}
+                    Dine In
+                    {% if order.customer %}— {{ order.customer.user.get_full_name|default:"Guest" }}{% endif %}
+                {% else %}
+                    {{ order.get_order_type_display }}
+                {% endif %}
             </td>
             <td>{{ order.get_order_status_display }}</td>
             <td>

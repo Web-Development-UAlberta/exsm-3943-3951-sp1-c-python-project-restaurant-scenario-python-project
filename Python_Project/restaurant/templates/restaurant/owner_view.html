@@ -17,8 +17,24 @@
             <li><a href="{% url 'customer_list' %}">Customers</a></li>
             <li><a href="{% url 'order_list' %}">Orders</a></li>
             <li><a href="{% url 'reservation_list' %}">Reservations</a></li>
+            <li><a href="{% url 'menu_item_list' %}">Menu Items</a></li>
+            <li><a href="{% url 'category_list' %}">Categories</a></li>
+            <li><a href="{% url 'tag_list' %}">Tags</a></li>
         </ul>
     </section>
+
+    {# inventory is scoped per restaurant — show a link for each active location #}
+    {% if restaurants %}
+    <section class="quick-links" style="margin-top: 1.5rem;">
+        <h3>Inventory</h3>
+        <ul>
+            {% for restaurant in restaurants %}
+                <li><a href="{% url 'inventory_list' restaurant.pk %}">{{ restaurant.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
 </main>
 
 {% endblock %}

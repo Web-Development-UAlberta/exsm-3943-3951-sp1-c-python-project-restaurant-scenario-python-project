@@ -121,9 +121,14 @@ def customer_login(request):
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            # block staff from logging in through the customer login page
+            # show a warning and redirect them to the staff login page after a short delay
+            if user.role != models.User.Role.CUSTOMER:
+                messages.warning(request, 'This login is for customers only. Redirecting you to the Staff Login page...')
+                return render(request, 'restaurant/customer_login.html', {'redirect_to_staff': True})
             auth_login(request, user)
             messages.success(request, 'Login Successful!')
-            return redirect('index')
+            return redirect('customer_dashboard')
         else:
             messages.error(request, 'Invalid username or password!')
     return render(request, 'restaurant/customer_login.html')
@@ -144,7 +149,9 @@ def customer_signup(request):
                 phone_number=form.cleaned_data['phone_number'],
                 address=form.cleaned_data['address']
             )
-            return redirect('customer_login')
+            auth_login(request, user)
+            messages.success(request, 'Account created Successfully!')
+            return redirect('customer_dashboard')
     else:
         form = forms.CustomerSignUpForm()
     return render(request, 'restaurant/customer_signup.html', {'form': form})
@@ -232,6 +239,34 @@ def customer_delete(request, pk):
         'delete_url': request.path
     })
 
+
+# View for the customer dashboard, shows loyalty points, upcoming reservations, and recent orders
+@login_required
+def customer_dashboard(request):
+    # only customers can access this dashboard
+    if request.user.role != models.User.Role.CUSTOMER:
+        return redirect('staff_index')
+
+    customer = get_object_or_404(models.Customer, user=request.user)
+
+    # get upcoming reservations, only pending or confirmed, sorted by soonest first
+    upcoming_reservations = models.Reservation.objects.filter(
+        customer=customer,
+        status__in=[models.Reservation.Status.PENDING, models.Reservation.Status.CONFIRMED],
+        reservation_datetime__gte=timezone.now()
+    ).order_by('reservation_datetime')[:3]
+
+    # get recent orders: last 5
+    recent_orders = models.Order.objects.filter(
+        customer=customer
+    ).order_by('-created_at')[:5]
+
+    return render(request, 'restaurant/customer_dashboard.html', {
+        'customer': customer,
+        'upcoming_reservations': upcoming_reservations,
+        'recent_orders': recent_orders,
+    })
+
 # ====================== STAFF AUTH VIEWS ======================
 
 # View to login staff members
@@ -296,7 +331,9 @@ def staff_signup(request):
 @user_passes_test(is_manager_or_owner)
 def manager_view(request):
     """Manager Dashboard"""
-    return render(request, 'restaurant/manager_view.html')
+    # pass all restaurants to the dashboard so manager can navigate to inventory per location
+    restaurants = models.Restaurant.objects.filter(is_active=True)
+    return render(request, 'restaurant/manager_view.html', {'restaurants': restaurants})
 
 
 # View for the Server/Host dashboard, shows all tables with assigned server info
@@ -329,7 +366,9 @@ def kitchen_view(request):
 @user_passes_test(is_manager_or_owner)
 def owner_view(request):
     """Owner Dashboard"""
-    return render(request, 'restaurant/owner_view.html')
+    # pass all restaurants to the dashboard so owner can navigate to inventory per location
+    restaurants = models.Restaurant.objects.filter(is_active=True)
+    return render(request, 'restaurant/owner_view.html', {'restaurants': restaurants})
 
 
 # ====================== STAFF BUSINESS LOGIC ======================
@@ -434,6 +473,13 @@ def update_order_status(request, order_id):
 
     if request.method == 'POST':
         new_status = int(request.POST.get('status'))
+        
+        # prevent backwards status changes: order can only move forward
+        # managers can override this if needed
+        if new_status < order.order_status and not is_manager_or_owner(request.user):
+            messages.error(request, 'Cannot move order back to a previous status.')
+            return redirect('kitchen_view')
+
         order.order_status = new_status
 
         # award loyalty points when order is marked as completed
@@ -626,8 +672,31 @@ def table_confirm_delete(request, pk):
 #======= Menu Item =======
 
 def menu_item_list(request):
-    menuitems = models.MenuItem.objects.all()
-    return render(request, 'restaurant/menu_item_list.html', {'menuitems': menuitems})
+    menuitems = models.MenuItem.objects.all().select_related('category')
+    categories = models.Category.objects.all()
+    
+    # build cart summary for the sidebar
+    cart = request.session.get('cart', {})
+    cart_items = []
+    cart_total = 0
+    
+    for str_id, item_data in cart.items():
+        line_total = float(item_data['price']) * item_data['quantity']
+        cart_total += line_total
+        cart_items.append({
+            'item_id': str_id,
+            'name': item_data['name'],
+            'price': item_data['price'],
+            'quantity': item_data['quantity'],
+            'line_total': round(line_total, 2)
+        })
+    
+    return render(request, 'restaurant/menu_item_list.html', {
+        'menuitems': menuitems,
+        'categories': categories,
+        'cart_items': cart_items,
+        'cart_total': round(cart_total, 2)
+    })
 
 
 def menu_item_detail(request, pk):
@@ -704,81 +773,158 @@ def order_detail(request, pk):
     return render(request, 'restaurant/order_detail.html', {'order': order})
 
 
-# View to place an order
+# View for the review order page — replaces the old order_create view
+# Pulls cart from session, handles order type, delivery validation, loyalty points, and guest info
+# Creates the Order and OrderItem records when the customer confirms
 def order_create(request):
-    # both guests and logged in customers can place an order
+
+    # if the cart is empty, send them back to the menu
+    cart = request.session.get('cart', {})
+    if not cart:
+        messages.error(request, 'Your cart is empty. Add some items before checking out.')
+        return redirect('menu_item_list')
+
+    # build cart items and calculate subtotal from session data
+    cart_items = []
+    sub_total = 0
+    for str_id, item_data in cart.items():
+        line_total = float(item_data['price']) * item_data['quantity']
+        sub_total += line_total
+        cart_items.append({
+            'item_id': item_data['item_id'],
+            'name': item_data['name'],
+            'price': item_data['price'],
+            'quantity': item_data['quantity'],
+            'line_total': round(line_total, 2)
+        })
+    sub_total = round(sub_total, 2)
+
+    # get customer object if logged in as customer
+    customer = None
+    if request.user.is_authenticated and request.user.role == models.User.Role.CUSTOMER:
+        customer = get_object_or_404(models.Customer, user=request.user)
+
     if request.method == 'POST':
         form = forms.OrderForm(request.POST)
 
         if form.is_valid():
             order = form.save(commit=False)
-            order.sub_total = 0 # this will be calculated when the items are added
-            order.total_price = 0
-            order.loyalty_discount = 0
-            
-            # validate delivery distance
-            distance = None # initialize distance so it's available later for fee calculation
-            if order.order_type == models.Order.OrderType.DELIVERY:
-                delivery_address = form.cleaned_data.get('delivery_address')
+            order_type = order.order_type
+            delivery_address = form.cleaned_data.get('delivery_address')
+
+            # ====== GUEST FIELD VALIDATION ======
+            # guests must provide name and phone for all order types
+            # delivery guests also need an address (already required by OrderForm clean())
+            if not request.user.is_authenticated:
+                guest_name = request.POST.get('guest_name', '').strip()
+                guest_phone = request.POST.get('guest_phone', '').strip()
+                if not guest_name or not guest_phone:
+                    messages.error(request, 'Please provide your name and phone number.')
+                    return render(request, 'restaurant/order_review.html', {
+                        'form': form,
+                        'cart_items': cart_items,
+                        'sub_total': sub_total,
+                        'customer': customer,
+                    })
+
+            # ====== DELIVERY DISTANCE VALIDATION ======
+            distance = None
+            if order_type == models.Order.OrderType.DELIVERY:
                 coords = geocode_address(delivery_address)
-                
-                # calls geocode_address function from utils.py and sends delivery address to Nominatim to get coordinates.  Returns None if fails
                 if coords is None:
-                    messages.error(request, 'Could not verify delivery address.  Please check your address and try again.')
-                    return render(request, 'restaurant/order_form.html', {'form':form})
-                
-                # coordinates are returned as tuple.  delivery lat and lon get unpakced take restaurant object and calculate distance between them 
-                delivery_lat, delivery_long = coords
+                    messages.error(request, 'Could not verify delivery address. Please check and try again.')
+                    return render(request, 'restaurant/order_review.html', {
+                        'form': form,
+                        'cart_items': cart_items,
+                        'sub_total': sub_total,
+                        'customer': customer,
+                    })
+                delivery_lat, delivery_lon = coords
                 restaurant = models.Restaurant.objects.filter(is_active=True).first()
                 if restaurant is None:
                     messages.error(request, 'No active restaurant found.')
-                    return render(request, 'restaurant/order_form.html', {'form':form})
-                distance = haversine_distance(restaurant.latitude, restaurant.longitude, delivery_lat, delivery_long)
-                
-                # display message for over 10km delivery address distance and formats to 1 decimal place.
+                    return render(request, 'restaurant/order_review.html', {
+                        'form': form,
+                        'cart_items': cart_items,
+                        'sub_total': sub_total,
+                        'customer': customer,
+                    })
+                distance = haversine_distance(
+                    float(restaurant.latitude), float(restaurant.longitude),
+                    delivery_lat, delivery_lon
+                )
                 if distance > 10:
-                    messages.error(request, f"Sorry, your address is {distance:.1f}km away. We only deliver within 10km.")
-                    return render(request, 'restaurant/order_form.html', {'form': form})
+                    messages.error(request, f'Sorry, your address is {distance:.1f}km away. We only deliver within 10km.')
+                    return render(request, 'restaurant/order_review.html', {
+                        'form': form,
+                        'cart_items': cart_items,
+                        'sub_total': sub_total,
+                        'customer': customer,
+                    })
 
-            # linking the order to the customer if logged in
-            if request.user.is_authenticated and request.user.role == models.User.Role.CUSTOMER:
-                customer = get_object_or_404(models.Customer, user=request.user)
-                order.customer = customer
-
-                # handling loyalty points redemption
+            # ====== LOYALTY POINTS REDEMPTION ======
+            loyalty_discount = 0
+            points_redeemed = 0
+            if customer:
                 redeem = form.cleaned_data.get('redeem_points')
-                if redeem == 'True': # that means the customer wants to redeem points
-                    points = customer.loyalty_points
-                    if points >= 2000:
-                        order.loyalty_discount = 25
-                        order.points_redeemed = 2000
+                if redeem == 'True':
+                    if customer.loyalty_points >= 2000:
+                        loyalty_discount = 25
+                        points_redeemed = 2000
                         customer.loyalty_points -= 2000
-                    elif points >= 1000:
-                        order.loyalty_discount = 10
-                        order.points_redeemed = 1000
+                    elif customer.loyalty_points >= 1000:
+                        loyalty_discount = 10
+                        points_redeemed = 1000
                         customer.loyalty_points -= 1000
                     else:
                         messages.warning(request, 'You need at least 1000 points to redeem a discount.')
-
                     customer.save()
 
-            # if it is a guest order, no customer linked
+            # ====== DELIVERY FEE ======
+            delivery_fee = None
+            if order_type == models.Order.OrderType.DELIVERY:
+                delivery_fee = 5 if distance and distance <= 5 else 10
+
+            # ====== TOTAL PRICE ======
+            total_price = round(sub_total - loyalty_discount + (delivery_fee or 0), 2)
+
+            # ====== SAVE ORDER ======
+            order.sub_total = sub_total
+            order.loyalty_discount = loyalty_discount
+            order.points_redeemed = points_redeemed
+            order.delivery_fee = delivery_fee
+            order.total_price = total_price
+            order.payment_status = models.Order.PaymentStatus.UNPAID
+            order.order_status = models.Order.OrderStatus.PENDING
+
+            # link to customer or save guest info in special instructions
+            if customer:
+                order.customer = customer
             else:
                 order.customer = None
-
-            # calculating the delivery fee based on the order type
-            # within 5km = $5, 5-10km $10m over 10km = rejected as per calculation above
-            if order.order_type == models.Order.OrderType.DELIVERY and distance is not None:
-                if distance <= 5:
-                    order.delivery_fee = 5
-                else:
-                    order.delivery_fee = 10 
-            else:
-                order.delivery_fee = None
+                guest_name = request.POST.get('guest_name', '').strip()
+                guest_phone = request.POST.get('guest_phone', '').strip()
+                # store guest contact info in special instructions since we have no guest model on Order
+                existing_note = form.cleaned_data.get('special_instruction') or ''
+                order.special_instruction = f'Guest: {guest_name} | Phone: {guest_phone}' + (f' | Note: {existing_note}' if existing_note else '')
 
             order.save()
 
-            # storing order id in session so guests can manage their orders
+            # ====== SAVE ORDER ITEMS FROM CART ======
+            for item_data in cart_items:
+                menu_item = get_object_or_404(models.MenuItem, pk=item_data['item_id'])
+                models.OrderItem.objects.create(
+                    order=order,
+                    menu_item=menu_item,
+                    quantity=item_data['quantity'],
+                    unit_price=item_data['price']
+                )
+
+            # ====== CLEAR CART ======
+            request.session.pop('cart', None)
+            request.session.modified = True
+
+            # store guest order id in session so guest can track their order
             if not request.user.is_authenticated:
                 request.session['guest_order_id'] = order.id
 
@@ -786,33 +932,30 @@ def order_create(request):
             return redirect('order_detail', pk=order.pk)
 
     else:
-        # if the user is not submitting the form, that means they are requesting the form
-        # pre-filling the form with delivery address if the customer is logged in
-        initial_address = {}
-        if request.user.is_authenticated and request.user.role == models.User.Role.CUSTOMER:
-            try:
-                customer = models.Customer.objects.get(user=request.user)
-                initial_address['delivery_address'] = customer.address
-            except models.Customer.DoesNotExist:
-                pass
+        # pre-fill delivery address for logged in customers
+        initial = {}
+        if customer:
+            initial['delivery_address'] = customer.address
+        form = forms.OrderForm(initial=initial)
 
-        form = forms.OrderForm(initial=initial_address)
-
-    # building context with form and customer object for loyalty points display in template
-    context = {'form': form}
-    if request.user.is_authenticated and request.user.role == models.User.Role.CUSTOMER:
-        try:
-            context['customer'] = models.Customer.objects.get(user=request.user) # passing customer so template can show loyalty points balance
-        except models.Customer.DoesNotExist:
-            pass # if no customer record exists, template will show 0 pts
-    return render(request, 'restaurant/order_form.html', context)
-
+    return render(request, 'restaurant/order_review.html', {
+        'form': form,
+        'cart_items': cart_items,
+        'sub_total': sub_total,
+        'customer': customer,
+    })
 
 # View to edit orders - only available for logged in customers
 @login_required
 def order_edit(request, pk):
     # only logged in customers can edit their own orders and only if the order status is still 'pending'
     order = get_object_or_404(models.Order, pk=pk)
+    
+    # only customers can edit orders
+    if request.user.role != models.User.Role.CUSTOMER:
+        messages.error(request, 'You do not have permission to edit orders.')
+        return redirect('order_list')
+
     customer = get_object_or_404(models.Customer, user=request.user)
 
     if order.customer != customer:
@@ -1205,3 +1348,56 @@ def assign_driver_to_order(request, order_id):
         'available_drivers': available_drivers,
     }
     return render(request, 'restaurant/assign_driver_to_order.html', context)
+
+
+
+#======= Cart Views =======#
+
+# View to add an item to the cart — works for both guests and logged in customers
+# cart is stored in the session as a dictionary keyed by item_id (as string)
+def cart_add(request, item_id):
+    item = get_object_or_404(models.MenuItem, pk=item_id)
+    cart = request.session.get('cart', {})
+
+    str_id = str(item_id)  # session keys must be strings
+    if str_id in cart:
+        cart[str_id]['quantity'] += 1
+    else:
+        cart[str_id] = {
+            'item_id': item_id,
+            'name': item.name,
+            'price': str(item.price),  # Decimal not JSON serializable, converting to string to avoid the error
+            'quantity': 1
+        }
+
+    request.session['cart'] = cart
+    request.session.modified = True  # tells Django the session has changed and needs to be saved
+    messages.success(request, f'{item.name} added to cart.')
+    return redirect(request.META.get('HTTP_REFERER', 'menu_item_list'))  # redirect back to where the user came from to preserve scroll position
+
+
+# View to remove an item from the cart entirely
+def cart_remove(request, item_id):
+    cart = request.session.get('cart', {})
+    str_id = str(item_id)
+    if str_id in cart:
+        del cart[str_id]
+    request.session['cart'] = cart
+    request.session.modified = True
+    return redirect(request.META.get('HTTP_REFERER', 'menu_item_list'))
+
+
+# View to update the quantity of an item in the cart
+# if quantity is set to 0 or less, the item is removed from the cart entirely
+def cart_update(request, item_id):
+    cart = request.session.get('cart', {})
+    str_id = str(item_id)
+    quantity = int(request.POST.get('quantity', 1))
+    if str_id in cart:
+        if quantity <= 0:
+            del cart[str_id]
+        else:
+            cart[str_id]['quantity'] = quantity
+    request.session['cart'] = cart
+    request.session.modified = True
+    return redirect(request.META.get('HTTP_REFERER', 'menu_item_list'))

@@ -7,17 +7,12 @@
     <div class="auth-box"> {# Will be using the names in the css file for editing #}
         <h2>{% if customer_form %}Edit Profile{% else %}Sign Up{% endif %}</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p> {# Will be using the 'tags' in the css file for editing #}
-            {% endfor %}
-        {% endif %}
-
         <form method="POST" class="auth-form">
             {% csrf_token %}
             {% if customer_form %}
                 {{ customer_form.as_p }}
                 <button type="submit" class="auth-button">Save Changes</button>
+                <a href="{% url 'customer_dashboard' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">Back to My Account</a>
             {% else %}
                 {{ form.as_p }}
                 <button type="submit" class="auth-button">Sign Up</button>

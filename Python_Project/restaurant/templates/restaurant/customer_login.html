@@ -7,12 +7,6 @@
     <div class="auth-box"> {# Will be using the names in the css file for editing #}
         <h2>Login</h2>
 
-        {% if messages %}
-            {% for message in messages %}
-                <p class="auth-message {{ message.tags }}">{{ message }}</p> {# Will be using the 'tags' in the css file for editing #}
-            {% endfor %}
-        {% endif %}
-
         <form method="POST" class="auth-form">
             {% csrf_token %}
             <p>
@@ -27,6 +21,17 @@
         </form>
 
         <p class="auth-redirect">Don't have an account? <a href="{% url 'customer_signup' %}">Sign Up</a></p>
+
+        {# if a staff member tried to log in here, auto redirect them to the staff login page after 3 seconds #}
+        {% if redirect_to_staff %}
+        <script>
+            // wait 3 seconds then send them to the staff login page
+            setTimeout(function() {
+                window.location.href = "{% url 'staff_login' %}";
+            }, 3000);
+        </script>
+        {% endif %}
+
     </div>
 
 {% endblock %}

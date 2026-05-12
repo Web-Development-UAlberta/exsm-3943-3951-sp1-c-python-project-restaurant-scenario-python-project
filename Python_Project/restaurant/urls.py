@@ -12,6 +12,7 @@ urlpatterns = [
     path('customer/', views.customer_list, name='customer_list'),
     path('customer/<int:pk>/', views.customer_detail, name='customer_detail'),
     path('customer/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+    path('customer/dashboard/', views.customer_dashboard, name='customer_dashboard'),
 
     # ====================== STAFF AUTH ======================
     path('restaurant/staff_index/', views.staff_index, name='staff_index'),
@@ -96,4 +97,9 @@ urlpatterns = [
     # ====================== Delivery ======================
     path('order/<int:order_id>/assign-driver/', views.assign_driver_to_order, name='assign_driver_to_order'),
     path('order/<int:order_id>/complete-delivery/', views.delivery_complete, name='delivery_complete'),
+
+    # ====================== CART ======================
+    path('cart/add/<int:item_id>/', views.cart_add, name='cart_add'),
+    path('cart/remove/<int:item_id>/', views.cart_remove, name='cart_remove'),
+    path('cart/update/<int:item_id>/', views.cart_update, name='cart_update'),
 ]

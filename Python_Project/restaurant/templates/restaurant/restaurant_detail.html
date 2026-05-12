@@ -11,10 +11,10 @@
     <p>Phone Number: {{restaurant.phone_number}}</p>
     <p>Opening Time: {{restaurant.opening_time}}</p>
     <p>Closing Time: {{restaurant.closing_time}}</p>
-    <p>Latitude: {{restaurant.latitude}}</p>
-    <p>Longitude: {{restaurant.longitude}}</p>
     <p>Status: {% if restaurant.is_active %} Active {% else %} Inactive {% endif %}</p>
-    <a href="{% url 'restaurant_edit' restaurant.pk %}">Edit</a>
+    {% if request.user.is_authenticated and request.user.role == 1 or request.user.role == 6 %}
+        <a href="{% url 'restaurant_edit' restaurant.pk %}">Edit</a>
+    {% endif %}
     {% if request.user.role == 1 or request.user.role == 6 %}
     
     <form action="{% url 'restaurant_toggle_active' restaurant.pk%}" method="post">
@@ -26,11 +26,7 @@
 
     <a href="{% url 'restaurant_confirm_delete' restaurant.pk %}">Delete</a>
     <a href="{% url 'restaurant_list' %}">Cancel</a>
-    
-    {# <form action="{% url 'confirm_delete' restaurant.pk%}" method="post"> #}
-        {# {% csrf_token %} #}
-        {# <button type="submit">Delete</button> #}
-    {# </form> #}
+
     {% endif %}
 
 {% endblock %}

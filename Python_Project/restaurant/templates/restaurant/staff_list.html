@@ -1,39 +1,60 @@
 {% extends 'base.html' %}
 
-{% block title %}Staff Management - Urban Spark{% endblock %}
+{% block title %}Staff Management | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>Staff Management</h1>
-<p><strong>Total Staff:</strong> {{ total_staff }}</p>
 
-<a href="{% url 'staff_signup' %}">Invite / Add New Staff</a>
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Staff Management</h2>
+        {# links to the staff invite page where manager adds email and role to pre-approve a staff member #}
+        <a href="{% url 'staff_invite_create' %}" class="btn btn-sm">+ Add Staff Invite</a>
+    </div>
 
-<table border="1" cellpadding="10" style="width:100%; border-collapse: collapse; margin-top: 20px;">
-    <tr>
-        <th>Name</th>
-        <th>Role</th>
-        <th>Phone</th>
-        <th>Shift</th>
-        <th>Status</th>
-        <th>Actions</th>
-    </tr>
-    {% for member in staff_members %}
-    <tr>
-        <td>{{ member.get_full_name|default:member.username }}</td>
-        <td>{{ member.get_role_display }}</td>
-        <td>{{ member.phone_number|default:"—" }}</td>
-        <td>{{ member.shift_start|time:"H:i"|default:"—" }} - {{ member.shift_end|time:"H:i"|default:"—" }}</td>
-        <td>
-            {% if member.is_active_staff %}
-                <span style="color:green;">Active</span>
-            {% else %}
-                <span style="color:red;">Inactive</span>
-            {% endif %}
-        </td>
-        <td><a href="{% url 'staff_detail' member.pk %}">View Details</a></td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="6">No staff members yet.</td></tr>
-    {% endfor %}
-</table>
+    <p style="margin-bottom: 1rem;"><strong>Total Staff:</strong> {{ total_staff }}</p>
+
+    {% if staff_members %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Phone</th>
+                    <th>Shift</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in staff_members %}
+                <tr>
+                    <td>{{ member.get_full_name|default:member.username }}</td>
+                    <td>{{ member.get_role_display }}</td>
+                    <td>{{ member.phone_number|default:"Not set" }}</td>
+                    <td>
+                        {# show shift times if set, otherwise show a clean not set message #}
+                        {% if member.shift_start and member.shift_end %}
+                            {{ member.shift_start|time:"H:i" }} - {{ member.shift_end|time:"H:i" }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if member.is_active_staff %}
+                            <span class="badge-active">Active</span>
+                        {% else %}
+                            <span class="badge-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td><a href="{% url 'staff_detail' member.pk %}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No staff members yet.</p>
+    {% endif %}
+
+</div>
+
 {% endblock %}

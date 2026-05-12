@@ -1,24 +1,24 @@
 {% extends 'base.html' %}
 
-{% block title %}Staff Detail{% endblock %}
+{% block title %}{{ staff.get_full_name|default:staff.username }} | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>{{ staff.get_full_name|default:staff.username }} ({{ staff.get_role_display }})</h1>
+    <h1>{{ staff.get_full_name|default:staff.username }} ({{ staff.get_role_display }})</h1>
 
-<p><strong>Phone:</strong> {{ staff.phone_number|default:"Not provided" }}</p>
-<p><strong>Shift:</strong> {{ staff.shift_start|time:"H:i"|default:"—" }} — {{ staff.shift_end|time:"H:i"|default:"—" }}</p>
-<p><strong>Status:</strong> {% if staff.is_active_staff %} Active{% else %} Inactive{% endif %}</p>
+    <p><strong>Phone:</strong> {{ staff.phone_number|default:"Not provided" }}</p>
+    <p><strong>Shift:</strong> {{ staff.shift_start|time:"H:i"|default:"—" }} — {{ staff.shift_end|time:"H:i"|default:"—" }}</p>
+    <p><strong>Status:</strong> {% if staff.is_active_staff %} Active{% else %} Inactive{% endif %}</p>
 
-<h2>Currently Assigned Orders</h2>
-{% if assigned_orders %}
-    <ul>
-    {% for order in assigned_orders %}
-        <li>Order #{{ order.id }} — {{ order.get_order_status_display }} ({{ order.restaurant }})</li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No orders currently assigned.</p>
-{% endif %}
+    <h2>Currently Assigned Orders</h2>
+    {% if assigned_orders %}
+        <ul>
+        {% for order in assigned_orders %}
+            <li>Order #{{ order.id }} — {{ order.get_order_status_display }} ({{ order.restaurant }})</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No orders currently assigned.</p>
+    {% endif %}
 
-<a href="{% url 'staff_list' %}">← Back to Staff List</a>
+    <a href="{% url 'staff_list' %}">← Back to Staff List</a>
 {% endblock %}

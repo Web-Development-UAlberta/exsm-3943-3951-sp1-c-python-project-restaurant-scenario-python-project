@@ -66,6 +66,14 @@ class AddStaffForm(forms.ModelForm):
     class Meta:
         model = models.StaffInvite
         fields = ['email', 'role']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # exclude Customer from staff invite roles — customers register through normal signup
+        self.fields['role'].choices = [
+            (value, label) for value, label in models.User.Role.choices
+            if value != models.User.Role.CUSTOMER
+        ]
         
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -105,8 +113,15 @@ class OrderForm(forms.ModelForm):
         model = models.Order
         fields = ['order_type', 'delivery_address', 'special_instruction']
         widgets = {
-            'delivery_address': forms.TextInput(attrs={'placeholder' : 'Required for delivery orders only'}),
-            'special_instruction' : forms.Textarea(attrs={'rows' : 3, 'placeholder' : 'Any special requests or dietary notes'}),
+            'delivery_address': forms.TextInput(attrs={
+                'placeholder': 'Required for delivery orders only',
+                'class': 'review-input'
+            }),
+            'special_instruction': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Any special requests or dietary notes',
+                'class': 'review-input'
+            }),
         }
 
     # redefining the inbuild clean() method

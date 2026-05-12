@@ -9,6 +9,8 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Restaurant</th>
+                    <th>Table</th>
                     <th>Date & Time</th>
                     <th>Party Size</th>
                     <th>Status</th>
@@ -19,7 +21,9 @@
                 {% for reservation in reservations %}
                 <tr>
                     <td>{{ reservation.id }}</td>
-                    <td>{{ reservation.reservation_datetime|date:"M d, Y H:i" }}</td>
+                    <td>{{ reservation.restaurant.name }}</td>
+                    <td>{% if reservation.table %}{{ reservation.table.label }}{% else %}Not assigned{% endif %}</td>
+                    <td>{{ reservation.reservation_datetime|date:"M d, Y h:i A" }}</td>
                     <td>{{ reservation.party_size }}</td>
                     <td>{{ reservation.get_status_display }}</td>
                     <td>

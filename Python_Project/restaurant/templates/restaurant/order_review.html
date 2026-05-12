@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Your Order | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="review-page">
+
+    {# ====== LEFT: ORDER FORM ====== #}
+    <section class="review-form-section">
+        <h2>Review Your Order</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p class="auth-message {{ message.tags }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" class="review-form" id="review-form">
+            {% csrf_token %}
+
+            {# ====== ORDER TYPE ====== #}
+            <div class="review-field-group">
+                <h3>Order Type</h3>
+                {{ form.order_type }}
+            </div>
+
+            {# ====== DELIVERY ADDRESS — shown/hidden by JS based on order type ====== #}
+            <div class="review-field-group" id="delivery-fields">
+                <h3>Delivery Address</h3>
+                {{ form.delivery_address }}
+            </div>
+
+            {# ====== GUEST FIELDS — only shown to non-logged-in users ====== #}
+            {% if not user.is_authenticated %}
+            <div class="review-field-group">
+                <h3>Your Details</h3>
+                <input type="text" name="guest_name" placeholder="Full Name" class="review-input" required>
+                <input type="text" name="guest_phone" placeholder="Phone Number" class="review-input" style="margin-top: 0.5rem;" required>
+            </div>
+            {% endif %}
+
+            {# ====== LOYALTY POINTS — only shown to logged in customers ====== #}
+            {% if user.is_authenticated and user.role == 5 and customer %}
+            <div class="review-field-group">
+                <h3>Loyalty Points</h3>
+                <p class="loyalty-balance">
+                    Your balance: <strong>{{ customer.loyalty_points }} pts</strong>
+                    {% if customer.loyalty_points >= 2000 %}
+                        — Eligible for $25 off
+                    {% elif customer.loyalty_points >= 1000 %}
+                        — Eligible for $10 off
+                    {% else %}
+                        — Need {{ 1000|add:"-"|add:customer.loyalty_points }} more points to redeem
+                    {% endif %}
+                </p>
+                {{ form.redeem_points }}
+            </div>
+            {% endif %}
+
+            {# ====== SPECIAL INSTRUCTIONS ====== #}
+            <div class="review-field-group">
+                <h3>Special Instructions</h3>
+                {{ form.special_instruction }}
+            </div>
+
+        </form>
+    </section>
+
+    {# ====== RIGHT: ORDER SUMMARY ====== #}
+    <aside class="review-summary">
+        <h3>Order Summary</h3>
+
+        <ul class="review-item-list">
+            {% for item in cart_items %}
+            <li class="review-item">
+                <div class="review-item-info">
+                    <span class="review-item-name">{{ item.name }}</span>
+                    <span class="review-item-qty">x{{ item.quantity }}</span>
+                </div>
+                <span class="review-item-total">${{ item.line_total }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="review-totals">
+            <div class="review-total-row">
+                <span>Subtotal</span>
+                <span>${{ sub_total }}</span>
+            </div>
+            <div class="review-total-row" id="delivery-fee-row" style="display:none;">
+                <span>Delivery Fee</span>
+                <span id="delivery-fee-display">$10.00</span>
+            </div>
+            <div class="review-total-row review-total-final">
+                <strong>Total (before tax)</strong>
+                <strong id="total-display">${{ sub_total }}</strong>
+            </div>
+        </div>
+
+        <button type="submit" form="review-form" class="btn" style="width:100%; margin-top:1rem; text-align:center;">
+            Confirm Order
+        </button>
+
+        <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+            Back to Menu
+        </a>
+    </aside>
+
+</div>
+
+{# ====== Showing/hiding delivery fields and update total based on order type ====== #}
+<script>
+    var subTotal = {{ sub_total }};
+
+    function updateForm() {
+        // get the currently selected order type value
+        var orderType = document.querySelector('[name="order_type"]').value;
+        var deliveryFields = document.getElementById('delivery-fields');
+        var deliveryFeeRow = document.getElementById('delivery-fee-row');
+        var totalDisplay = document.getElementById('total-display');
+        var deliveryFeeDisplay = document.getElementById('delivery-fee-display');
+
+        // show delivery address field and fee only for delivery orders
+        if (orderType == 3) {
+            deliveryFields.style.display = 'block';
+            deliveryFeeRow.style.display = 'flex';
+            deliveryFeeDisplay.textContent = '$10.00';
+            totalDisplay.textContent = '$' + (subTotal + 10).toFixed(2);
+        } else {
+            deliveryFields.style.display = 'none';
+            deliveryFeeRow.style.display = 'none';
+            totalDisplay.textContent = '$' + subTotal.toFixed(2);
+        }
+    }
+
+    // run on page load and whenever order type changes
+    document.querySelector('[name="order_type"]').addEventListener('change', updateForm);
+    updateForm();
+</script>
+
+{% endblock %}
