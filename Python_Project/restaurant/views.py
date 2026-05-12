@@ -717,6 +717,7 @@ def order_create(request):
             order.loyalty_discount = 0
             
             # validate delivery distance
+            distance = None # initialize distance so it's available later for fee calculation
             if order.order_type == models.Order.OrderType.DELIVERY:
                 delivery_address = form.cleaned_data.get('delivery_address')
                 coords = geocode_address(delivery_address)
@@ -766,8 +767,12 @@ def order_create(request):
                 order.customer = None
 
             # calculating the delivery fee based on the order type
-            if order.order_type == models.Order.OrderType.DELIVERY:
-                order.delivery_fee = 10 # flat $10 delivery fee
+            # within 5km = $5, 5-10km $10m over 10km = rejected as per calculation above
+            if order.order_type == models.Order.OrderType.DELIVERY and distance is not None:
+                if distance <= 5:
+                    order.delivery_fee = 5
+                else:
+                    order.delivery_fee = 10 
             else:
                 order.delivery_fee = None
 
