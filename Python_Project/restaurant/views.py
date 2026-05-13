@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from restaurant import forms
 from django.urls import reverse
-from django.db.models import Q, F
+from django.db.models import Q, F, Count, Sum
 from django.utils import timezone
 from .utils import haversine_distance, geocode_address
 
@@ -164,6 +164,11 @@ def staff_index(request):
 # View to edit a customer
 @login_required
 def customer_edit(request, pk):
+    # block staff from editing customer profiles
+    if request.user.role != models.User.Role.CUSTOMER and not is_manager_or_owner(request.user):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     customer = get_object_or_404(models.Customer, pk=pk)
     
     # checks logged in user owns this customer profile, unless they're a manager or owner
@@ -188,7 +193,10 @@ def customer_edit(request, pk):
             customer.user.save()
             customer.save()
             messages.success(request, f"{customer.user.first_name}'s profile updated successfully!")
-            return redirect('index')
+            # managers and owners go back to customer detail, customers go back to their dashboard
+            if is_manager_or_owner(request.user):
+                return redirect('customer_detail', pk=customer.pk)
+            return redirect('customer_dashboard')
 
     else:
         # passing in user fields explicitly as they live on User not Customer
@@ -213,6 +221,11 @@ def customer_list(request):
 @login_required
 @user_passes_test(is_manager_or_owner)
 def customer_detail(request, pk):
+    # block staff from viewing customer detail pages
+    if request.user.role != models.User.Role.CUSTOMER and not is_manager_or_owner(request.user):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     customer = get_object_or_404(models.Customer, pk=pk)
     # pulling the customer's order history as well
     orders = models.Order.objects.filter(customer=customer).order_by('-created_at')
@@ -330,9 +343,12 @@ def staff_signup(request):
 @login_required
 @user_passes_test(is_manager_or_owner)
 def manager_view(request):
-    """Manager Dashboard"""
-    # pass all restaurants to the dashboard so manager can navigate to inventory per location
-    restaurants = models.Restaurant.objects.filter(is_active=True)
+    # managers see their own restaurant regardless of active status
+    # owners see all restaurants
+    if request.user.role == models.User.Role.OWNER:
+        restaurants = models.Restaurant.objects.all()
+    else:
+        restaurants = models.Restaurant.objects.filter(user=request.user)
     return render(request, 'restaurant/manager_view.html', {'restaurants': restaurants})
 
 
@@ -359,15 +375,12 @@ def kitchen_view(request):
 
 
 
-
-
 # View for the Owner dashboard
 @login_required
 @user_passes_test(is_manager_or_owner)
 def owner_view(request):
-    """Owner Dashboard"""
-    # pass all restaurants to the dashboard so owner can navigate to inventory per location
-    restaurants = models.Restaurant.objects.filter(is_active=True)
+    # owners see all restaurants
+    restaurants = models.Restaurant.objects.all()
     return render(request, 'restaurant/owner_view.html', {'restaurants': restaurants})
 
 
@@ -400,6 +413,29 @@ def staff_detail(request, pk):
         'assigned_orders': assigned_orders,
     }
     return render(request, 'restaurant/staff_detail.html', context)
+
+
+# View to edit a staff member: manager/owner only
+@login_required
+@user_passes_test(is_manager_or_owner)
+def staff_edit(request, pk):
+    staff = get_object_or_404(models.User, pk=pk)
+
+    # prevent editing customers through this view
+    if staff.role == models.User.Role.CUSTOMER:
+        messages.error(request, 'Use the customer edit page to edit customers.')
+        return redirect('staff_list')
+
+    if request.method == 'POST':
+        form = forms.StaffEditForm(request.POST, instance=staff)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"{staff.get_full_name()}'s profile updated successfully!")
+            return redirect('staff_detail', pk=staff.pk)
+    else:
+        form = forms.StaffEditForm(instance=staff)
+
+    return render(request, 'restaurant/staff_edit.html', {'form': form, 'staff': staff})
 
 
 # ====================== SERVER TO TABLE ASSIGNMENT ======================
@@ -674,12 +710,12 @@ def table_confirm_delete(request, pk):
 def menu_item_list(request):
     menuitems = models.MenuItem.objects.all().select_related('category')
     categories = models.Category.objects.all()
+    restaurant_active = models.Restaurant.objects.filter(is_active=True).exists()
     
-    # build cart summary for the sidebar
+    # build cart summary
     cart = request.session.get('cart', {})
     cart_items = []
     cart_total = 0
-    
     for str_id, item_data in cart.items():
         line_total = float(item_data['price']) * item_data['quantity']
         cart_total += line_total
@@ -690,18 +726,24 @@ def menu_item_list(request):
             'quantity': item_data['quantity'],
             'line_total': round(line_total, 2)
         })
-    
+
     return render(request, 'restaurant/menu_item_list.html', {
         'menuitems': menuitems,
         'categories': categories,
         'cart_items': cart_items,
-        'cart_total': round(cart_total, 2)
+        'cart_total': round(cart_total, 2),
+        'restaurant_active': restaurant_active,
     })
 
 
 def menu_item_detail(request, pk):
     menuitem = get_object_or_404(models.MenuItem, pk=pk)
-    return render(request, 'restaurant/menu_item_detail.html', {'menuitem': menuitem})
+    # fetch tags linked to this menu item via the MenuItemTag junction table
+    tags = models.MenuItemTag.objects.filter(menu_item=menuitem).select_related('tag')
+    return render(request, 'restaurant/menu_item_detail.html', {
+        'menuitem': menuitem,
+        'tags': tags
+    })
 
 
 @login_required
@@ -751,6 +793,15 @@ def menu_item_confirm_delete(request, pk):
 # View to get all the orders
 def order_list(request):
     # customers see only their own orders, staff see all orders, guests see session order
+    # block staff roles from accessing customer order views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     if request.user.is_authenticated:
         if request.user.role == models.User.Role.CUSTOMER:
             customer = get_object_or_404(models.Customer, user=request.user)
@@ -769,6 +820,15 @@ def order_list(request):
 
 # View to get specific order details
 def order_detail(request, pk):
+    # block staff roles from accessing customer order views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     order = get_object_or_404(models.Order, pk=pk)
     return render(request, 'restaurant/order_detail.html', {'order': order})
 
@@ -777,6 +837,20 @@ def order_detail(request, pk):
 # Pulls cart from session, handles order type, delivery validation, loyalty points, and guest info
 # Creates the Order and OrderItem records when the customer confirms
 def order_create(request):
+    # block staff roles from accessing customer order views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+    
+    # block orders if no active restaurant exists
+    restaurant = models.Restaurant.objects.filter(is_active=True).first()
+    if restaurant is None:
+        messages.error(request, 'No active restaurant available. Orders cannot be placed at this time.')
+        return redirect('menu_item_list')
 
     # if the cart is empty, send them back to the menu
     cart = request.session.get('cart', {})
@@ -948,6 +1022,15 @@ def order_create(request):
 # View to edit orders - only available for logged in customers
 @login_required
 def order_edit(request, pk):
+    # block staff roles from accessing customer order views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     # only logged in customers can edit their own orders and only if the order status is still 'pending'
     order = get_object_or_404(models.Order, pk=pk)
     
@@ -1014,6 +1097,15 @@ def order_edit(request, pk):
 
 # View to delete order
 def order_delete(request, pk):
+    # block staff roles from accessing customer order views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     order = get_object_or_404(models.Order, pk=pk)
 
     # verify ownership — logged in customer or guest with session
@@ -1077,6 +1169,15 @@ def order_link_to_account(request, pk):
 
 # View to cancel a reservation
 def reservation_cancel(request, pk):
+    # block staff roles from accessing customer reservation views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     reservation = get_object_or_404(models.Reservation, pk=pk)
 
     if request.method == 'POST':
@@ -1124,10 +1225,24 @@ def reservation_detail(request, pk):
 # checks for conflicting reservations on the same table within the next hour
 # validates party size, past datetime, and table capacity
 def reservation_create(request):
+    # block staff roles from accessing customer reservation views
+    if request.user.is_authenticated and request.user.role not in [
+        models.User.Role.CUSTOMER,
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER
+    ]:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('staff_index')
+
     if request.method == 'POST':
         form = forms.ReservationForm(request.POST)
         if form.is_valid():
             reservation = form.save(commit=False)
+
+            # block reservations if the restaurant is not active
+            if not reservation.restaurant.is_active:
+                messages.error(request, f'{reservation.restaurant.name} is currently unavailable for reservations.')
+                return render(request, 'restaurant/reservation_form.html', {'form': form})
 
             # check for conflicting reservations on the same table
             from django.utils import timezone
@@ -1214,10 +1329,15 @@ def staff_invite_delete(request, pk):
 @login_required
 @user_passes_test(is_manager_or_owner)
 def inventory_list(request, restaurant_pk):
-    # managers see all ingredients and their current stock levels for their restaurant
     restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+
+    # managers can only view inventory for their own restaurant
+    # owners can see any restaurant's inventory
+    if request.user.role == models.User.Role.MANAGER and restaurant.user != request.user:
+        messages.error(request, 'You can only view inventory for your own restaurant.')
+        return redirect('manager_view')
+
     inventory = models.Inventory.objects.filter(restaurant=restaurant).order_by('ingredient_name')
-    # flag low stock items — anything at or below reorder level
     low_stock = inventory.filter(current_level__lte=F('reorder_level'))
     return render(request, 'restaurant/inventory_list.html', {
         'inventory': inventory,
@@ -1230,6 +1350,12 @@ def inventory_list(request, restaurant_pk):
 @user_passes_test(is_manager_or_owner)
 def inventory_create(request, restaurant_pk):
     restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+
+    # managers can only add inventory to their own restaurant
+    if request.user.role == models.User.Role.MANAGER and restaurant.user != request.user:
+        messages.error(request, 'You can only manage inventory for your own restaurant.')
+        return redirect('manager_view')
+
     if request.method == 'POST':
         form = forms.InventoryForm(request.POST)
         if form.is_valid():
@@ -1246,6 +1372,12 @@ def inventory_create(request, restaurant_pk):
 @user_passes_test(is_manager_or_owner)
 def inventory_edit(request, pk):
     item = get_object_or_404(models.Inventory, pk=pk)
+
+    # managers can only edit inventory for their own restaurant
+    if request.user.role == models.User.Role.MANAGER and item.restaurant.user != request.user:
+        messages.error(request, 'You can only manage inventory for your own restaurant.')
+        return redirect('manager_view')
+    
     if request.method == 'POST':
         form = forms.InventoryForm(request.POST, instance=item)
         if form.is_valid():
@@ -1260,6 +1392,12 @@ def inventory_edit(request, pk):
 @user_passes_test(is_manager_or_owner)
 def inventory_confirm_delete(request, pk):
     item = get_object_or_404(models.Inventory, pk=pk)
+
+    # managers can only edit inventory for their own restaurant
+    if request.user.role == models.User.Role.MANAGER and item.restaurant.user != request.user:
+        messages.error(request, 'You can only manage inventory for your own restaurant.')
+        return redirect('manager_view')
+
     if request.method == 'POST':
         restaurant_pk = item.restaurant.pk
         item.delete()
@@ -1401,3 +1539,99 @@ def cart_update(request, item_id):
     request.session['cart'] = cart
     request.session.modified = True
     return redirect(request.META.get('HTTP_REFERER', 'menu_item_list'))
+
+
+#======= Reporting Views =======#
+
+# View for reporting dashboard for managers and owners
+# Managers only see their restaurant
+# Owners can select any active restaurant from a drop down menu
+@login_required
+@user_passes_test(is_manager_or_owner)
+def reporting_view(request):
+    restaurants = models.Restaurant.objects.filter(is_active=True)
+
+    # Owners can switch between restaurants via dropdown
+    # Managers are automatically scoped to their own restaurant via the user FK on Restaurant
+    restaurant_id = request.GET.get('restaurant_id')
+
+    if request.user.role == models.User.Role.OWNER:
+        if restaurant_id:
+            restaurant = get_object_or_404(models.Restaurant, pk=restaurant_id, is_active=True)
+
+        else:
+            restaurant = restaurants.first()
+
+    else:
+        # manager: pull the restaurant they are linked to directly
+        restaurant = get_object_or_404(models.Restaurant, user=request.user, is_active=True)
+
+    
+    if restaurant is None:
+        messages.error(request, 'No active restaurant found.')
+
+    # ====== FILTERS ======
+    category_id = request.GET.get('category')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    sort_by = request.GET.get('sort', 'times_ordered')  # default sort is times ordered
+
+    # ====== REPORT 1: MENU ITEM POPULARITY ======
+    # base queryset, scoped to this restaurant, exclude cancelled orders
+    popularity = models.OrderItem.objects.filter(
+        order__restaurant=restaurant
+    ).exclude(
+        order__order_status=models.Order.OrderStatus.CANCELLED
+    ).values(
+        'menu_item__id',
+        'menu_item__name',
+        'menu_item__category__name',
+        'menu_item__category__id'
+    ).annotate(
+        times_ordered=Count('id'),
+        total_revenue=Sum('unit_price')
+    )
+
+    # apply category filter if selected
+    if category_id:
+        popularity = popularity.filter(menu_item__category__id=category_id)
+
+    # apply date range filters if provided
+    if date_from:
+        popularity = popularity.filter(order__created_at__date__gte=date_from)
+    if date_to:
+        popularity = popularity.filter(order__created_at__date__lte=date_to)
+
+    # apply sort
+    if sort_by == 'revenue':
+        popularity = popularity.order_by('-total_revenue')
+    elif sort_by == 'name':
+        popularity = popularity.order_by('menu_item__name')
+    else:
+        popularity = popularity.order_by('-times_ordered')
+
+    # ====== REPORT 2: CURRENT INVENTORY STATUS ======
+    inventory_items = models.Inventory.objects.filter(
+        restaurant=restaurant
+    ).order_by('ingredient_name')
+
+    # flag low stock items, current level at or below reorder level
+    low_stock = inventory_items.filter(
+        current_level__lte=F('reorder_level')
+    )
+
+    # get all categories for the filter dropdown
+    categories = models.Category.objects.all()
+
+    return render(request, 'restaurant/reporting_view.html', {
+        'restaurant': restaurant,
+        'restaurants': restaurants,
+        'popularity': popularity,
+        'inventory_items': inventory_items,
+        'low_stock': low_stock,
+        'categories': categories,
+        'selected_category': category_id,
+        'date_from': date_from,
+        'date_to': date_to,
+        'sort_by': sort_by,
+    })

@@ -1,36 +1,59 @@
 {% extends 'base.html' %}
 
-{% block title %}
-    {{menuitem.name}}
-{% endblock %}
+{% block title %}{{ menuitem.name }} | Urban Spark{% endblock %}
 
 {% block content %}
 
-    <div class="menu-item-detail">
+{# ====== MENU ITEM DETAIL ====== #}
+{# shows full menu item info including image, price, description, category, and tags #}
+<div class="menu-item-detail">
+
+    {# show image if one has been uploaded, otherwise no image section renders #}
     {% if menuitem.image %}
-        <img src="{{menuitem.image.url}}" alt="{{menuitem.name}}" class="menu-item-detail-image">
+        <img src="{{ menuitem.image.url }}" alt="{{ menuitem.name }}" class="menu-item-detail-image">
     {% endif %}
-        <div class="menu-item-detail-info">
-            <h2>{{ menuitem.name }}</h2>
-            <p class="menu-item-price">${{ menuitem.price }}</p>
-            <p>{{ menuitem.description }}</p>
-            <p class="menu-item-category">
-                <a href="{% url 'menu_item_list' %}#cat-{{ menuitem.category.pk }}">{{ menuitem.category }}</a>
-            </p>
-            {# only show Add to Cart for guests and customers — staff are browsing only #}
-            {% if not user.is_authenticated or user.role == 5 %}
-                <a href="{% url 'cart_add' item.pk %}" class="btn btn-sm cart-add-btn">+ Add to Cart</a>
-            {% endif %}
-            {% if request.user.is_authenticated and request.user.role == 1 or request.user.role == 6 %}
-            <div class="menu-item-detail-actions">
-                <a href="{% url 'menu_item_edit' menuitem.pk %}" class="btn btn-sm cart-add-btn">Edit</a>
-                <a href="{% url 'menu_item_confirm_delete' menuitem.pk %}" class="btn btn-danger">Delete Item from Menu</a>
+
+    <div class="menu-item-detail-info">
+        <h2>{{ menuitem.name }}</h2>
+        <p class="menu-item-price">${{ menuitem.price }}</p>
+        <p>{{ menuitem.description }}</p>
+
+        {# category link scrolls the menu page to the relevant category section using an anchor #}
+        <p class="menu-item-category">
+            <a href="{% url 'menu_item_list' %}#cat-{{ menuitem.category.pk }}">{{ menuitem.category }}</a>
+        </p>
+
+        {# ====== TAGS ====== #}
+        {# tags are fetched from the MenuItemTag junction table and passed in from the view #}
+        {% if tags %}
+            <div class="menu-item-tags">
+                {% for menu_item_tag in tags %}
+                    {# CSS class is dynamically generated from the tag name for colour coding #}
+                    <span class="menu-item-tag tag-{{ menu_item_tag.tag.name|lower|slugify }}">
+                        {{ menu_item_tag.tag.name }}
+                    </span>
+                {% endfor %}
             </div>
-            {% endif %}
-            <div>
-                <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">Back to Menu</a>
-            </div>
+        {% endif %}
+
+        {# only show Add to Cart for guests and customers, staff are browsing only #}
+        {% if not user.is_authenticated or user.role == 5 %}
+            <a href="{% url 'cart_add' menuitem.pk %}" class="btn btn-sm cart-add-btn">+ Add to Cart</a>
+        {% endif %}
+
+        {# edit and delete only visible to managers and owners #}
+        {% if request.user.is_authenticated and request.user.role == 1 or request.user.role == 6 %}
+        <div class="menu-item-detail-actions">
+            <a href="{% url 'menu_item_edit' menuitem.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+            <a href="{% url 'menu_item_confirm_delete' menuitem.pk %}" class="btn btn-sm btn-danger">Delete Item from Menu</a>
         </div>
+        {% endif %}
+
+        <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+            Back to Menu
+        </a>
     </div>
+
+</div>
 
 {% endblock %}

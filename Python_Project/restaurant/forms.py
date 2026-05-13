@@ -143,11 +143,31 @@ class ReservationForm(forms.ModelForm):
         model = models.Reservation
         fields = ['restaurant', 'table', 'reservation_datetime', 'party_size',
                   'guest_name', 'guest_email', 'guest_phone_number']
+        labels = {
+            'reservation_datetime': 'Date and Time',
+        }
         widgets = {
-            'reservation_datetime': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'guest_name': forms.TextInput(attrs={'placeholder': 'Required if not logged in'}),
-            'guest_email': forms.EmailInput(attrs={'placeholder': 'Required if not logged in'}),
-            'guest_phone_number': forms.TextInput(attrs={'placeholder': 'Required if not logged in'}),
+            'reservation_datetime': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'review-input'
+            }),
+            'party_size': forms.NumberInput(attrs={
+                'class': 'review-input',
+                'min': 1,
+                'max': 20
+            }),
+            'guest_name': forms.TextInput(attrs={
+                'placeholder': 'Required if not logged in',
+                'class': 'review-input'
+            }),
+            'guest_email': forms.EmailInput(attrs={
+                'placeholder': 'Required if not logged in',
+                'class': 'review-input'
+            }),
+            'guest_phone_number': forms.TextInput(attrs={
+                'placeholder': 'Required if not logged in',
+                'class': 'review-input'
+            }),
         }
 
     def clean(self):
@@ -155,6 +175,7 @@ class ReservationForm(forms.ModelForm):
         reservation_datetime = cleaned_data.get('reservation_datetime')
         party_size = cleaned_data.get('party_size')
         table = cleaned_data.get('table')
+        restaurant = cleaned_data.get('restaurant')
 
         from django.utils import timezone
         if reservation_datetime and reservation_datetime < timezone.now():
@@ -165,6 +186,15 @@ class ReservationForm(forms.ModelForm):
 
         if table and party_size and table.seats < party_size:
             raise forms.ValidationError(f'This table only seats {table.seats} people.')
+        
+        # check that the reservation time falls within the restaurant opening and closing hours
+        if reservation_datetime and restaurant:
+            reservation_time = reservation_datetime.time()
+            if reservation_time < restaurant.opening_time or reservation_time >= restaurant.closing_time:
+                raise forms.ValidationError(
+                    f'Reservations must be between {restaurant.opening_time.strftime("%I:%M %p")} and {restaurant.closing_time.strftime("%I:%M %p")}.'
+                )
+
 
         return cleaned_data
 
@@ -173,3 +203,16 @@ class InventoryForm(forms.ModelForm):
     class Meta:
         model = models.Inventory
         fields = ['ingredient_name', 'current_level', 'unit', 'reorder_level']
+
+
+class StaffEditForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=100)
+    last_name = forms.CharField(max_length=100)
+    email = forms.EmailField()
+    phone_number = forms.CharField(max_length=20, required=False)
+    shift_start = forms.TimeField(required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
+    shift_end = forms.TimeField(required=False, widget=forms.TimeInput(attrs={'type': 'time'}))
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'shift_start', 'shift_end', 'is_active_staff']

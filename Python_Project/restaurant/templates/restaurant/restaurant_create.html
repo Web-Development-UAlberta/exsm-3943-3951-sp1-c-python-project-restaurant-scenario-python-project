@@ -1,15 +1,25 @@
 {% extends 'base.html' %}
 
-{% block title %}
-    {% if form.instance.pk %} Edit Restaurant {% else %} Add New Restaurant {% endif %}
-{% endblock%}
+{% block title %}{% if form.instance.pk %}Edit Restaurant{% else %}Add New Restaurant{% endif %} | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>{% if form.instance.pk %} Edit Restaurant {% else %} Add New Restaurant {% endif %}</h1>
-<form method="post">
-    {% csrf_token %}
-    {{form.as_p}}
-    <button type="submit">Save</button>
-</form>
-<a href="{% url 'restaurant_list' %}">Cancel</a>
+
+{# ====== RESTAURANT CREATE OR EDIT FORM ====== #}
+{# same template is used for both creating and editing a restaurant #}
+{# form.instance.pk is None when creating and has a value when editing #}
+<div class="auth-box">
+    <h2>{% if form.instance.pk %}Edit Restaurant{% else %}Add New Restaurant{% endif %}</h2>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-button">Save</button>
+    </form>
+
+    {# cancel takes the user back to the restaurant list without saving #}
+    <a href="{% url 'restaurant_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
 {% endblock %}
