@@ -1,42 +1,54 @@
 {% extends 'base.html' %}
 
-{% block title %}Delivery Driver Dashboard - Urban Spark{% endblock %}
+{% block title %}Driver Dashboard | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>Welcome, {{ request.user.get_full_name|default:request.user.username }} (Delivery Driver)</h1>
 
-<h2>Current orders</h2>
+{# ====== DRIVER DASHBOARD ====== #}
+{# shows all delivery orders assigned to the logged in driver with status READY #}
+<div class="dashboard-section">
 
-<table border="1" cellpadding="10" style="width:100%; border-collapse: collapse; margin-top: 15px;">
-    <thead>
-        <tr>
-            <th>Order ID</th>
-            <th>Delivery Address</th>
-            <th>Customer Name</th>
-            <th>Mark As Delivered</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for order in orders %}
-        <tr>
-            <td><strong>{{ order.id }}</strong></td>
-            <td>{{ order.delivery_address }}</td>
-            <td>{% if order.customer %}{{ order.customer}} {% else %} Guest {% endif %}</td>
-            <td>
-                <a href="{% url 'delivery_complete' order.id %}" 
-                   style="background-color: #007bff; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px;">
-                    Mark As Delivered
-                </a>
-            </td>
-        </tr>
-    {% empty %}
-        <tr>
-            <td colspan="4">No orders found. Please assign some deliveries in the admin panel first.</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+    <div class="dashboard-section-header">
+        <h2>My Deliveries</h2>
+        <a href="{% url 'staff_index' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+    </div>
 
-<br><br>
+    <p style="margin-bottom:1rem;">
+        Welcome, {{ request.user.get_full_name|default:request.user.username }}
+    </p>
+
+    {# ====== ACTIVE DELIVERIES TABLE ====== #}
+    {% if orders %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Delivery Address</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    {# show customer name if linked, otherwise show Guest for session orders #}
+                    <td>{% if order.customer %}{{ order.customer }}{% else %}Guest{% endif %}</td>
+                    <td>{{ order.delivery_address }}</td>
+                    <td>
+                        {# clicking this marks the order as COMPLETED and removes it from the dashboard #}
+                        <a href="{% url 'delivery_complete' order.id %}" class="btn btn-sm">
+                            Mark as Delivered
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No deliveries assigned yet.</p>
+    {% endif %}
+
+</div>
 
 {% endblock %}

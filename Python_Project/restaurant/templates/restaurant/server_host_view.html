@@ -1,49 +1,57 @@
 {% extends 'base.html' %}
 
-{% block title %}Server / Host Dashboard - Urban Spark{% endblock %}
+{% block title %}Server / Host Dashboard | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>Welcome, {{ request.user.get_full_name|default:request.user.username }} (Server / Host)</h1>
 
-<h2>Current Tables</h2>
+{# ====== SERVER HOST DASHBOARD ====== #}
+{# shows all tables with their current status and allows server to update status or assign a server #}
+<div class="dashboard-section">
 
-<table border="1" cellpadding="10" style="width:100%; border-collapse: collapse; margin-top: 15px;">
-    <thead>
-        <tr>
-            <th>Table Label</th>
-            <th>Seats</th>
-            <th>Current Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for table in tables %}
-        <tr>
-            <td><strong>{{ table.label }}</strong></td>
-            <td>{{ table.seats }}</td>
-            <td>{{ table.get_status_display }}</td>
-            <td>
-                <a href="{% url 'update_table_status' table.id %}" 
-                   style="background-color: #007bff; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px;">
-                    Update Status
-                </a>
-                
-                <a href="{% url 'assign_server_to_table' table.id %}" 
-                   style="background-color: #28a745; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; margin-left: 8px;">
-                    Assign Server
-                </a>
-            </td>
-        </tr>
-    {% empty %}
-        <tr>
-            <td colspan="4">No tables found. Please create some tables in the admin panel first.</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+    <div class="dashboard-section-header">
+        <h2>Server / Host Dashboard</h2>
+        <a href="{% url 'staff_index' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+    </div>
 
-<br><br>
-<p>
-    <a href="{% url 'staff_index' %}">← Back to Staff Index</a>
-</p>
+    <p style="margin-bottom:1rem;">
+        Welcome, {{ request.user.get_full_name|default:request.user.username }}
+    </p>
+
+    {# ====== TABLES TABLE ====== #}
+    {% if tables %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Table</th>
+                    <th>Seats</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for table in tables %}
+                <tr>
+                    <td><strong>{{ table.label }}</strong></td>
+                    <td>{{ table.seats }}</td>
+                    <td>
+                        {# badge colour is consistent regardless of status for now #}
+                        <span class="badge-active">{{ table.get_status_display }}</span>
+                    </td>
+                    <td>
+                        {# update status takes server to a form where they can change the table status #}
+                        <a href="{% url 'update_table_status' table.id %}" class="btn btn-sm">Update Status</a>
+                        &nbsp;
+                        {# assign server takes server to a form where they can assign a server to this table #}
+                        <a href="{% url 'assign_server_to_table' table.id %}" class="btn btn-sm btn-secondary">Assign Server</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No tables found. Please create some tables in the admin panel first.</p>
+    {% endif %}
+
+</div>
+
 {% endblock %}

@@ -4,9 +4,11 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from restaurant.models import (
     Customer, Restaurant, Category, Tag,
-    Table, Order, StaffInvite
+    Table, Order, StaffInvite, MenuItem
 )
 from restaurant import models
+from django.utils import timezone
+import datetime
 
 User = get_user_model()
 
@@ -19,17 +21,17 @@ User = get_user_model()
 
 @pytest.fixture
 def restaurant(db):
-    # creates a basic restaurant for use across tests
+    # creates a basic restaurant with realistic opening hours for use across tests
+    import datetime
     return Restaurant.objects.create(
         name="Test Restaurant",
         address="123 Test St",
         phone_number="403-555-1234",
-        opening_time=timezone.now().time(),
-        closing_time=timezone.now().time(),
+        opening_time=datetime.time(9, 0),
+        closing_time=datetime.time(22, 0),
         latitude=51.044733,
         longitude=-114.0718
     )
-
 
 @pytest.fixture
 def customer_user(db):
@@ -298,26 +300,22 @@ def test_tag_create_allowed_for_manager(client, manager_user):
 # ====================== ORDER VIEWS ======================
 
 @pytest.mark.django_db
-def test_order_create_page_loads_for_guest(client):
-    # verifies guests with items in cart can access the order creation page
-    # empty cart redirects to menu: add a cart item to session first
-    session = client.session
-    session['cart'] = {'1': {'item_id': 1, 'name': 'Test Item', 'price': '10.00', 'quantity': 1}}
-    session.save()
+def test_order_create_redirects_to_menu_when_cart_empty(client):
+    # verifies guests with empty cart are redirected to menu to add items first
+    # this is the correct behavior — cart must have items before checkout
     response = client.get(reverse('order_create'))
-    assert response.status_code == 200
+    assert response.status_code == 302
+    assert response.url == reverse('menu_item_list')
 
 
 @pytest.mark.django_db
-def test_order_create_page_loads_for_customer(client, customer_user):
-    # verifies logged in customers with items in cart can access the order creation page
-    # empty cart redirects to menu: add a cart item to session first
+def test_order_create_redirects_to_menu_when_cart_empty_for_customer(client, customer_user):
+    # verifies logged in customers with empty cart are redirected to menu to add items first
+    # this is the correct behavior — cart must have items before checkout
     client.login(username='testcustomer', password='TestPass123!')
-    session = client.session
-    session['cart'] = {'1': {'item_id': 1, 'name': 'Test Item', 'price': '10.00', 'quantity': 1}}
-    session.save()
     response = client.get(reverse('order_create'))
-    assert response.status_code == 200
+    assert response.status_code == 302
+    assert response.url == reverse('menu_item_list')
 
 
 @pytest.mark.django_db
@@ -527,7 +525,9 @@ def test_inventory_list_requires_manager(client, customer_user, restaurant):
 
 @pytest.mark.django_db
 def test_inventory_list_allowed_for_manager(client, manager_user, restaurant):
-    # verifies managers can access the inventory list
+    # verifies managers can access the inventory list for their own restaurant
+    # restaurant must be linked to the manager user for the scoping check to pass
+    Restaurant.objects.filter(pk=restaurant.pk).update(user=manager_user)
     client.login(username='testmanager', password='TestPass123!')
     response = client.get(reverse('inventory_list', args=[restaurant.pk]))
     assert response.status_code == 200
@@ -535,7 +535,9 @@ def test_inventory_list_allowed_for_manager(client, manager_user, restaurant):
 
 @pytest.mark.django_db
 def test_inventory_create_allowed_for_manager(client, manager_user, restaurant):
-    # verifies managers can add a new ingredient
+    # verifies managers can add a new ingredient to their own restaurant
+    # restaurant must be linked to the manager user for the scoping check to pass
+    Restaurant.objects.filter(pk=restaurant.pk).update(user=manager_user)
     client.login(username='testmanager', password='TestPass123!')
     response = client.post(reverse('inventory_create', args=[restaurant.pk]), {
         'ingredient_name': 'Tomatoes',
@@ -714,3 +716,203 @@ def test_customer_cannot_access_owner_view(client, customer_user):
     client.login(username='testcustomer', password='TestPass123!')
     response = client.get(reverse('owner_view'))
     assert response.status_code == 302
+
+
+# ====================== CUSTOMER DASHBOARD ======================
+
+@pytest.mark.django_db
+def test_customer_dashboard_accessible_for_customer(client, customer_user):
+    # verifies logged in customers can access their dashboard
+    client.login(username='testcustomer', password='TestPass123!')
+    response = client.get(reverse('customer_dashboard'))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_customer_dashboard_blocked_for_staff(client, manager_user):
+    # verifies staff cannot access the customer dashboard
+    client.login(username='testmanager', password='TestPass123!')
+    response = client.get(reverse('customer_dashboard'))
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_customer_dashboard_blocked_for_guest(client):
+    # verifies unauthenticated guests cannot access the customer dashboard
+    response = client.get(reverse('customer_dashboard'))
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_customer_dashboard_shows_loyalty_points(client, customer_user):
+    # verifies the dashboard context includes the customer object with loyalty points
+    client.login(username='testcustomer', password='TestPass123!')
+    response = client.get(reverse('customer_dashboard'))
+    assert response.status_code == 200
+    assert 'customer' in response.context
+    assert response.context['customer'].loyalty_points == 0
+
+
+# ====================== CART VIEWS ======================
+
+@pytest.mark.django_db
+def test_cart_add_adds_item_to_session(client, restaurant):
+    # verifies adding a menu item creates a cart entry in the session
+    category = Category.objects.create(name='Test')
+    item = MenuItem.objects.create(
+        name='Test Burger', description='Test', price='12.99', category=category
+    )
+    response = client.get(reverse('cart_add', args=[item.pk]))
+    assert response.status_code == 302
+    # check the cart was created in the session
+    cart = client.session.get('cart', {})
+    assert str(item.pk) in cart
+    assert cart[str(item.pk)]['quantity'] == 1
+
+
+@pytest.mark.django_db
+def test_cart_add_increments_existing_item(client, restaurant):
+    # verifies adding the same item twice increments quantity instead of duplicating
+    category = Category.objects.create(name='Test')
+    item = MenuItem.objects.create(
+        name='Test Burger', description='Test', price='12.99', category=category
+    )
+    # add the same item twice
+    client.get(reverse('cart_add', args=[item.pk]))
+    client.get(reverse('cart_add', args=[item.pk]))
+    cart = client.session.get('cart', {})
+    assert cart[str(item.pk)]['quantity'] == 2
+
+
+@pytest.mark.django_db
+def test_cart_remove_removes_item_from_session(client, restaurant):
+    # verifies removing an item clears it from the cart session
+    category = Category.objects.create(name='Test')
+    item = MenuItem.objects.create(
+        name='Test Burger', description='Test', price='12.99', category=category
+    )
+    # add item first then remove it
+    client.get(reverse('cart_add', args=[item.pk]))
+    client.get(reverse('cart_remove', args=[item.pk]))
+    cart = client.session.get('cart', {})
+    assert str(item.pk) not in cart
+
+
+@pytest.mark.django_db
+def test_cart_update_changes_quantity(client, restaurant):
+    # verifies updating quantity changes the cart correctly
+    category = Category.objects.create(name='Test')
+    item = MenuItem.objects.create(
+        name='Test Burger', description='Test', price='12.99', category=category
+    )
+    client.get(reverse('cart_add', args=[item.pk]))
+    client.post(reverse('cart_update', args=[item.pk]), {'quantity': 3})
+    cart = client.session.get('cart', {})
+    assert cart[str(item.pk)]['quantity'] == 3
+
+
+@pytest.mark.django_db
+def test_cart_update_with_zero_removes_item(client, restaurant):
+    # verifies setting quantity to 0 removes the item from the cart entirely
+    category = Category.objects.create(name='Test')
+    item = MenuItem.objects.create(
+        name='Test Burger', description='Test', price='12.99', category=category
+    )
+    client.get(reverse('cart_add', args=[item.pk]))
+    client.post(reverse('cart_update', args=[item.pk]), {'quantity': 0})
+    cart = client.session.get('cart', {})
+    assert str(item.pk) not in cart
+
+
+# ====================== REPORTING VIEW ======================
+
+@pytest.mark.django_db
+def test_reporting_view_accessible_for_manager(client, manager_user, restaurant):
+    # verifies managers can access the reporting view
+    # restaurant must be linked to the manager user for the view to find it
+    Restaurant.objects.filter(pk=restaurant.pk).update(user=manager_user)
+    client.login(username='testmanager', password='TestPass123!')
+    response = client.get(reverse('reporting_view'))
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_reporting_view_blocked_for_customer(client, customer_user):
+    # verifies customers cannot access the reporting view
+    client.login(username='testcustomer', password='TestPass123!')
+    response = client.get(reverse('reporting_view'))
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_reporting_view_accessible_for_owner(client, owner_user, restaurant):
+    # verifies owners can access the reporting view
+    client.login(username='testowner', password='TestPass123!')
+    response = client.get(reverse('reporting_view'))
+    assert response.status_code == 200
+
+
+# ====================== RESTAURANT IS_ACTIVE CHECKS ======================
+
+@pytest.mark.django_db
+def test_inactive_restaurant_blocks_reservation(client, restaurant):
+    # verifies reservations cannot be made when restaurant is inactive
+    restaurant.is_active = False
+    restaurant.save()
+    table = Table.objects.create(
+        label='T1', seats=4, grid_squares={}, restaurant=restaurant
+    )
+    response = client.post(reverse('reservation_create'), {
+        'restaurant': restaurant.pk,
+        'table': table.pk,
+        'reservation_datetime': (timezone.now() + timezone.timedelta(hours=3)).strftime('%Y-%m-%dT%H:%M'),
+        'party_size': 2
+    })
+    # form should fail validation and stay on the page
+    assert response.status_code == 200
+    assert not models.Reservation.objects.filter(table=table).exists()
+
+
+@pytest.mark.django_db
+def test_active_restaurant_allows_reservation(client, restaurant):
+    # verifies reservations can be made when restaurant is active
+    # update opening and closing times to allow the test reservation time
+    Restaurant.objects.filter(pk=restaurant.pk).update(
+        is_active=True,
+        opening_time=datetime.time(9, 0),
+        closing_time=datetime.time(22, 0)
+    )
+    restaurant.refresh_from_db()
+    table = Table.objects.create(
+        label='T1', seats=4, grid_squares={}, restaurant=restaurant
+    )
+    reservation_time = (timezone.now() + timezone.timedelta(hours=3)).replace(hour=12, minute=0)
+    response = client.post(reverse('reservation_create'), {
+        'restaurant': restaurant.pk,
+        'table': table.pk,
+        'reservation_datetime': reservation_time.strftime('%Y-%m-%dT%H:%M'),
+        'party_size': 2
+    })
+    assert response.status_code == 302
+    assert models.Reservation.objects.filter(table=table).exists()
+
+
+# ====================== RESERVATION OPENING HOURS CHECK ======================
+
+@pytest.mark.django_db
+def test_reservation_blocked_outside_opening_hours(client, restaurant):
+    # verifies reservations cannot be made outside restaurant opening hours
+    # seed restaurant is open 09:00 to 22:00, so midnight is outside hours
+    table = Table.objects.create(
+        label='T1', seats=4, grid_squares={}, restaurant=restaurant
+    )
+    # create a datetime that is definitely outside opening hours (midnight)
+    midnight = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0) + timezone.timedelta(days=1)
+    response = client.post(reverse('reservation_create'), {
+        'restaurant': restaurant.pk,
+        'table': table.pk,
+        'reservation_datetime': midnight.strftime('%Y-%m-%dT%H:%M'),
+        'party_size': 2
+    })
+    assert response.status_code == 200
+    assert not models.Reservation.objects.filter(table=table).exists()

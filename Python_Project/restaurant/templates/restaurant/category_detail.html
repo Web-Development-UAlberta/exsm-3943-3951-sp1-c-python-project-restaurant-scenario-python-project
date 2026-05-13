@@ -1,19 +1,27 @@
 {% extends 'base.html' %}
 
-{% block title %}
-    Category Details
-{% endblock %}
+{% block title %}{{ category.name }} | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>{{category.name}}</h1>
-    <p>Created at: {{category.created_at}}</p>
-   
-    <a href="{% url 'category_edit' category.pk %}">Edit</a>
-    
-    <form action="{% url 'category_confirm_delete' category.pk%}" method="post">
-        {% csrf_token %}
-        <button type="submit">Delete</button>
-    </form>
-    <a href="{% url 'category_list' %}">Cancel</a>
+
+{# ====== CATEGORY DETAIL ====== #}
+{# shows category name and creation date with edit and delete options for managers and owners #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>{{ category.name }}</h2>
+        <div style="display:flex; gap:0.75rem;">
+            <a href="{% url 'category_edit' category.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+            {# delete links to confirm_delete template which handles the confirmation step #}
+            <a href="{% url 'category_confirm_delete' category.pk %}" class="btn btn-sm btn-danger">Delete</a>
+            <a href="{% url 'category_list' %}" class="btn btn-sm btn-secondary">Back</a>
+        </div>
+    </div>
+
+    <div style="margin-top:1rem;">
+        <p><strong>Created:</strong> {{ category.created_at|date:"M d, Y" }}</p>
+    </div>
+
+</div>
 
 {% endblock %}

@@ -3,22 +3,73 @@
 {% block title %}{{ staff.get_full_name|default:staff.username }} | Urban Spark{% endblock %}
 
 {% block content %}
-    <h1>{{ staff.get_full_name|default:staff.username }} ({{ staff.get_role_display }})</h1>
 
-    <p><strong>Phone:</strong> {{ staff.phone_number|default:"Not provided" }}</p>
-    <p><strong>Shift:</strong> {{ staff.shift_start|time:"H:i"|default:"—" }} — {{ staff.shift_end|time:"H:i"|default:"—" }}</p>
-    <p><strong>Status:</strong> {% if staff.is_active_staff %} Active{% else %} Inactive{% endif %}</p>
+<div class="dashboard-section">
 
-    <h2>Currently Assigned Orders</h2>
+    {# ====== STAFF HEADER ====== #}
+    <div class="dashboard-section-header">
+        <h2>{{ staff.get_full_name|default:staff.username }}</h2>
+        <div style="display:flex; gap:0.75rem;">
+            <a href="{% url 'staff_edit' staff.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+            <a href="{% url 'staff_list' %}" class="btn btn-sm btn-secondary">Back to Staff</a>
+        </div>
+    </div>
+
+    {# ====== STAFF INFO ====== #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
+        <p>
+            <strong>Role:</strong>
+            <span class="badge-active">{{ staff.get_role_display }}</span>
+        </p>
+        <p><strong>Phone:</strong> {{ staff.phone_number|default:"Not provided" }}</p>
+        <p>
+            <strong>Shift:</strong>
+            {% if staff.shift_start and staff.shift_end %}
+                {{ staff.shift_start|time:"H:i" }} - {{ staff.shift_end|time:"H:i" }}
+            {% else %}
+                Not set
+            {% endif %}
+        </p>
+        <p>
+            <strong>Status:</strong>
+            {% if staff.is_active_staff %}
+                <span class="badge-active">Active</span>
+            {% else %}
+                <span class="badge-inactive">Inactive</span>
+            {% endif %}
+        </p>
+    </div>
+
+    {# ====== ASSIGNED ORDERS ====== #}
+    <div class="dashboard-section-header" style="margin-bottom:1rem;">
+        <h3>Currently Assigned Orders</h3>
+    </div>
+
     {% if assigned_orders %}
-        <ul>
-        {% for order in assigned_orders %}
-            <li>Order #{{ order.id }} — {{ order.get_order_status_display }} ({{ order.restaurant }})</li>
-        {% endfor %}
-        </ul>
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Restaurant</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in assigned_orders %}
+                <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.restaurant }}</td>
+                    <td>{{ order.get_order_status_display }}</td>
+                    <td><a href="{% url 'order_detail' order.pk %}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     {% else %}
-        <p>No orders currently assigned.</p>
+        <p class="dashboard-empty">No orders currently assigned.</p>
     {% endif %}
 
-    <a href="{% url 'staff_list' %}">← Back to Staff List</a>
+</div>
+
 {% endblock %}

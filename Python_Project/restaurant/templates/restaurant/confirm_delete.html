@@ -4,20 +4,30 @@
 
 {% block content %}
 
-    <div class="confirm-box">
+{# ====== CONFIRM DELETE BOX ====== #}
+{# this is a generic reusable delete confirmation page used across all delete flows #}
+{# the view passes in object_name, object_display, delete_url, and cancel_url as context #}
+<div class="auth-box">
 
-        <h2>Delete {{ object_name }}</h2> {# object_name is passed in from the view e.g. 'Restaurant' #}
-        <p>Are you sure you want to delete <strong>{{ object_display }}</strong>?</p> {# object_display is the name/identifier of the object being deleted #}
+    <h2>Delete {{ object_name }}</h2> {# object_name is passed in from the view e.g. 'Restaurant' #}
 
-        <div class="confirm-actions"> {# Lines up the confirm and cancel buttons in a horizontal row #}
-            <form method="POST" action="{{ delete_url }}"> {# delete_url is passed in from the view via request.path #}
-                {% csrf_token %} {# Django's built-in protection against cross-site request forgery attacks #}
-                <button type="submit" class="btn btn-danger">Yes, Delete</button>
-            </form>
+    <p style="margin-bottom:1.5rem;">
+        Are you sure you want to delete <strong>{{ object_display }}</strong>? This cannot be undone.
+    </p> {# object_display is the name or identifier of the object being deleted #}
 
-            <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a> {# cancel_url is passed in from the view #}
-        </div>
+    {# action buttons sit side by side #}
+    <div style="display:flex; gap:1rem;">
+
+        <form method="POST" action="{{ delete_url }}"> {# delete_url is passed in from the view via request.path #}
+            {% csrf_token %} {# Django's built-in protection against cross-site request forgery attacks #}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </form>
+
+        {# cancel_url is passed in from the view and takes the user back to where they came from #}
+        <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
 
     </div>
+
+</div>
 
 {% endblock %}

@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
 
-{% block title %}Inventory | Urban Spark{% endblock %}
+{% block title %}{% if form.instance.pk %}Edit Ingredient{% else %}Add Ingredient{% endif %} | Urban Spark{% endblock %}
 
 {% block content %}
 
-<main>
+{# ====== INVENTORY CREATE OR EDIT FORM ====== #}
+{# same template is used for both adding and editing an ingredient #}
+{# form.instance.pk is None when creating and has a value when editing #}
+<div class="auth-box">
     <h2>{% if form.instance.pk %}Edit Ingredient{% else %}Add Ingredient{% endif %}</h2>
-
 
     <form method="POST" class="auth-form">
         {% csrf_token %}
@@ -16,12 +18,17 @@
         </button>
     </form>
 
-    {# Back link uses the restaurant pk from the form instance if editing, otherwise falls back to the restaurant list #}
+    {# back link uses the restaurant pk from the form instance if editing #}
+    {# falls back to the restaurant list if creating since no restaurant pk is on the form yet #}
     {% if form.instance.pk %}
-        <a href="{% url 'inventory_list' form.instance.restaurant.pk %}">Back to Inventory</a>
+        <a href="{% url 'inventory_list' form.instance.restaurant.pk %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+            Back to Inventory
+        </a>
     {% else %}
-        <a href="{% url 'restaurant_list' %}">Back to Restaurants</a>
+        <a href="{% url 'restaurant_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+            Back to Restaurants
+        </a>
     {% endif %}
-</main>
+</div>
 
 {% endblock %}

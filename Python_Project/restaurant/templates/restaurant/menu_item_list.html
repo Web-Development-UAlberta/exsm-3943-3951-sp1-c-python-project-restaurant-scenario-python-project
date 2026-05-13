@@ -2,6 +2,13 @@
 
 {% block title %}Menu | Urban Spark{% endblock %}
 
+{# show a banner if no restaurant is currently active, ordering is unavailable #}
+{% if not restaurant_active %}
+    <div class="low-stock-alert" style="margin-bottom:1.5rem; text-align:center;">
+        <p><strong>We are currently closed.</strong> Online ordering and reservations are unavailable at this time.</p>
+    </div>
+{% endif %}
+
 {% block content %}
 
 <div class="menu-page">

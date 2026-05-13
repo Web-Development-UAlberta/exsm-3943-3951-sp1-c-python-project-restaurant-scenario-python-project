@@ -1,32 +1,61 @@
 {% extends 'base.html' %}
 
-{% block title %}
-    Restaurant Details
-{% endblock %}
+{% block title %}{{ restaurant.name }} | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>{{restaurant.name}}</h1>
-    <p>Manager: {{restaurant.user}}</p>
-    <p>Address: {{restaurant.address}}</p>
-    <p>Phone Number: {{restaurant.phone_number}}</p>
-    <p>Opening Time: {{restaurant.opening_time}}</p>
-    <p>Closing Time: {{restaurant.closing_time}}</p>
-    <p>Status: {% if restaurant.is_active %} Active {% else %} Inactive {% endif %}</p>
-    {% if request.user.is_authenticated and request.user.role == 1 or request.user.role == 6 %}
-        <a href="{% url 'restaurant_edit' restaurant.pk %}">Edit</a>
-    {% endif %}
+
+{# ====== RESTAURANT DETAIL ====== #}
+{# shows full restaurant info with management options for managers and owners #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>{{ restaurant.name }}</h2>
+        <div style="display:flex; gap:0.75rem;">
+            {# edit is available to managers and owners #}
+            {% if request.user.is_authenticated and request.user.role == 1 or request.user.role == 6 %}
+                <a href="{% url 'restaurant_edit' restaurant.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+            {% endif %}
+            {# delete is only available to owners #}
+            {% if request.user.role == 6 %}
+                <a href="{% url 'restaurant_confirm_delete' restaurant.pk %}" class="btn btn-sm btn-danger">Delete</a>
+            {% endif %}
+            <a href="{% url 'restaurant_list' %}" class="btn btn-sm btn-secondary">Back</a>
+        </div>
+    </div>
+
+    {# ====== RESTAURANT INFO ====== #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
+        <p><strong>Manager:</strong> {{ restaurant.user }}</p>
+        <p><strong>Address:</strong> {{ restaurant.address }}</p>
+        <p><strong>Phone:</strong> {{ restaurant.phone_number }}</p>
+        <p><strong>Opening Time:</strong> {{ restaurant.opening_time }}</p>
+        <p><strong>Closing Time:</strong> {{ restaurant.closing_time }}</p>
+        <p>
+            <strong>Status:</strong>
+            {# show active or inactive badge based on is_active field #}
+            {% if restaurant.is_active %}
+                <span class="badge-active">Active</span>
+            {% else %}
+                <span class="badge-inactive">Inactive</span>
+            {% endif %}
+        </p>
+    </div>
+
+    {# toggle active button only visible to managers and owners #}
+    {# this allows a manager to deactivate a restaurant to stop new bookings and orders #}
     {% if request.user.role == 1 or request.user.role == 6 %}
-    
-    <form action="{% url 'restaurant_toggle_active' restaurant.pk%}" method="post">
-        {% csrf_token %}
-        <button type="submit">
-            {% if restaurant.is_active %} Deactivate {% else %} Activate {% endif %}
-        </button>
-    </form>
-
-    <a href="{% url 'restaurant_confirm_delete' restaurant.pk %}">Delete</a>
-    <a href="{% url 'restaurant_list' %}">Cancel</a>
-
+        <form action="{% url 'restaurant_toggle_active' restaurant.pk %}" method="POST" style="display:inline;">
+            {% csrf_token %}
+            {% if restaurant.is_active %}
+                {# red button when active, clicking will deactivate #}
+                <button type="submit" class="btn btn-danger">Deactivate</button>
+            {% else %}
+                {# green button when inactive, clicking will activate #}
+                <button type="submit" class="btn btn-activate">Activate</button>
+            {% endif %}
+        </form>
     {% endif %}
+
+</div>
 
 {% endblock %}
