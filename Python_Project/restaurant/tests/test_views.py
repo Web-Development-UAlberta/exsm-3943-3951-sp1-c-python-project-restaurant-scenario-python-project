@@ -886,7 +886,8 @@ def test_active_restaurant_allows_reservation(client, restaurant):
     table = Table.objects.create(
         label='T1', seats=4, grid_squares={}, restaurant=restaurant
     )
-    reservation_time = (timezone.now() + timezone.timedelta(hours=3)).replace(hour=12, minute=0)
+    # using noon UTC which is safely within 09:00 to 22:00 for any North American timezone
+    reservation_time = timezone.now().replace(hour=15, minute=0, second=0, microsecond=0) + timezone.timedelta(days=1)
     response = client.post(reverse('reservation_create'), {
         'restaurant': restaurant.pk,
         'table': table.pk,
