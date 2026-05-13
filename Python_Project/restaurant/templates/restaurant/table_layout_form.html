@@ -11,7 +11,7 @@
         <h2>{{restaurant.name}} - Floor Plan</h2>
         <div class="floor-plan-controls">
             <button id="toggle-edit-btn" class="btn btn-secondary">Edit Layout</button>
-            <button id="toggle-save-btn" class="btn" style="display:none;">Save Layout</button>
+            <button id="save-btn" class="save-btn" style="display:none;">Save Layout</button>
         </div>
     </div>
 
@@ -84,5 +84,230 @@
 
     </div>
 
-    
+    {# JavaScript #}
+    <script>
+        const SAVE_URL = "{% url 'table_layout_save' restaurant.pk %}";
+        const STATUS_URL = "/restaurant/table/";
+        const CSRF_TOKEN = "{{ csrf_token }}";
+        const CELL_SIZE = 20; 
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+        let isEditMode = false;
+        let currentTableEl = null; // table element currently selected in modal
+        let draggedTableID = null; // table being dragged from palette
+
+        document.getElementById('toggle-edit-btn').addEventListener('click', function() {
+            isEditMode = !isEditMode;
+            const palette = document.getElementById('table-palette');
+            const saveBtn = document.getElementById('save-btn');
+            const tables = document.querySelectorAll('.floor-plan-table');
+
+            if (isEditMode) {
+                this.textContent = 'Lock Layout';
+                this.classList.replace('btn-secondary', 'btn-danger');
+                palette.style.display = 'block';
+                saveBtn.style.display = 'inline-block';
+                tables.forEach(t => t.setAttribute('draggable', true));
+            } else {
+                this.textContent = 'Edit Layout';
+                this.classList.replace('btn-danger', 'btn-secondary');
+                palette.style.display = 'none';
+                saveBtn.style.display = 'none';
+                tables.forEach(t => t.removeAttribute('draggable'));
+            }
+        });
+
+        {# Drag from Palette #}
+        document.querySelectorAll('.palette-table').forEach(function(el) {
+            el.addEventListener('dragstart', function(e) {
+                draggedTableID = this.dataset.tableId;
+                e.dataTransfer.setData('source', 'palette');
+                e.dataTransfer.setData('tableId', draggedTableID);
+                e.dataTransfer.setData('label', this.dataset.label);
+                e.dataTransfer.setData('seats', this.dataset.seats);
+                e.dataTransfer.setData('status', this.dataset.status);
+            });
+        });
+
+        {# Drag Placed Tables #}
+        document.querySelectorAll('.floor-plan-table').forEach(function(el) { 
+            el.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('source', 'grid');
+                e.dataTransfer.setData('tableId', this.dataset.tableId);
+            });
+        });
+
+        {# Drop on grid #}
+        const grid = document.getElementById('floor-plan-grid');
+
+        grid.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        grid.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const source = e.dataTransfer.getData('source');
+            const tableId = e.dataTransfer.getData('tableId');
+
+            // which grid cell was dropped on
+            const rec = grid.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rec.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rec.top) / CELL_SIZE);
+
+            if (source === 'palette') {
+                // places new table from palette onto grid
+                const label = e.dataTransfer.getData('label');
+                const seats = parseInt(e.dataTransfer.getData('seats'));
+                const status = e.dataTransfer.getData('status');
+
+                let w = 1, h = 1;
+                if (seats <=4) { w=1; h = 1; }
+                else if (seats <=6 ) { w=2, h=1; }
+                else { w = 2; h = 2; }
+
+                // checks if table exists
+                const existing = grid.querySelector(`[data-table-id="${tableId}"]`);
+                if (existing) existing.remove();
+
+                // create new table element
+                const tableEl = createTableElement(tableId, label, seats, status, x, y, w, h);
+                grid.appendChild(tableEl);
+                attachTableListeners(tableEl);
+
+            } else if (source === 'grid') {
+                // reposition existing table
+                const tableEl = grid.querySelector(`[data-table-id="${tableId}"]`);
+                if (tableEl) {
+                    const w = parseInt(tableEl.dataset.w);
+                    const h = parseInt(tableEl.dataset.h);
+                    tableEl.dataset.x = x;
+                    tableEl.dataset.y = y;
+                    tableEl.style.left = `calc(${x} * var(--cell-size))`;
+                    tableEl.style.top = `calc(${y} * var(--cell-size))`;
+                }
+            }
+        });
+
+        grid.addEventListener('click', function(e) {
+            if(isEditMode) return;
+            const tableEl = e.target.closest('.floor-plan-table');
+            if (tableEl) openStatusModal(tableEl);
+        });
+
+
+        {# Create Table Element #}
+        function createTableElement(tableId, label, seats, status, x, y, w, h) {
+            const div = document.createElement('div');
+            div.className = `floor-plan-table status-${status}`;
+            div.dataset.tableId = tableId;
+            div.dataset.label = label;
+            div.dataset.seats = seats;
+            div.dataset.status = status;
+            div.dataset.x = x;
+            div.dataset.y = y;
+            div.dataset.w = w;
+            div.dataset.h = h;
+            div.style.left = `calc(${x} * var(--cell-size))`;
+            div.style.top = `calc(${y} * var(--cell-size))`;
+            div.style.width = `calc(${w} * var(--cell-size))`;
+            div.style.height = `calc(${h} * var(--cell-size))`;
+            div.innerHTML = `<span class="table-label">${label}</span><span class="table-seats">${seats} seats</span>`;
+            return div;
+        }
+
+        {# Add listeners to table #}
+        function attachTableListeners(el) {
+            el.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('source', 'grid');
+                e.dataTransfer.setData('tableId', this.dataset.tableId);
+            });
+            el.addEventListener('click', function(e) {
+                if (!isEditMode) openStatusModal(this);
+            });
+        }
+
+        {# attach listeners to existing grid tables when page loads #}
+        document.querySelectorAll('.floor-plan-table').forEach(attachTableListeners);
+
+        {# Status modal #}
+        function openStatusModal(tableEl) {
+            currentTableEl = tableEl;
+            document.getElementById('modal-table-label').textContent = tableEl.dataset.label;
+            document.getElementById('status-modal').style.display = 'flex';
+        }
+
+        document.getElementById('modal-close').addEventListener('click', function() {
+            document.getElementById('status-modal').style.display = 'none';
+            currentTableEl = null;
+        });
+
+        document.querySelectorAll('.status-btn').forEach(function(btn) {
+            btn.addEventListener('click', function () {
+                if (!currentTableEl) return;
+                const newStatus = this.dataset.status;
+                const tableId = currentTableEl.dataset.tableId;
+
+                // update status via fetch
+                fetch(`/table/${tableId}/update_status/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `status=${newStatus}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        //colour update
+                        currentTableEl.className = `floor-plan-table status-${newStatus}`;
+                        currentTableEl.dataset.status = newStatus;
+                        currentTableEl.innerHTML = `
+                        <span class="table-label">${currentTableEl.dataset.label}</span>
+                        <span class="table-seats">${currentTableEl.dataset.seats} seats</span>`;
+                        document.getElementById('status-modal').style.display = 'none';
+                        currentTableEl = null
+                    }
+                })
+                .catch(err => console.error('Status update failed:', err));
+            });
+        });
+
+        {# Save Layout #}
+        document.getElementById('save-btn').addEventListener('click', function() {
+            const tables = document.querySelectorAll('.floor-plan-table');
+            const tablesData = [];
+
+            tables.forEach(function(t) {
+                tablesData.push({
+                    table_id: parseInt(t.dataset.tableId),
+                    x: parseInt(t.dataset.x),
+                    y: parseInt(t.dataset.y),
+                });
+            });
+
+            fetch(SAVE_URL, {
+                method:'POST',
+                headers: {
+                    'X-CSRFToken': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tables: tablesData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Layout saved successfully!');
+                } else {
+                    alert ('Error saving layout: ' + data.error);
+                }
+            })
+            .catch(err => console.error('Save failed:', err));
+        });
+    });
+    </script>
+
 {% endblock %}
