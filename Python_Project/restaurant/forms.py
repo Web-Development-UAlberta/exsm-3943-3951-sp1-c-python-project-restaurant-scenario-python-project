@@ -210,13 +210,13 @@ class TablePositionForm(forms.ModelForm):
     # x and y fields defined outside Meta class as they're not actually fields in the Table model
     x = forms.IntegerField(
         min_value=0,
-        max_value=49,
-        widget=forms.NumberInput(attrs={'placeholder': 'Column (0-49)'})
+        max_value=14,
+        widget=forms.NumberInput(attrs={'placeholder': 'Column (0-14)'})
     )
     y = forms.IntegerField(
         min_value=0,
-        max_value=49,
-        widget=forms.NumberInput(attrs={'placeholder': 'Row (0-49)'})
+        max_value=12,
+        widget=forms.NumberInput(attrs={'placeholder': 'Row (0-12)'})
     )
     
     class Meta:

@@ -253,8 +253,8 @@ MenuItemTag.objects.create(menu_item=item5, tag=tag_gluten_free)
 table1 = Table.objects.create(
     restaurant=restaurant,
     label='T1',
-    seats=2,
-    grid_squares={},
+    seats=4,
+    grid_squares={'x': 1, 'y': 2, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE,
     assigned_server=server
 )
@@ -263,7 +263,7 @@ table2 = Table.objects.create(
     restaurant=restaurant,
     label='T2',
     seats=4,
-    grid_squares={},
+    grid_squares={'x': 3, 'y': 2, 'w':1, 'h':1},
     status=Table.Status.OCCUPIED,
     assigned_server=server
 )
@@ -271,8 +271,8 @@ table2 = Table.objects.create(
 table3 = Table.objects.create(
     restaurant=restaurant,
     label='T3',
-    seats=6,
-    grid_squares={},
+    seats=4,
+    grid_squares={'x': 5, 'y': 2, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -280,16 +280,104 @@ table4 = Table.objects.create(
     restaurant=restaurant,
     label='T4',
     seats=4,
-    grid_squares={},
+    grid_squares={'x': 1, 'y': 4, 'w':1, 'h':1},
     status=Table.Status.RESERVED
 )
 
 table5 = Table.objects.create(
     restaurant=restaurant,
     label='T5',
-    seats=8,
-    grid_squares={},
+    seats=4,
+    grid_squares={'x': 3, 'y': 4, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table6 = Table.objects.create(
+    restaurant=restaurant,
+    label='T6',
+    seats=4,
+    grid_squares={'x': 5, 'y': 4, 'w':1, 'h':1},
     status=Table.Status.NEEDS_CLEANING
+)
+
+table7 = Table.objects.create(
+    restaurant=restaurant,
+    label='T7',
+    seats=4,
+    grid_squares={'x': 1, 'y': 6, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table8 = Table.objects.create(
+    restaurant=restaurant,
+    label='T8',
+    seats=4,
+    grid_squares={'x': 3, 'y': 6, 'w':1, 'h':1},
+    status=Table.Status.OCCUPIED
+)
+
+table9 = Table.objects.create(
+    restaurant=restaurant,
+    label='T9',
+    seats=4,
+    grid_squares={'x': 5, 'y': 6, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table10 = Table.objects.create(
+    restaurant=restaurant,
+    label='T10',
+    seats=4,
+    grid_squares={'x': 1, 'y': 8, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table11 = Table.objects.create(
+    restaurant=restaurant,
+    label='T11',
+    seats=4,
+    grid_squares={'x': 3, 'y': 8, 'w':1, 'h':1},
+    status=Table.Status.RESERVED
+)
+
+table12 = Table.objects.create(
+    restaurant=restaurant,
+    label='T12',
+    seats=4,
+    grid_squares={'x': 5, 'y': 8, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table13 = Table.objects.create(
+    restaurant=restaurant,
+    label='T13',
+    seats=8,
+    grid_squares={'x': 7, 'y': 8, 'w':1, 'h':1},
+    status=Table.Status.OCCUPIED
+)
+
+table14 = Table.objects.create(
+    restaurant=restaurant,
+    label='T14',
+    seats=4,
+    grid_squares={'x': 9, 'y': 8, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table15 = Table.objects.create(
+    restaurant=restaurant,
+    label='T15',
+    seats=4,
+    grid_squares={'x': 11, 'y': 8, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
+)
+
+table16 = Table.objects.create(
+    restaurant=restaurant,
+    label='T16',
+    seats=6,
+    grid_squares={'x': 10, 'y': 4, 'w':1, 'h':1},
+    status=Table.Status.AVAILABLE
 )
 
 
@@ -421,10 +509,10 @@ Reservation.objects.create(
     guest_name='Barry Allen',
     guest_email='barry@email.com',
     guest_phone_number='4037778888',
-    table=table5,
+    table=table13,
     restaurant=restaurant,
     reservation_datetime=timezone.now() + timezone.timedelta(days=2),
-    party_size=6,
+    party_size=8,
     deposit_amount=10,
     status=Reservation.Status.PENDING
 )

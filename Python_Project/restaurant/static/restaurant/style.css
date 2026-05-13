@@ -737,6 +737,62 @@ input[type="submit"]:active {
 }
 
 /* ====================== Table Layout Floor Plan ====================== */
+.floor-element {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+
+.wall {
+    background-color: #c4c1c1;
+    z-index: 10;
+}
+
+.entrance {
+    background-color: var(--sage-light);
+    color: var(--white);
+    border-radius: var(--radius-sm);
+}
+
+.bar {
+    background-color: var(--sage-light);
+    color: var(--white);
+    border-radius: var(--radius-sm);
+}
+
+.kitchen {
+    background-color:var(--sage-light);
+    color: var(--white);
+    font-size: 0.6rem;
+    z-index: 10;
+}
+
+.restroom {
+    background-color: var(--sage-light);
+    color: var(--white);
+    font-size: 0.6rem;
+    z-index: 10;
+}
+
+.floor-plan-elements {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    columns: var(--dark-text);
+}
+
+.outside-element {
+    opacity: 0.7;
+}
 
 .status-modal {
     position: fixed;
@@ -778,16 +834,21 @@ input[type="submit"]:active {
 }
 
 .floor-plan-grid {
-    --cell-size: 20px; 
+    --cell-size: 40px; 
     position: relative;
-    width: calc(50 * var(--cell-size));
-    height: calc(50 * var(--cell-size));
+    width: calc(15 * var(--cell-size));
+    height: calc(13 * var(--cell-size));
     background-color: var(--white);
     border: 2px solid var(--border-mid);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.2) 1px, transparent 1px);
+    background-size: var(--cell-size) var(--cell-size);
 }
+
 
 .floor-plan-table {
     position: absolute;
