@@ -736,6 +736,61 @@ input[type="submit"]:active {
     background-color: var(--cream);
 }
 
+/* ====================== Table Layout Floor Plan ====================== */
+
+.floor-plan-seciton {
+    margin-top: 2rem;
+}
+
+.floor-plan-container {
+    width: 100%;
+    overflow: auto;
+}
+
+.floor-plan-grid {
+    --cell-size: 20px; 
+    position: relative;
+    width: calc(50 * var(--cell-size));
+    height: calc(50 * var(--cell-size));
+    background-color: var(--white);
+    border: 2px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.floor-plan-table {
+    position: absolute;
+    border: 2px solid var(--white);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    color: var(--white);
+    text-align: center;
+    padding: 2px;
+}
+
+.table-label {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.table-seats {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+/* Status matching colours Table.Status integer choices */
+.status-1 { background-color: var(--sage-green);}       /* AVAILABLE */
+.status-2 { background-color: var(--burnt-orange);}     /* OCCUPIED */
+.status-3 { background-color: var(--gold);}     /* RESERVED */
+.status-4 { background-color: #6B6B6B;}     /* NEEDS CLEANING */
+
+
 /* ====================== Review Order Page ====================== */
 
 .review-page {

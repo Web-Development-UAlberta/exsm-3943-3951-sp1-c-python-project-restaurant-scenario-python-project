@@ -1,41 +1,88 @@
 {% extends "base.html" %}
 
 {% block title %}
-    Table Layout - {{restaurant.name}}
+    Floor - {{restaurant.name}}
 {% endblock %}
 
 {% block content %}
-<h2> Table Layout - {{restaurant.name}}</h2>
+<div class="floor-plan-page">
 
-<form method="post">
-    {% csrf_token %}
-    {{ formset.management_form }}
-
-    <div class="layout-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>Table</th>
-                    <th>Seats</th>
-                    <th>Column (x)</th>
-                    <th>Row (y)</th>
-                </th>
-            </thead>
-            <tbody>
-                {% for form in formset %}
-                {{ form.id }}
-                <tr>
-                    <td>{{form.label}}</td>
-                    <td>{{form.seats}}</td>
-                    <td>{{form.x}}</td>
-                    <td>{{form.y}}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="floor-plan-header">
+        <h2>{{restaurant.name}} - Floor Plan</h2>
+        <div class="floor-plan-controls">
+            <button id="toggle-edit-btn" class="btn btn-secondary">Edit Layout</button>
+            <button id="toggle-save-btn" class="btn" style="display:none;">Save Layout</button>
+        </div>
     </div>
-    
-    <button type="submit" class="btn">Save Layout</button>
-</form>
 
+    {# Legend #}
+    <div class="floor-plan-legend">
+        <span class="legend-item status-1">Available</span>
+        <span class="legend-item status-2">Occupied</span>
+        <span class="legend-item status-3">Reserved</span>
+        <span class="legend-item status-4">Needs Cleaning</span>
+    </div>
+
+    <div class="floor-plan-workspace">
+
+        <div class="table-palette" id="table-palette" style="display:none;">
+
+            <h4>Tables</h4>
+                {% for table in tables %}
+                <div class="palette-table"
+                    draggable="true"
+                    data-table-id="{{ table.id }}"
+                    data-label="{{ table.label}}"
+                    data-seats="{{ table.seats }}"
+                    data-status="{{ table.status }}">
+                    <span>{{ table.label }}</span>
+                    <span>{{ table.seats }}</span>
+                </div>
+                {% endfor %}
+        </div>
+
+            {# Floor Grid #}
+            <div class="floor-plan-container">
+
+                <div class="floor-plan-grid" id="floor-plan-grid">
+                    {% for table in grid_data %}
+                    <div class="floor-plan-table status-{{ table.status }}"
+                        data-table-id="{{ table.table_id }}"
+                        data-label="{{ table.label }}"
+                        data-seats="{{ table.seats }}"
+                        data-status="{{ table.status }}"
+                        data-x="{{ table.x }}"
+                        data-y="{{ table.y }}"
+                        data-w="{{ table.w }}"
+                        data-h="{{ table.h }}"
+                        style="
+                            left: calc({{ table.x }} * var(--cell-size));
+                            top: calc({{ table.y }} * var(--cell-size));
+                            width: calc({{table.w}} * var(--cell-size));
+                            height: calc({{table.h}} * var(--cell-size));">
+                        <span class="table-label">{{ table.label }}</span>
+                        <span class="table-seats">{{ table.seats }} seats</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# Status Modal shows when clicking a table #}
+        <div class="status-modal" id="status-modal" style="display:none;">
+            <div class="status-modal-content">
+                <h4 id="modal-table-label">Update Status</h4>
+                <div class="status-options">
+                    {% for value, label in status_choices %}
+                    <button class="btn status-btn status-{{ value }}" data-status="{{ value }}">
+                        {{ label }}
+                    </button>
+                    {% endfor %}
+                </div>
+                <button class="btn btn-secondary" id="modal-close">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+
+    
 {% endblock %}

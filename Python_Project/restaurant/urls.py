@@ -54,6 +54,7 @@ urlpatterns = [
     
     # ====================== TABLE LAYOUT ======================
     path('restaurant/<int:restaurant_pk>/layout/', views.table_layout_edit, name='table_layout_edit'),
+    path('restaurant/<int:restaurant_pk>/layout/save/', views.table_layout_save, name='table_layout_save'),
 
     # ====================== CATEGORY ======================
     path('category/', views.category_list, name='category_list'),
