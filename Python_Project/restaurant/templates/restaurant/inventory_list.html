@@ -1,13 +1,26 @@
 {% extends 'base.html' %}
+
 {% block title %}Inventory | Urban Spark{% endblock %}
+
 {% block content %}
 
-    <h2>Inventory — {{ restaurant.name }}</h2>
+{# ====== INVENTORY LIST ====== #}
+{# manager only view showing all ingredients for this restaurant with stock levels #}
+<div class="dashboard-section">
 
+    <div class="dashboard-section-header">
+        <h2>Inventory: {{ restaurant.name }}</h2>
+        <div style="display:flex; gap:0.75rem;">
+            <a href="{% url 'inventory_create' restaurant.pk %}" class="btn btn-sm">+ Add Ingredient</a>
+            <a href="{% url 'restaurant_detail' restaurant.pk %}" class="btn btn-sm btn-secondary">Back to Restaurant</a>
+        </div>
+    </div>
+
+    {# low stock alert banner shown when any ingredient is at or below its reorder level #}
     {% if low_stock %}
-        <div class="low-stock-alert">
+        <div class="low-stock-alert" style="margin-bottom:1rem;">
             <p><strong>Low Stock Alert:</strong> The following ingredients are at or below reorder level:</p>
-            <ul>
+            <ul style="margin-top:0.5rem; padding-left:1.25rem; list-style:disc;">
                 {% for item in low_stock %}
                     <li>{{ item.ingredient_name }} — {{ item.current_level }} {{ item.unit }} remaining (reorder at {{ item.reorder_level }})</li>
                 {% endfor %}
@@ -16,7 +29,7 @@
     {% endif %}
 
     {% if inventory %}
-        <table>
+        <table class="orders-table">
             <thead>
                 <tr>
                     <th>Ingredient</th>
@@ -24,6 +37,7 @@
                     <th>Unit</th>
                     <th>Reorder Level</th>
                     <th>Last Updated</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -36,18 +50,25 @@
                     <td>{{ item.reorder_level }}</td>
                     <td>{{ item.last_updated|date:"M d, Y" }}</td>
                     <td>
+                        {# flag items that are at or below the reorder level as low stock #}
+                        {% if item.current_level <= item.reorder_level %}
+                            <span class="badge-inactive">Low Stock</span>
+                        {% else %}
+                            <span class="badge-active">OK</span>
+                        {% endif %}
+                    </td>
+                    <td style="display:flex; gap:0.5rem; align-items:center;">
                         <a href="{% url 'inventory_edit' item.pk %}">Edit</a>
-                        <a href="{% url 'inventory_confirm_delete' item.pk %}">Delete</a>
+                        <a href="{% url 'inventory_confirm_delete' item.pk %}" class="btn btn-sm btn-danger">Delete</a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>No ingredients found.</p>
+        <p class="dashboard-empty">No ingredients found.</p>
     {% endif %}
 
-    <a href="{% url 'inventory_create' restaurant.pk %}">Add Ingredient</a>
-    <a href="{% url 'restaurant_detail' restaurant.pk %}">Back to Restaurant</a>
+</div>
 
 {% endblock %}

@@ -4,10 +4,15 @@
 
 {% block content %}
 
-<main>
-    <h2>Owner Dashboard</h2>
-    <p>Welcome, {{ request.user.first_name }}!</p>
+{# ====== OWNER DASHBOARD ====== #}
+{# central hub for owners to access all management features across all locations #}
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Owner Dashboard</h2>
+    </div>
+    <p style="margin-bottom:1.5rem;">Welcome, {{ request.user.first_name }}!</p>
 
+    {# quick links to all owner accessible sections #}
     <section class="quick-links">
         <h3>Manage</h3>
         <ul>
@@ -20,12 +25,14 @@
             <li><a href="{% url 'menu_item_list' %}">Menu Items</a></li>
             <li><a href="{% url 'category_list' %}">Categories</a></li>
             <li><a href="{% url 'tag_list' %}">Tags</a></li>
+            <li><a href="{% url 'reporting_view' %}">Reports</a></li>
         </ul>
     </section>
 
-    {# inventory is scoped per restaurant — show a link for each active location #}
+    {# inventory is scoped per restaurant, show a link for each active location #}
+    {# restaurants context is passed from the owner_view in views.py #}
     {% if restaurants %}
-    <section class="quick-links" style="margin-top: 1.5rem;">
+    <section class="quick-links" style="margin-top:1.5rem;">
         <h3>Inventory</h3>
         <ul>
             {% for restaurant in restaurants %}
@@ -35,6 +42,6 @@
     </section>
     {% endif %}
 
-</main>
+</div>
 
 {% endblock %}

@@ -1,17 +1,48 @@
 {% extends 'base.html' %}
 
-{% block title %}
-    Tags
-{% endblock %}
- 
+{% block title %}Tags | Urban Spark{% endblock %}
+
 {% block content %}
-<ul>
-    {% for tag in tags %}
-    <li>
-        <a href="{% url 'tag_detail' tag.pk %}">{{tag.name}}</a> 
-        - {{tag.id}}
-    </li>
-    {% endfor %}
-</ul>
-<a href="{% url 'tag_create' %}">Add New Tag</a>
+
+{# ====== TAG LIST ====== #}
+{# manager and owner only view for managing menu item tags #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>Tags</h2>
+        <a href="{% url 'tag_create' %}" class="btn btn-sm">+ Add New Tag</a>
+    </div>
+
+    {% if tags %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Preview</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tag in tags %}
+                <tr>
+                    <td>{{ tag.name }}</td>
+                    <td>
+                        {# show a live preview of what the tag badge looks like using the CSS colour class #}
+                        <span class="menu-item-tag tag-{{ tag.name|lower|slugify }}">{{ tag.name }}</span>
+                    </td>
+                    <td style="display:flex; gap:0.5rem; align-items:center;">
+                        <a href="{% url 'tag_detail' tag.pk %}">View</a>
+                        <a href="{% url 'tag_edit' tag.pk %}">Edit</a>
+                        <a href="{% url 'tag_confirm_delete' tag.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No tags found.</p>
+    {% endif %}
+
+</div>
+
 {% endblock %}

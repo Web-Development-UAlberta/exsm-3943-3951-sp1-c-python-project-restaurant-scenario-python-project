@@ -1,51 +1,61 @@
 {% extends 'base.html' %}
 
-{% block title %}Kitchen Dashboard - Urban Spark{% endblock %}
+{% block title %}Kitchen Dashboard | Urban Spark{% endblock %}
 
 {% block content %}
-<h1>Welcome to the Kitchen, {{ request.user.get_full_name|default:request.user.username }}</h1>
 
-<h2>Active Orders</h2>
+<div class="dashboard-section">
 
-<table border="1" cellpadding="10" style="width:100%; border-collapse: collapse; margin-top: 15px;">
-    <thead>
-        <tr>
-            <th>Order #</th>
-            <th>Table / Customer</th>
-            <th>Current Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for order in orders %}
-        <tr>
-            <td><strong>#{{ order.id }}</strong></td>
-            <td>
-                {% if order.order_type == 1 %}
-                    Dine In
-                    {% if order.customer %}— {{ order.customer.user.get_full_name|default:"Guest" }}{% endif %}
-                {% else %}
-                    {{ order.get_order_type_display }}
-                {% endif %}
-            </td>
-            <td>{{ order.get_order_status_display }}</td>
-            <td>
-                <a href="{% url 'update_order_status' order.id %}" 
-                   style="background-color: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
-                    Update Status
-                </a>
-            </td>
-        </tr>
-    {% empty %}
-        <tr>
-            <td colspan="4">No active orders at the moment. Great job!</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+    {# ====== HEADER ====== #}
+    <div class="dashboard-section-header">
+        <h2>Kitchen Dashboard</h2>
+        <a href="{% url 'staff_index' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+    </div>
 
-<br><br>
-<p>
-    <a href="{% url 'staff_index' %}">← Back to Staff Index</a>
-</p>
+    <p style="margin-bottom: 1rem;">
+        Welcome, {{ request.user.get_full_name|default:request.user.username }}
+    </p>
+
+    {# ====== ACTIVE ORDERS TABLE ====== #}
+    {% if orders %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Type / Customer</th>
+                    <th>Current Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    <td>
+                        {# show dine in with customer name if available, otherwise show order type #}
+                        {% if order.order_type == 1 %}
+                            Dine In
+                            {% if order.customer %}— {{ order.customer.user.get_full_name|default:"Guest" }}{% endif %}
+                        {% else %}
+                            {{ order.get_order_type_display }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge-active">{{ order.get_order_status_display }}</span>
+                    </td>
+                    <td>
+                        <a href="{% url 'update_order_status' order.id %}" class="btn btn-sm">
+                            Update Status
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No active orders at the moment. Great job!</p>
+    {% endif %}
+
+</div>
+
 {% endblock %}

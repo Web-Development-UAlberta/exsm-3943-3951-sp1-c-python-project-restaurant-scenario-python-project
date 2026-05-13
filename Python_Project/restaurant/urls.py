@@ -29,6 +29,7 @@ urlpatterns = [
     # ====================== STAFF MANAGEMENT ======================
     path('staff/', views.staff_list, name='staff_list'),
     path('staff/<int:pk>/', views.staff_detail, name='staff_detail'),
+    path('staff/<int:pk>/edit/', views.staff_edit, name='staff_edit'),
 
     # ====================== STAFF INVITES ======================
     path('staff-invites/', views.staff_invite_list, name='staff_invite_list'),
@@ -106,4 +107,7 @@ urlpatterns = [
     path('cart/add/<int:item_id>/', views.cart_add, name='cart_add'),
     path('cart/remove/<int:item_id>/', views.cart_remove, name='cart_remove'),
     path('cart/update/<int:item_id>/', views.cart_update, name='cart_update'),
+
+    # ====================== CART ======================
+    path('reporting/', views.reporting_view, name='reporting_view'),
 ]

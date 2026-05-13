@@ -4,66 +4,73 @@
 
 {% block content %}
 
-    <section class="order-detail-box">
+{# ====== CUSTOMER DETAIL ====== #}
+{# shows full customer profile with order history, accessible to managers and owners #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
         <h2>{{ customer.user.first_name }} {{ customer.user.last_name }}</h2>
-
-
-        {# ====== CUSTOMER INFO ====== #}
-        <div class="order-info">
-            <p><strong>Email:</strong> {{ customer.user.email }}</p>
-            <p><strong>Phone:</strong> {{ customer.phone_number }}</p>
-            <p><strong>Address:</strong> {{ customer.address }}</p>
-            <p><strong>Loyalty Points:</strong> {{ customer.loyalty_points }} pts
-                {% if customer.loyalty_points >= 2000 %}
-                    — Eligible for $25 discount
-                {% elif customer.loyalty_points >= 1000 %}
-                    — Eligible for $10 discount
-                {% endif %}
-            </p>
-            <p><strong>Member Since:</strong> {{ customer.user.created_at|date:"M d, Y" }}</p>
-        </div>
-
-        {# ====== ORDER HISTORY ====== #}
-        <div class="order-items">
-            <h3>Order History</h3>
-            {% if orders %}
-                <table class="orders-table">
-                    <thead>
-                        <tr>
-                            <th>Order #</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Total</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for order in orders %}
-                        <tr>
-                            <td>{{ order.id }}</td>
-                            <td>{{ order.get_order_type_display }}</td>
-                            <td>{{ order.get_order_status_display }}</td>
-                            <td>${{ order.total_price }}</td>
-                            <td>{{ order.created_at|date:"M d, Y" }}</td>
-                            <td>
-                                <a href="{% url 'order_detail' order.pk %}">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No orders found for this customer.</p>
+        <div style="display:flex; gap:0.75rem;">
+            {# edit and delete buttons only visible to managers and owners #}
+            {% if request.user.role == 1 or request.user.role == 6 %}
+                <a href="{% url 'customer_edit' customer.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+                <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-sm btn-danger">Delete</a>
             {% endif %}
+            <a href="{% url 'customer_list' %}" class="btn btn-sm btn-secondary">Back</a>
         </div>
+    </div>
 
-        {# ====== ACTIONS ====== #}
-        <div class="order-actions">
-            <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-danger">Delete Customer</a>
-            <a href="{% url 'customer_list' %}">Back to Customers</a>
-        </div>
+    {# ====== CUSTOMER INFO ====== #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
+        <p><strong>Email:</strong> {{ customer.user.email }}</p>
+        <p><strong>Phone:</strong> {{ customer.phone_number }}</p>
+        <p><strong>Address:</strong> {{ customer.address }}</p>
+        <p>
+            <strong>Loyalty Points:</strong> {{ customer.loyalty_points }} pts
+            {# show eligibility badge if customer has enough points to redeem #}
+            {% if customer.loyalty_points >= 2000 %}
+                <span class="badge-active">Eligible for $25 off</span>
+            {% elif customer.loyalty_points >= 1000 %}
+                <span class="badge-active">Eligible for $10 off</span>
+            {% endif %}
+        </p>
+        <p><strong>Member Since:</strong> {{ customer.user.created_at|date:"M d, Y" }}</p>
+    </div>
 
-    </section>
+    {# ====== ORDER HISTORY ====== #}
+    <div class="dashboard-section-header" style="margin-bottom:1rem;">
+        <h3>Order History</h3>
+    </div>
+
+    {% if orders %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>#{{ order.id }}</td>
+                    <td>{{ order.get_order_type_display }}</td>
+                    <td>{{ order.get_order_status_display }}</td>
+                    <td>${{ order.total_price }}</td>
+                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                    <td><a href="{% url 'order_detail' order.pk %}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No orders found for this customer.</p>
+    {% endif %}
+
+</div>
 
 {% endblock %}

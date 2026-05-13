@@ -1297,3 +1297,99 @@ input[type="submit"]:active {
     font-style: italic;
     padding: 0.5rem 0;
 }
+
+
+/* ====================== Reporting Page ====================== */
+
+.reporting-page {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.reporting-filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    background-color: var(--cream);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    margin-bottom: 0.5rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-group label {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+}
+
+.filter-group select,
+.filter-group input[type="date"] {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    background-color: var(--white);
+    color: var(--dark-text);
+}
+
+/* ====================== Low Stock Alert ====================== */
+
+.low-stock-alert {
+    background-color: #fff3cd;
+    border: 1px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    color: var(--dark-text);
+}
+
+/* ====================== Menu Item Tags ====================== */
+
+.menu-item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.menu-item-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--white);
+    background-color: var(--sage-green);
+    white-space: nowrap;
+}
+
+.tag-vegan        { background-color: var(--sage-green); }
+.tag-gluten-free  { background-color: var(--sky-blue); color: var(--dark-text); }
+.tag-spicy        { background-color: #C0392B; }
+.tag-popular      { background-color: var(--gold); color: var(--dark-text); }
+.tag-contains-nuts { background-color: #8B5E3C; }
+
+
+/* green activate button used on restaurant detail toggle #}*/
+.btn-activate {
+    background-color: var(--sage-green);
+    color: var(--white);
+}
+
+.btn-activate:hover {
+    background-color: var(--sage-dark);
+    color: var(--white);
+}

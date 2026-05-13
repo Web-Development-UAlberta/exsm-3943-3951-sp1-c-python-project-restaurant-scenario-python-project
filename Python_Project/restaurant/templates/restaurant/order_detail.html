@@ -4,113 +4,117 @@
 
 {% block content %}
 
-    <section class="order-detail-box">
+{# ====== ORDER DETAIL ====== #}
+{# shows full order info including items, totals, and staff details if viewed by staff #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
         <h2>Order #{{ order.id }}</h2>
+        <a href="{% url 'order_list' %}" class="btn btn-sm btn-secondary">Back to Orders</a>
+    </div>
 
-        {# ====== ORDER INFO ====== #}
-        <div class="order-info">
-            <p><strong>Order Type:</strong> {{ order.get_order_type_display }}</p>
-            <p><strong>Order Status:</strong> {{ order.get_order_status_display }}</p>
-            <p><strong>Payment Status:</strong> {{ order.get_payment_status_display }}</p>
-            <p><strong>Placed On:</strong> {{ order.created_at|date:"M d, Y h:i A" }}</p>
-
-            {% if order.order_type == 3 %} {# delivery order #}
-                <p><strong>Delivery Address:</strong> {{ order.delivery_address }}</p>
-                <p><strong>Delivery Fee:</strong> ${{ order.delivery_fee }}</p>
-            {% endif %}
-
-            {% if order.special_instruction %}
-                <p><strong>Special Instructions:</strong> {{ order.special_instruction }}</p>
-            {% endif %}
-        </div>
-
-        {# ====== ORDER ITEMS ====== #}
-        <div class="order-items">
-            <h3>Items</h3>
-            {% if order.orderitem_set.all %}
-                <table class="orders-table">
-                    <thead>
-                        <tr>
-                            <th>Item</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in order.orderitem_set.all %}
-                        <tr>
-                            <td>{{ item.menu_item.name }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>${{ item.unit_price }}</td>
-                            <td>${{ item.quantity|floatformat:2 }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No items added yet.</p>
-            {% endif %}
-        </div>
-
-        {# ====== ORDER TOTALS ====== #}
-        <div class="order-totals">
-            <p><strong>Subtotal:</strong> ${{ order.sub_total }}</p>
-
-            {% if order.loyalty_discount > 0 %} {# only show if a discount was applied #}
-                <p><strong>Loyalty Discount:</strong> -${{ order.loyalty_discount }}</p>
-                <p><strong>Points Redeemed:</strong> {{ order.points_redeemed }} pts</p>
-            {% endif %}
-
-            {% if order.delivery_fee %}
-                <p><strong>Delivery Fee:</strong> ${{ order.delivery_fee }}</p>
-            {% endif %}
-
-            <p><strong>Total:</strong> ${{ order.total_price }}</p>
-
-            {% if order.points_earned > 0 %} {# show points earned after order is completed #}
-                <p><strong>Points Earned:</strong> {{ order.points_earned }} pts</p>
-            {% endif %}
-        </div>
-
-        {# ====== STAFF INFO — only visible to staff roles ====== #}
-        {% if user.is_authenticated and user.role != 5 %}
-            <div class="staff-order-info">
-                <h3>Staff Details</h3>
-                {% if order.assigned_server %}
-                    <p><strong>Assigned Server:</strong> {{ order.assigned_server.first_name }} {{ order.assigned_server.last_name }}</p>
-                {% endif %}
-                {% if order.assigned_driver %}
-                    <p><strong>Assigned Driver:</strong> {{ order.assigned_driver.first_name }} {{ order.assigned_driver.last_name }}</p>
-                {% endif %}
-                {% if order.customer %}
-                    <p><strong>Customer:</strong> {{ order.customer.user.first_name }} {{ order.customer.user.last_name }}</p>
-                {% else %}
-                    <p><strong>Customer:</strong> Guest</p>
-                {% endif %}
-                {% if order.reservation %}
-                    <p><strong>Reservation:</strong> #{{ order.reservation.id }}</p>
-                {% endif %}
-            </div>
+    {# ====== ORDER INFO ====== #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
+        <p><strong>Order Type:</strong> {{ order.get_order_type_display }}</p>
+        <p><strong>Order Status:</strong> <span class="badge-active">{{ order.get_order_status_display }}</span></p>
+        <p><strong>Payment Status:</strong> {{ order.get_payment_status_display }}</p>
+        <p><strong>Placed On:</strong> {{ order.created_at|date:"M d, Y h:i A" }}</p>
+        {# delivery specific fields only shown for delivery orders #}
+        {% if order.order_type == 3 %}
+            <p><strong>Delivery Address:</strong> {{ order.delivery_address }}</p>
+            <p><strong>Delivery Fee:</strong> ${{ order.delivery_fee }}</p>
         {% endif %}
+        {% if order.special_instruction %}
+            <p><strong>Special Instructions:</strong> {{ order.special_instruction }}</p>
+        {% endif %}
+    </div>
 
-        {# ====== ACTIONS ====== #}
-        <div class="order-actions">
-            {% if order.order_status == 1 %} {# pending orders only #}
-                {% if user.is_authenticated and user.role == 5 %}
-                    <a href="{% url 'order_edit' order.pk %}" class="btn btn-secondary">Edit Order</a>
-                {% endif %}
-                <a href="{% url 'order_delete' order.pk %}" class="btn btn-danger">Cancel Order</a>
-            {% endif %}
+    {# ====== ORDER ITEMS ====== #}
+    <div class="dashboard-section-header" style="margin-bottom:1rem;">
+        <h3>Items</h3>
+    </div>
 
-            {% if not user.is_authenticated %} {# guest — offer to link order to account #}
-                <p>Want to track this order? <a href="{% url 'customer_signup' %}">Create an account</a> and link this order to it.</p>
-                <a href="{% url 'order_link_to_account' order.pk %}" class="btn btn-secondary">Link to My Account</a>
-            {% endif %}
+    {% if order.orderitem_set.all %}
+        <table class="orders-table" style="margin-bottom:1.5rem;">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order.orderitem_set.all %}
+                <tr>
+                    <td>{{ item.menu_item.name }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ item.unit_price }}</td>
+                    <td>${{ item.unit_price }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty" style="margin-bottom:1.5rem;">No items added yet.</p>
+    {% endif %}
 
-            <a href="{% url 'order_list' %}">Back to Orders</a>
+    {# ====== ORDER TOTALS ====== #}
+    <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1.5rem; padding:1rem; background:var(--cream); border-radius:var(--radius-sm);">
+        <p><strong>Subtotal:</strong> ${{ order.sub_total }}</p>
+        {# only show loyalty discount row if a discount was applied #}
+        {% if order.loyalty_discount > 0 %}
+            <p><strong>Loyalty Discount:</strong> -${{ order.loyalty_discount }}</p>
+            <p><strong>Points Redeemed:</strong> {{ order.points_redeemed }} pts</p>
+        {% endif %}
+        {% if order.delivery_fee %}
+            <p><strong>Delivery Fee:</strong> ${{ order.delivery_fee }}</p>
+        {% endif %}
+        <p><strong>Total:</strong> ${{ order.total_price }}</p>
+        {# only show points earned after order is completed #}
+        {% if order.points_earned > 0 %}
+            <p><strong>Points Earned:</strong> {{ order.points_earned }} pts</p>
+        {% endif %}
+    </div>
+
+    {# ====== STAFF INFO ====== #}
+    {# staff details section only visible to logged in staff roles, not customers #}
+    {% if user.is_authenticated and user.role != 5 %}
+        <div class="dashboard-section-header" style="margin-bottom:1rem;">
+            <h3>Staff Details</h3>
         </div>
+        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
+            {% if order.assigned_server %}
+                <p><strong>Assigned Server:</strong> {{ order.assigned_server.first_name }} {{ order.assigned_server.last_name }}</p>
+            {% endif %}
+            {% if order.assigned_driver %}
+                <p><strong>Assigned Driver:</strong> {{ order.assigned_driver.first_name }} {{ order.assigned_driver.last_name }}</p>
+            {% endif %}
+            <p><strong>Customer:</strong>
+                {# show customer name if linked, otherwise show Guest for session orders #}
+                {% if order.customer %}{{ order.customer.user.first_name }} {{ order.customer.user.last_name }}{% else %}Guest{% endif %}
+            </p>
+            {% if order.reservation %}
+                <p><strong>Reservation:</strong> #{{ order.reservation.id }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
 
-    </section>
+    {# ====== ACTIONS ====== #}
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        {# edit and cancel only available while the order is still pending #}
+        {% if order.order_status == 1 %}
+            {% if user.is_authenticated and user.role == 5 %}
+                <a href="{% url 'order_edit' order.pk %}" class="btn btn-secondary">Edit Order</a>
+            {% endif %}
+            <a href="{% url 'order_delete' order.pk %}" class="btn btn-danger">Cancel Order</a>
+        {% endif %}
+        {# offer guests the option to link their order to an account #}
+        {% if not user.is_authenticated %}
+            <a href="{% url 'order_link_to_account' order.pk %}" class="btn btn-secondary">Link to My Account</a>
+        {% endif %}
+    </div>
+
+</div>
 
 {% endblock %}
