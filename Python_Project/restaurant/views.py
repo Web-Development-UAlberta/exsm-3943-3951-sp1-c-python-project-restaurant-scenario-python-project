@@ -8,6 +8,12 @@ from django.urls import reverse
 from django.db.models import Q, F, Count, Sum
 from django.utils import timezone
 from .utils import haversine_distance, geocode_address
+import stripe
+import json
+from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
 
 
 # ====================== CONSISTENT ROLE HELPERS ======================
@@ -1634,4 +1640,125 @@ def reporting_view(request):
         'date_from': date_from,
         'date_to': date_to,
         'sort_by': sort_by,
+    })
+
+
+# ====================== PAYMENT VIEWS ======================
+
+# View for the payment page — works for both logged in customers and guests
+# no @login_required here because guests need to be able to pay too
+def payment_page(request, order_id):
+    order = get_object_or_404(models.Order, id=order_id)
+
+    # if logged in as customer, verify they own this order
+    if request.user.is_authenticated and request.user.role == models.User.Role.CUSTOMER:
+        customer = get_object_or_404(models.Customer, user=request.user)
+        if order.customer != customer:
+            messages.error(request, 'You do not have permission to pay for this order.')
+            return redirect('order_list')
+
+    # if guest, verify they own this order via the session
+    # works the same way as order_delete — checks guest_order_id in session
+    elif not request.user.is_authenticated:
+        guest_order_id = request.session.get('guest_order_id')
+        if guest_order_id != order.id:
+            messages.error(request, 'You do not have permission to pay for this order.')
+            return redirect('index')
+
+    # do not allow payment if order is already paid
+    if order.payment_status == models.Order.PaymentStatus.PAID:
+        messages.info(request, 'This order has already been paid.')
+        return redirect('order_detail', pk=order_id)
+
+    # pass the publishable key to the template so Stripe JS can initialize
+    # the publishable key is safe to expose in HTML, unlike the secret key
+    return render(request, 'restaurant/payment.html', {
+        'order': order,
+        'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+    })
+
+
+# View that creates a Stripe PaymentIntent and returns the client secret to the frontend
+# called silently by Stripe JS when the customer clicks Pay
+# @csrf_exempt because Stripe JS sends a fetch request without Django's CSRF cookie
+@csrf_exempt
+def create_payment_intent(request, order_id):
+    order = get_object_or_404(models.Order, id=order_id)
+
+    if request.method == 'POST':
+        try:
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+
+            # Stripe works in cents so multiply total by 100
+            # $28.98 becomes 2898 cents
+            amount_in_cents = int(order.total_price * 100)
+
+            # create the payment intent on Stripe's servers
+            # metadata stores order info for reference in the Stripe dashboard
+            intent = stripe.PaymentIntent.create(
+                amount=amount_in_cents,
+                currency='cad',
+                metadata={
+                    'order_id': order.id,
+                    'restaurant': str(order.restaurant),
+                }
+            )
+
+            # return the client secret to the frontend so Stripe JS can confirm the payment
+            return JsonResponse({'clientSecret': intent.client_secret})
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+# View that handles the redirect after Stripe confirms the payment
+# Stripe sends the customer back here with the payment_intent id in the query string
+def payment_success(request, order_id):
+    order = get_object_or_404(models.Order, id=order_id)
+    payment_intent_id = request.GET.get('payment_intent')
+
+    if not payment_intent_id:
+        messages.error(request, 'Payment confirmation failed.')
+        return redirect('order_detail', pk=order_id)
+
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
+        # verify the payment actually succeeded by checking with Stripe directly
+        # we never trust the redirect alone, someone could manually type the success URL
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+
+        if intent.status == 'succeeded':
+            # update order payment status to paid
+            order.payment_status = models.Order.PaymentStatus.PAID
+            order.save()
+
+            # create a Payment record in our database with the Stripe transaction id
+            # this satisfies the transaction_id field on the Payment model
+            models.Payment.objects.create(
+                order=order,
+                method=models.Payment.PaymentMethod.CREDIT_CARD,
+                amount=order.total_price,
+                transaction_id=payment_intent_id
+            )
+
+            messages.success(request, f'Payment successful! Order #{order.id} is confirmed.')
+            return redirect('payment_confirmation', order_id=order_id)
+
+    except Exception as e:
+        messages.error(request, f'Payment verification failed: {str(e)}')
+
+    return redirect('order_detail', pk=order_id)
+
+
+# View that shows the confirmation page after a successful payment
+def payment_confirmation(request, order_id):
+    order = get_object_or_404(models.Order, id=order_id)
+    # get the most recent payment record for this order
+    payment = models.Payment.objects.filter(order=order).last()
+    return render(request, 'restaurant/payment_confirmation.html', {
+        'order': order,
+        'payment': payment,
     })

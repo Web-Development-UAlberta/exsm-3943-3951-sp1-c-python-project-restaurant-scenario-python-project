@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== PAYMENT PAGE ====== #}
+{# uses Stripe Elements to collect card details securely #}
+{# card data never touches our server, Stripe handles it entirely #}
+<div class="review-page">
+
+    {# ====== LEFT: PAYMENT FORM ====== #}
+    <section class="review-form-section">
+        <h2>Complete Your Payment</h2>
+
+        <div class="review-field-group">
+            <h3>Payment Method</h3>
+            <p style="font-size:0.85rem; color:#888; margin-bottom:1rem;">
+                We accept Visa and Mastercard. Your card details are handled securely by Stripe.
+            </p>
+
+            {# Stripe Elements mounts the card input here #}
+            <div id="card-element" style="padding:0.75rem; border:1px solid var(--border-mid); border-radius:var(--radius-sm); background:var(--cream);"></div>
+
+            {# Stripe validation errors show here #}
+            <div id="card-errors" style="color:#8B2A1A; font-size:0.85rem; margin-top:0.5rem;"></div>
+        </div>
+
+        <button id="pay-button" class="auth-button" style="width:100%; margin-top:1rem;">
+            Pay ${{ order.total_price }}
+        </button>
+
+        <a href="{% url 'order_detail' order.id %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+            Back to Order
+        </a>
+    </section>
+
+    {# ====== RIGHT: ORDER SUMMARY ====== #}
+    <aside class="review-summary">
+        <h3>Order Summary</h3>
+
+        <ul class="review-item-list">
+            {% for item in order.orderitem_set.all %}
+            <li class="review-item">
+                <div class="review-item-info">
+                    <span class="review-item-name">{{ item.menu_item.name }}</span>
+                    <span class="review-item-qty">x{{ item.quantity }}</span>
+                </div>
+                <span class="review-item-total">${{ item.unit_price }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="review-totals">
+            <div class="review-total-row">
+                <span>Subtotal</span>
+                <span>${{ order.sub_total }}</span>
+            </div>
+            {% if order.loyalty_discount > 0 %}
+            <div class="review-total-row">
+                <span>Loyalty Discount</span>
+                <span>-${{ order.loyalty_discount }}</span>
+            </div>
+            {% endif %}
+            {% if order.delivery_fee %}
+            <div class="review-total-row">
+                <span>Delivery Fee</span>
+                <span>${{ order.delivery_fee }}</span>
+            </div>
+            {% endif %}
+            <div class="review-total-row review-total-final">
+                <strong>Total</strong>
+                <strong>${{ order.total_price }}</strong>
+            </div>
+        </div>
+    </aside>
+
+</div>
+
+{# ====== STRIPE JAVASCRIPT ====== #}
+{# load Stripe.js from Stripe's CDN, never self-host this file #}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    // initialize Stripe with the publishable key passed from the view
+    var stripe = Stripe('{{ stripe_publishable_key }}');
+    var elements = stripe.elements();
+
+    // create and mount the card element into the div above
+    var cardElement = elements.create('card', {
+        style: {
+            base: {
+                fontFamily: 'Lora, serif',
+                fontSize: '16px',
+                color: '#2C2A22',
+            }
+        }
+    });
+    cardElement.mount('#card-element');
+
+    // show validation errors as the user types
+    cardElement.on('change', function(event) {
+        var errorDiv = document.getElementById('card-errors');
+        errorDiv.textContent = event.error ? event.error.message : '';
+    });
+
+    // handle the pay button click
+    document.getElementById('pay-button').addEventListener('click', async function() {
+        var button = document.getElementById('pay-button');
+        button.disabled = true;
+        button.textContent = 'Processing...';
+
+        // ask our Django backend to create a PaymentIntent and get the client secret
+        var response = await fetch('{% url "create_payment_intent" order.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({})
+        });
+
+        var data = await response.json();
+
+        if (data.error) {
+            document.getElementById('card-errors').textContent = data.error;
+            button.disabled = false;
+            button.textContent = 'Pay ${{ order.total_price }}';
+            return;
+        }
+
+        // confirm the payment with Stripe using the client secret
+        var result = await stripe.confirmCardPayment(data.clientSecret, {
+            payment_method: {
+                card: cardElement,
+            }
+        });
+
+        if (result.error) {
+            // show the error to the user
+            document.getElementById('card-errors').textContent = result.error.message;
+            button.disabled = false;
+            button.textContent = 'Pay ${{ order.total_price }}';
+        } else if (result.paymentIntent.status === 'succeeded') {
+            // payment succeeded, redirect to our success view with the payment intent id
+            window.location.href = '{% url "payment_success" order.id %}?payment_intent=' + result.paymentIntent.id;
+        }
+    });
+</script>
+
+{% endblock %}

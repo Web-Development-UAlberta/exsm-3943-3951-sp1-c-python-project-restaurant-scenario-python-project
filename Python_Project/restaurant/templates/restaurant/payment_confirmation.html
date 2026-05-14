@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Confirmed | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== PAYMENT CONFIRMATION ====== #}
+{# shown after a successful payment, summarizes what was paid #}
+<div class="auth-box" style="text-align:center;">
+
+    <h2 style="color:var(--sage-green); font-size:2rem; margin-bottom:0.5rem;">Thank You!</h2>
+    <p style="margin-bottom:1.5rem;">Your payment was successful and your order is confirmed.</p>
+
+    <div style="background:var(--cream); border-radius:var(--radius-sm); padding:1rem; margin-bottom:1.5rem; text-align:left;">
+        <p><strong>Order #:</strong> {{ order.id }}</p>
+        <p><strong>Total Paid:</strong> ${{ order.total_price }}</p>
+        <p><strong>Order Type:</strong> {{ order.get_order_type_display }}</p>
+        {% if payment %}
+            <p><strong>Transaction ID:</strong> {{ payment.transaction_id }}</p>
+        {% endif %}
+    </div>
+
+    <a href="{% url 'order_detail' order.id %}" class="btn" style="width:100%; display:block; text-align:center;">
+        View Order Details
+    </a>
+
+    {% if user.is_authenticated and user.role == 5 %}
+        <a href="{% url 'customer_dashboard' %}" style="display:block; margin-top:0.75rem; font-size:0.85rem;">
+            Back to My Account
+        </a>
+    {% endif %}
+
+</div>
+
+{% endblock %}

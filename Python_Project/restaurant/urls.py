@@ -104,6 +104,12 @@ urlpatterns = [
     path('cart/remove/<int:item_id>/', views.cart_remove, name='cart_remove'),
     path('cart/update/<int:item_id>/', views.cart_update, name='cart_update'),
 
-    # ====================== CART ======================
+    # ====================== REPORTS ======================
     path('reporting/', views.reporting_view, name='reporting_view'),
+
+    # ====================== PAYMENT ======================
+    path('order/<int:order_id>/payment/', views.payment_page, name='payment_page'),
+    path('order/<int:order_id>/create-payment-intent/', views.create_payment_intent, name='create_payment_intent'),
+    path('order/<int:order_id>/payment/success/', views.payment_success, name='payment_success'),
+    path('order/<int:order_id>/payment/confirmation/', views.payment_confirmation, name='payment_confirmation'),
 ]
