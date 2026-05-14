@@ -234,6 +234,15 @@
                 e.dataTransfer.setData('seats', this.dataset.seats);
                 e.dataTransfer.setData('status', this.dataset.status);
             });
+            el.addEventListener('dragend', function(e) {
+                if (e.dataTransfer.dropEffect === 'none') {
+                    const tableId = this.dataset.labelId;
+                    const onGrid = grid.querySelector(`][ata-table-id=${tableId}"]`);
+                    if (!onGrid) {
+                        this.classList.remove('palette-placed');
+                    }
+                }
+            });
         });
 
         // Drag Placed Tables //
