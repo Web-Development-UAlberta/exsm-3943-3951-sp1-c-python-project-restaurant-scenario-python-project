@@ -5,177 +5,181 @@
 {% endblock %}
 
 {% block content %}
-<div class="floor-plan-page">
 
-    <div class="floor-plan-header">
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
         <h2>{{restaurant.name}} - Floor Plan</h2>
-        <div class="floor-plan-controls">
+        <a href="{% url 'table_create' restaurant.pk %}" class="btn btn-sm">+ Add Table</a>
+    </div>
+
+    <div class="floor-plan-controls">
+        <div class="floor-plan-legend">
+            <span class="legend-item status-1 status">Available</span>
+            <span class="legend-item status-2 status">Occupied</span>
+            <span class="legend-item status-3 status">Reserved</span>
+            <span class="legend-item status-4 status">Needs Cleaning</span>
+        </div>
+        <div class="floor-plan-buttons">
             <button id="toggle-edit-btn" class="btn btn-secondary">Edit Layout</button>
             <button id="save-btn" class="save-btn" style="display:none;">Save Layout</button>
         </div>
     </div>
 
-    {# Legend #}
-    <div class="floor-plan-legend">
-        <span class="legend-item status-1">Available</span>
-        <span class="legend-item status-2">Occupied</span>
-        <span class="legend-item status-3">Reserved</span>
-        <span class="legend-item status-4">Needs Cleaning</span>
-    </div>
 
-    <div class="floor-plan-workspace">
+        <div class="floor-plan-workspace">
 
-        <div class="table-palette" id="table-palette" style="display:none;">
+            <div class="table-palette" id="table-palette" style="display:none;">
 
-            <h4>Tables</h4>
-                {% for table in tables %}
-                <div class="palette-table"
-                    draggable="true"
-                    data-table-id="{{ table.id }}"
-                    data-label="{{ table.label}}"
-                    data-seats="{{ table.seats }}"
-                    data-status="{{ table.status }}">
-                    <span>{{ table.label }}</span>
-                    <span>{{ table.seats }}</span>
-                </div>
-                {% endfor %}
-        </div>
-
-            {# Floor Grid #}
-            <div class="floor-plan-container">
-
-                <div class="floor-plan-grid" id="floor-plan-grid">
-                    {# walls #}
-                    {# top wall left to entrance #}
-                    <div class="floor-element wall"
-                     style="left: 0; 
-                     top: 0; 
-                     width:calc(5 * var(--cell-size));
-                     height: var(--cell-size);">
-                    </div>
-
-                    {# top wall entrance to right #}
-                    <div class="floor-element wall"
-                     style="left: calc(8 * var(--cell-size)); 
-                     top: 0; 
-                     width:calc(7 * var(--cell-size));
-                     height: var(--cell-size);">
-                    </div>
-
-                    {# bottom wall left to center  #}
-                    <div class="floor-element wall"
-                     style="left: 0; 
-                     top: calc(10 * var(--cell-size)); 
-                     width:calc(6 * var(--cell-size));
-                     height: var(--cell-size);">
-                    </div>
-
-                    {# bottom wall center to right  #}
-                    <div class="floor-element wall"
-                     style="left: calc(11 * var(--cell-size)); 
-                     top: calc(10 * var(--cell-size)); 
-                     width:calc(16 * var(--cell-size));
-                     height: var(--cell-size);">
-                    </div>
-
-                    {# left wall #}
-                    <div class="floor-element wall"
-                     style="left: 0; 
-                     top: 0; 
-                     width: var(--cell-size);
-                     height: calc(13 * var(--cell-size));">
-                    </div>
-
-                    {# right wall #}
-                    <div class="floor-element wall"
-                     style="left: calc(15 * var(--cell-size)); 
-                     top: 0; 
-                     width: var(--cell-size);
-                     height: calc(13 * var(--cell-size));">
-                    </div>
-
-                    {# immovable  entrance, bar, kitchen, restrooms #}
-                    <div class="floor-element entrance"
-                        style="left: calc(5 * var(--cell-size));
-                         top: calc(0 * var(--cell-size)); 
-                         width: calc(3 * var(--cell-size)); 
-                         height: calc(1 * var(--cell-size));">
-                         ENTRANCE
-                    </div>
-
-                    <div class="floor-element bar"
-                        style="left: calc(9 * var(--cell-size));
-                        top: calc(2 * var(--cell-size)); 
-                        width: calc(2 * var(--cell-size)); 
-                        height: calc(5 * var(--cell-size));">
-                        BAR
-                    </div>
-
-                    <div class="floor-element kitchen"
-                        style="left: calc(0 * var(--cell-size));
-                        top: calc(12 * var(--cell-size)); 
-                        width: calc(6 * var(--cell-size)); 
-                        height: calc(1 * var(--cell-size));">
-                        🍳 KITCHEN
-                    </div>
-
-                     <div class="floor-element restroom"
-                        style="left: calc(10 * var(--cell-size));
-                        top: calc(12 * var(--cell-size)); 
-                        width: calc(6 * var(--cell-size)); 
-                        height:  calc(1 * var(--cell-size));">
-                        🚻 RESTROOMS
-                    </div>
-
-
-
-                    {# table format #}
-                    {% for table in grid_data %}
-                    <div class="floor-plan-table status-{{ table.status }}"
-                        data-table-id="{{ table.table_id }}"
-                        data-label="{{ table.label }}"
+                <h4>Tables</h4>
+                    {% for table in tables %}
+                    <div class="palette-table"
+                        draggable="true"
+                        data-table-id="{{ table.id }}"
+                        data-label="{{ table.label}}"
                         data-seats="{{ table.seats }}"
-                        data-status="{{ table.status }}"
-                        data-x="{{ table.x }}"
-                        data-y="{{ table.y }}"
-                        data-w="{{ table.w }}"
-                        data-h="{{ table.h }}"
-                        style="
-                            left: calc({{ table.x }} * var(--cell-size));
-                            top: calc({{ table.y }} * var(--cell-size));
-                            width: calc({{table.w}} * var(--cell-size));
-                            height: calc({{table.h}} * var(--cell-size));">
-                        <span class="table-label">{{ table.label }}</span>
-                        <span class="table-seats">{{ table.seats }} seats</span>
+                        data-status="{{ table.status }}">
+                        <span>{{ table.label }}</span>
+                        <span>{{ table.seats }}</span>
                     </div>
                     {% endfor %}
-                </div>
             </div>
 
+                {# Floor Grid #}
+                <div class="floor-plan-container">
 
-            {# Status Modal shows when clicking a table #}
-        <div class="status-modal" id="status-modal" style="display:none;">
-            <div class="status-modal-content">
-                <h4 id="modal-table-label">Update Status</h4>
-                <div class="status-options">
-                    {% for value, label in status_choices %}
-                    <button class="btn status-btn status-{{ value }}" data-status="{{ value }}">
-                        {{ label }}
-                    </button>
-                    {% endfor %}
+                    <div class="floor-plan-grid" id="floor-plan-grid">
+                        {# walls #}
+                        {# top wall left to entrance #}
+                        <div class="floor-element wall"
+                            style="left: 0; 
+                            top: 0; 
+                            width:calc(6 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# top wall entrance to right #}
+                        <div class="floor-element wall"
+                        style="left: calc(9 * var(--cell-size)); 
+                            top: 0; 
+                            width:calc(7 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# bottom wall left to center  #}
+                        <div class="floor-element wall"
+                        style="left: 0; 
+                            top: calc(10 * var(--cell-size)); 
+                            width:calc(6 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# bottom wall center to right  #}
+                        <div class="floor-element wall"
+                            style="left: calc(11 * var(--cell-size)); 
+                            top: calc(10 * var(--cell-size)); 
+                            width:calc(16 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# left wall #}
+                        <div class="floor-element wall"
+                            style="left: 0; 
+                            top: 0; 
+                            width: var(--cell-size);
+                            height: calc(13 * var(--cell-size));">
+                        </div>
+
+                        {# right wall #}
+                        <div class="floor-element wall"
+                            style="left: calc(15 * var(--cell-size)); 
+                            top: 0; 
+                            width: var(--cell-size);
+                            height: calc(13 * var(--cell-size));">
+                        </div>
+
+                        {# immovable  entrance, bar, kitchen, restrooms #}
+                        <div class="floor-element entrance"
+                            style="left: calc(6 * var(--cell-size));
+                            top: calc(0 * var(--cell-size)); 
+                            width: calc(3 * var(--cell-size)); 
+                            height: calc(1 * var(--cell-size));">
+                            ENTRANCE
+                        </div>
+
+                        <div class="floor-element bar"
+                            style="left: calc(9 * var(--cell-size));
+                            top: calc(2 * var(--cell-size)); 
+                            width: calc(2 * var(--cell-size)); 
+                            height: calc(5 * var(--cell-size));">
+                            BAR
+                        </div>
+
+                        <div class="floor-element kitchen"
+                            style="left: calc(0 * var(--cell-size));
+                            top: calc(12 * var(--cell-size)); 
+                            width: calc(6 * var(--cell-size)); 
+                            height: calc(1 * var(--cell-size));">
+                            🍳 KITCHEN
+                        </div>
+
+                        <div class="floor-element restroom"
+                            style="left: calc(10 * var(--cell-size));
+                            top: calc(12 * var(--cell-size)); 
+                            width: calc(6 * var(--cell-size)); 
+                            height:  calc(1 * var(--cell-size));">
+                            🚻 RESTROOMS
+                        </div>
+
+
+
+                        {# table format #}
+                        {% for table in grid_data %}
+                        <div class="floor-plan-table status-{{ table.status }}"
+                            data-table-id="{{ table.table_id }}"
+                            data-label="{{ table.label }}"
+                            data-seats="{{ table.seats }}"
+                            data-status="{{ table.status }}"
+                            data-x="{{ table.x }}"
+                            data-y="{{ table.y }}"
+                            data-w="{{ table.w }}"
+                            data-h="{{ table.h }}"
+                            style="
+                                left: calc({{ table.x }} * var(--cell-size));
+                                top: calc({{ table.y }} * var(--cell-size));
+                                width: calc({{table.w}} * var(--cell-size));
+                                height: calc({{table.h}} * var(--cell-size));">
+                            <span class="table-label">{{ table.label }}</span>
+                            <span class="table-seats">{{ table.seats }} seats</span>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                <button class="btn btn-secondary" id="modal-close">Cancel</button>
+
+
+                {# Status Modal shows when clicking a table #}
+            <div class="status-modal" id="status-modal" style="display:none;">
+                <div class="status-modal-content">
+                    <h4 id="modal-table-label">Update Status</h4>
+                    <div class="status-options">
+                        {% for value, label in status_choices %}
+                        <button class="btn status-btn status-{{ value }}" data-status="{{ value }}">
+                            {{ label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <button class="btn btn-secondary" id="modal-close">Cancel</button>
+                </div>
             </div>
         </div>
-
-    </div>
+</div>
 
     {# JavaScript #}
     <script>
         const SAVE_URL = "{% url 'table_layout_save' restaurant.pk %}";
         const STATUS_URL = "/restaurant/table/";
         const CSRF_TOKEN = "{{ csrf_token }}";
-        const CELL_SIZE = 40;
+        const CELL_SIZE = 50;
 
         // valid dining zones (tables can only be placed in these areas)
         const DINING_ZONE = [
@@ -206,7 +210,7 @@
             const tables = document.querySelectorAll('.floor-plan-table');
 
             if (isEditMode) {
-                this.textContent = 'Lock Layout';
+                this.textContent = 'Cancel';
                 this.classList.replace('btn-secondary', 'btn-danger');
                 palette.style.display = 'block';
                 saveBtn.style.display = 'inline-block';
@@ -498,6 +502,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    document.getElementById('toggle-edit-btn').click();
                     alert('Layout saved successfully!');
                 } else {
                     alert ('Error saving layout: ' + data.error);

@@ -738,10 +738,45 @@ input[type="submit"]:active {
 
 /* ====================== Table Layout Floor Plan ====================== */
 
+
+
+.floor-plan-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.floor-plan-legend {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+}
+
+.floor-plan-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.status {
+    padding: .5rem;
+    border-radius: var(--radius-md);
+    color: var(--white);
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+}
+
 .floor-plan-workspace {
     display: flex;
     gap: 1.5rem;
     align-items: flex-start;
+    justify-content: center;
 }
 
 .table-palette {
@@ -796,28 +831,30 @@ input[type="submit"]:active {
 }
 
 .entrance {
-    background-color: var(--sage-light);
+    background-color: #8B7355;
     color: var(--white);
+    font-size: 0.8rem;
     border-radius: var(--radius-sm);
 }
 
 .bar {
-    background-color: var(--sage-light);
+    background-color: #8B7355;
     color: var(--white);
+    font-size: 0.8rem;
     border-radius: var(--radius-sm);
 }
 
 .kitchen {
-    background-color:var(--sage-light);
+    background-color: #8B7355;
     color: var(--white);
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     z-index: 10;
 }
 
 .restroom {
-    background-color: var(--sage-light);
+    background-color: #8B7355;
     color: var(--white);
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     z-index: 10;
 }
 
@@ -869,12 +906,14 @@ input[type="submit"]:active {
 }
 
 .floor-plan-container {
-    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex: 1;
     overflow: auto;
 }
 
 .floor-plan-grid {
-    --cell-size: 40px; 
+    --cell-size: 50px; 
     position: relative;
     width: calc(16 * var(--cell-size));
     height: calc(13 * var(--cell-size));
@@ -912,19 +951,21 @@ input[type="submit"]:active {
 
 .table-label {
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
 }
 
 .table-seats {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     opacity: 0.9;
 }
+
+
 
 /* Status matching colours Table.Status integer choices */
 .status-1 { background-color: var(--sage-green);}       /* AVAILABLE */
 .status-2 { background-color: var(--burnt-orange);}     /* OCCUPIED */
 .status-3 { background-color: var(--gold);}     /* RESERVED */
-.status-4 { background-color: #6B6B6B;}     /* NEEDS CLEANING */
+.status-4 { background-color: #7B4F9E;}     /* NEEDS CLEANING */
 
 
 /* ====================== Review Order Page ====================== */
