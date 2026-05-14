@@ -17,6 +17,10 @@
         <h3>Manage</h3>
         <ul>
             <li><a href="{% url 'restaurant_list' %}">Restaurants</a></li>
+            {% for restaurant in restaurants %}
+                <li><a href="{% url 'table_list' restaurant.pk %}">Tables - {{ restaurant.name }}</a></li>
+                <li><a href="{% url 'table_layout_edit' restaurant.pk %}">Floor Plan - {{ restaurant.name }}</a></li>
+            {% endfor %}
             <li><a href="{% url 'staff_list' %}">Staff</a></li>
             <li><a href="{% url 'staff_invite_list' %}">Staff Invites</a></li>
             <li><a href="{% url 'customer_list' %}">Customers</a></li>

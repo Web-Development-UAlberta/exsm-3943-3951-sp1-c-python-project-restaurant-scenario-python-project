@@ -197,10 +197,11 @@
         let isEditMode = false;
         let currentTableEl = null; // table element currently selected in modal
         let draggedTableID = null; // table being dragged from palette
+        const palette = document.getElementById('table-palette');
 
         document.getElementById('toggle-edit-btn').addEventListener('click', function() {
             isEditMode = !isEditMode;
-            const palette = document.getElementById('table-palette');
+            
             const saveBtn = document.getElementById('save-btn');
             const tables = document.querySelectorAll('.floor-plan-table');
 
@@ -287,6 +288,10 @@
                 grid.appendChild(tableEl);
                 attachTableListeners(tableEl);
 
+                // grey out palette card if table is place on grid
+                const paletteCard = palette.querySelector(`[data-table-id="${tableId}"]`);
+                if (paletteCard) paletteCard.classList.add('palette-placed');
+
             } else if (source === 'grid') {
                 // reposition existing table
                 const tableEl = grid.querySelector(`[data-table-id="${tableId}"]`);
@@ -317,6 +322,25 @@
                     tableEl.style.left = `calc(${x} * var(--cell-size))`;
                     tableEl.style.top = `calc(${y} * var(--cell-size))`;
                 }
+            }
+        });
+
+        // Drop on Palette (remove from grid)
+        palette.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        palette.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const source = e.dataTransfer.getData('source');
+            const tableId = e.dataTransfer.getData('tableId');
+
+            if (source === 'grid') {
+                const tableEl = grid.querySelector(`[data-table-id="${tableId}"]`);
+                if (tableEl) tableEl.remove();
+
+                const paletteCard = palette.querySelector(`[data-table-id="${tableId}"]`);
+                if (paletteCard) paletteCard.classList.remove('palette-placed');
             }
         });
 
@@ -397,6 +421,12 @@
 
         // attach listeners to existing grid tables when page loads 
         document.querySelectorAll('.floor-plan-table').forEach(attachTableListeners);
+
+        // grey out palette cards for tables already on the grid on page load 
+        document.querySelectorAll('.floor-plan-table').forEach(function(tableEl) {
+            const paletteCard = palette.querySelector(`[data-table-id="${tableEl.dataset.tableId}"]`);
+            if (paletteCard) paletteCard.classList.add('palette-placed');
+        });
 
         // Status modal
         function openStatusModal(tableEl) {

@@ -5,11 +5,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from restaurant import forms
 from django.urls import reverse
-from django.db.models import Q, F, Count, Sum
+from django.db.models import Q, F, Count, Sum, IntegerField
 from django.utils import timezone
 from .utils import haversine_distance, geocode_address
 from django.http import JsonResponse
 import json
+from django.db.models import IntegerField
 
 
 # ====================== CONSISTENT ROLE HELPERS ======================
@@ -659,7 +660,12 @@ def tag_confirm_delete(request, pk):
 def table_list(request, restaurant_pk):
     """takes in restaurant_pk as context identifier for referencing tables belonging to specific restaurant"""
     restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
-    tables = models.Table.objects.filter(restaurant=restaurant)
+    
+    # strip 'T' off table label and sort numerically
+    tables = models.Table.objects.filter(restaurant=restaurant).extra(
+        select={'label_num': "CAST(SUBSTR(label, 2) AS INTEGER)"}
+    ).order_by('label_num')
+    
     return render(request, 'restaurant/table_list.html', {'tables': tables, 'restaurant': restaurant})
 
 
@@ -689,6 +695,7 @@ def table_create(request, restaurant_pk):
 @user_passes_test(is_manager_or_owner)
 def table_edit(request, pk):
     table = get_object_or_404(models.Table, pk=pk)
+    
     if request.method == 'POST':
         form = forms.TableForm(request.POST, instance=table)
         if form.is_valid():
@@ -705,6 +712,15 @@ def table_confirm_delete(request, pk):
     table = get_object_or_404(models.Table, pk=pk)
     if request.method == 'POST':
         restaurant_pk = table.restaurant.pk
+        
+        # remove table from TableLayout grid_data if it exists
+        try:
+            layout  = models.TableLayout.objects.get(restaurant=table.restaurant)
+            layout.grid_data = [t for t in layout.grid_data if t['table_id'] != table.pk]
+            layout.save()
+        except models.TableLayout.DoesNotExist:
+            pass
+        
         table.delete()
         return redirect('table_list', restaurant_pk=restaurant_pk)
     return render(request, 'restaurant/confirm_delete.html', {
@@ -722,7 +738,11 @@ def table_layout_edit(request, restaurant_pk):
     Loads existing table positions and passes them to template for rendering."""
     
     restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
-    tables = models.Table.objects.filter(restaurant=restaurant)
+    
+    # strip 'T' off table label and sort numerically
+    tables = models.Table.objects.filter(restaurant=restaurant).extra(
+        select={'label_num': "CAST(SUBSTR(label, 2) AS INTEGER)"}
+    ).order_by('label_num')
     
     try:
         layout = models.TableLayout.objects.get(restaurant=restaurant)

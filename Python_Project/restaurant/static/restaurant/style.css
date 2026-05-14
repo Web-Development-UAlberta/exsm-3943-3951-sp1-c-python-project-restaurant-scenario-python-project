@@ -737,6 +737,46 @@ input[type="submit"]:active {
 }
 
 /* ====================== Table Layout Floor Plan ====================== */
+
+.floor-plan-workspace {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.table-palette {
+    min-width: 150px;
+    max-width: 180px;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.palette-table {
+    background-color: var(--sage-green);
+    color: var(--white);
+    border: var(--radius-sm);
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+}
+
+.palette-table:hover {
+    background-color: var(--sage-dark);
+}
+
+.palette-placed {
+    opacity: 0.4;
+    cursor: grab;
+}
+
 .floor-element {
     position: absolute;
     display: flex;
@@ -863,6 +903,11 @@ input[type="submit"]:active {
     color: var(--white);
     text-align: center;
     padding: 2px;
+    cursor: grab;
+}
+
+.floor-plan-table:active {
+    cursor: grabbing;
 }
 
 .table-label {
