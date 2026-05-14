@@ -72,9 +72,9 @@
 
                     {# bottom wall center to right  #}
                     <div class="floor-element wall"
-                     style="left: calc(10 * var(--cell-size)); 
+                     style="left: calc(11 * var(--cell-size)); 
                      top: calc(10 * var(--cell-size)); 
-                     width:calc(15 * var(--cell-size));
+                     width:calc(16 * var(--cell-size));
                      height: var(--cell-size);">
                     </div>
 
@@ -83,15 +83,15 @@
                      style="left: 0; 
                      top: 0; 
                      width: var(--cell-size);
-                     height: calc(13 * var(--cell-size);">
+                     height: calc(13 * var(--cell-size));">
                     </div>
 
                     {# right wall #}
                     <div class="floor-element wall"
-                     style="left: calc(14 * var(--cell-size)); 
+                     style="left: calc(15 * var(--cell-size)); 
                      top: 0; 
                      width: var(--cell-size);
-                     height: calc(13 * var(--cell-size);">
+                     height: calc(13 * var(--cell-size));">
                     </div>
 
                     {# immovable  entrance, bar, kitchen, restrooms #}
@@ -122,7 +122,7 @@
                      <div class="floor-element restroom"
                         style="left: calc(10 * var(--cell-size));
                         top: calc(12 * var(--cell-size)); 
-                        width: calc(5 * var(--cell-size)); 
+                        width: calc(6 * var(--cell-size)); 
                         height:  calc(1 * var(--cell-size));">
                         🚻 RESTROOMS
                     </div>
@@ -175,7 +175,22 @@
         const SAVE_URL = "{% url 'table_layout_save' restaurant.pk %}";
         const STATUS_URL = "/restaurant/table/";
         const CSRF_TOKEN = "{{ csrf_token }}";
-        const CELL_SIZE = 40; 
+        const CELL_SIZE = 40;
+
+        // valid dining zones (tables can only be placed in these areas)
+        const DINING_ZONE = [
+        {minX: 1, maxX: 11, minY: 1, maxY: 10 }, // main dining area left of bar
+        {minX: 11, maxX: 15, minY: 1, maxY: 9}, // right of bar area
+        ];
+        
+        function isInDiningArea(x, y, w, h) {
+            return DINING_ZONE.some(zone =>
+            x >= zone.minX && 
+            x + w <= zone.maxX && 
+            y>= zone.minY && 
+            y + h <= zone.maxY
+            );
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
 
@@ -204,7 +219,7 @@
             }
         });
 
-        {# Drag from Palette #}
+        // Drag from Palette
         document.querySelectorAll('.palette-table').forEach(function(el) {
             el.addEventListener('dragstart', function(e) {
                 draggedTableID = this.dataset.tableId;
@@ -216,7 +231,7 @@
             });
         });
 
-        {# Drag Placed Tables #}
+        // Drag Placed Tables //
         document.querySelectorAll('.floor-plan-table').forEach(function(el) { 
             el.addEventListener('dragstart', function(e) {
                 e.dataTransfer.setData('source', 'grid');
@@ -224,7 +239,7 @@
             });
         });
 
-        {# Drop on grid #}
+        // Drop on grid 
         const grid = document.getElementById('floor-plan-grid');
 
         grid.addEventListener('dragover', function(e) {
@@ -252,6 +267,17 @@
                 else if (seats <=6 ) { w=2, h=1; }
                 else { w = 2; h = 2; }
 
+                // check dining zone first
+                if (!isInDiningArea(x, y, w, h)) {
+                    alert('Tables can only be placed in the dining area.')
+                }
+
+                // table overlap checks
+                if (hasCollision(x,y,w,h,null)) {
+                    alert('A table already occupies that space.  Select a different posistion');
+                    return;
+                }
+
                 // checks if table exists
                 const existing = grid.querySelector(`[data-table-id="${tableId}"]`);
                 if (existing) existing.remove();
@@ -267,6 +293,25 @@
                 if (tableEl) {
                     const w = parseInt(tableEl.dataset.w);
                     const h = parseInt(tableEl.dataset.h);
+
+                    const oldX = parseInt(tableEl.dataset.x);
+                    const oldY = parseInt(tableEl.dataset.y);
+
+                    // check dining zone first
+                    if (!isInDiningArea(x, y, w, h)) {
+                    alert('Tables can only be placed in the dining area.');
+                    tableEl.style.left = `calc(${oldX} * var(--cell-size))`;
+                    tableEl.style.top = `calc(${oldY} * var(--cell-size))`;
+                    return;
+                }
+
+                    // check for overlapping tables
+                    if (hasCollision(x,y, w, h, tableId)) {
+                        alert('A table already occupies that space.  Select a different position.');
+                        tableEl.style.left = `calc(${oldX} * var(--cell-size))`;
+                        tableEl.style.top = `calc(${oldY} * var(--cell-size))`;
+                        return;
+                    }
                     tableEl.dataset.x = x;
                     tableEl.dataset.y = y;
                     tableEl.style.left = `calc(${x} * var(--cell-size))`;
@@ -282,7 +327,7 @@
         });
 
 
-        {# Create Table Element #}
+        // Create Table Element 
         function createTableElement(tableId, label, seats, status, x, y, w, h) {
             const div = document.createElement('div');
             div.className = `floor-plan-table status-${status}`;
@@ -303,7 +348,43 @@
             return div;
         }
 
-        {# Add listeners to table #}
+        // no overlapping tables rule 
+        function hasCollision(x, y, w, h, excludeTableId) {
+            const existingTables = grid.querySelectorAll('.floor-plan-table');
+            
+
+            for (const table of existingTables) {
+                // exclude the table you are currently trying to move from the for loop
+                if (table.dataset.tableId === String(excludeTableId)) continue;
+
+                const tx = parseInt(table.dataset.x);
+                const ty = parseInt(table.dataset.y);
+                const tw = parseInt(table.dataset.w);
+                const th = parseInt(table.dataset.h);
+
+                // skips elements that don't have valid positions (walls, entrance, kitchen, etc.)
+                if (isNaN(tx) || isNaN(ty) || isNaN(tw) || isNaN(th)) continue;
+
+                const xOverlap = x < tx + tw && x + w > tx;
+                const yOverlap = y < ty + th && y + h > ty;
+
+                if (xOverlap && yOverlap) return true;
+            }
+
+            // hardcode immovables (walls, entrance, bar kitchen)
+            const immovables = [
+            {x: 9, y:2, w:2, h:5}, // bar
+            ];
+
+            for (const el of immovables) {
+                const xOverlap = x < el.x + el.w && x + w > el.x;
+                const yOverlap = y < el.y + el.h && y + h > el.y;
+                if (xOverlap && yOverlap) return true;
+            }
+            return false;
+        }
+
+        // Add listeners to table 
         function attachTableListeners(el) {
             el.addEventListener('dragstart', function(e) {
                 e.dataTransfer.setData('source', 'grid');
@@ -314,10 +395,10 @@
             });
         }
 
-        {# attach listeners to existing grid tables when page loads #}
+        // attach listeners to existing grid tables when page loads 
         document.querySelectorAll('.floor-plan-table').forEach(attachTableListeners);
 
-        {# Status modal #}
+        // Status modal
         function openStatusModal(tableEl) {
             currentTableEl = tableEl;
             document.getElementById('modal-table-label').textContent = tableEl.dataset.label;
@@ -362,7 +443,7 @@
             });
         });
 
-        {# Save Layout #}
+        // Save Layout 
         document.getElementById('save-btn').addEventListener('click', function() {
             const tables = document.querySelectorAll('.floor-plan-table');
             const tablesData = [];

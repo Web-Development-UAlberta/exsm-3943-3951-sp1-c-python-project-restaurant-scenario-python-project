@@ -8,7 +8,7 @@ from django.utils import timezone # noqa: E402
 from restaurant.models import ( # noqa: E402
     User, Customer, Restaurant, Category, Tag,
     MenuItem, RestaurantMenuItem, MenuItemTag,
-    Table, StaffInvite, Inventory, Order, Reservation
+    Table, StaffInvite, Inventory, Order, Reservation, TableLayout
     )
 
 
@@ -254,7 +254,7 @@ table1 = Table.objects.create(
     restaurant=restaurant,
     label='T1',
     seats=4,
-    grid_squares={'x': 1, 'y': 2, 'w':1, 'h':1},
+    grid_squares={'x': 2, 'y': 2, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE,
     assigned_server=server
 )
@@ -263,7 +263,7 @@ table2 = Table.objects.create(
     restaurant=restaurant,
     label='T2',
     seats=4,
-    grid_squares={'x': 3, 'y': 2, 'w':1, 'h':1},
+    grid_squares={'x': 4, 'y': 2, 'w':1, 'h':1},
     status=Table.Status.OCCUPIED,
     assigned_server=server
 )
@@ -272,7 +272,7 @@ table3 = Table.objects.create(
     restaurant=restaurant,
     label='T3',
     seats=4,
-    grid_squares={'x': 5, 'y': 2, 'w':1, 'h':1},
+    grid_squares={'x': 6, 'y': 2, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -280,7 +280,7 @@ table4 = Table.objects.create(
     restaurant=restaurant,
     label='T4',
     seats=4,
-    grid_squares={'x': 1, 'y': 4, 'w':1, 'h':1},
+    grid_squares={'x': 2, 'y': 4, 'w':1, 'h':1},
     status=Table.Status.RESERVED
 )
 
@@ -288,7 +288,7 @@ table5 = Table.objects.create(
     restaurant=restaurant,
     label='T5',
     seats=4,
-    grid_squares={'x': 3, 'y': 4, 'w':1, 'h':1},
+    grid_squares={'x': 6, 'y': 4, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -296,7 +296,7 @@ table6 = Table.objects.create(
     restaurant=restaurant,
     label='T6',
     seats=4,
-    grid_squares={'x': 5, 'y': 4, 'w':1, 'h':1},
+    grid_squares={'x': 6, 'y': 4, 'w':1, 'h':1},
     status=Table.Status.NEEDS_CLEANING
 )
 
@@ -304,7 +304,7 @@ table7 = Table.objects.create(
     restaurant=restaurant,
     label='T7',
     seats=4,
-    grid_squares={'x': 1, 'y': 6, 'w':1, 'h':1},
+    grid_squares={'x': 2, 'y': 6, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -312,7 +312,7 @@ table8 = Table.objects.create(
     restaurant=restaurant,
     label='T8',
     seats=4,
-    grid_squares={'x': 3, 'y': 6, 'w':1, 'h':1},
+    grid_squares={'x': 4, 'y': 6, 'w':1, 'h':1},
     status=Table.Status.OCCUPIED
 )
 
@@ -320,7 +320,7 @@ table9 = Table.objects.create(
     restaurant=restaurant,
     label='T9',
     seats=4,
-    grid_squares={'x': 5, 'y': 6, 'w':1, 'h':1},
+    grid_squares={'x': 6, 'y': 6, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -328,7 +328,7 @@ table10 = Table.objects.create(
     restaurant=restaurant,
     label='T10',
     seats=4,
-    grid_squares={'x': 1, 'y': 8, 'w':1, 'h':1},
+    grid_squares={'x': 2, 'y': 8, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -336,7 +336,7 @@ table11 = Table.objects.create(
     restaurant=restaurant,
     label='T11',
     seats=4,
-    grid_squares={'x': 3, 'y': 8, 'w':1, 'h':1},
+    grid_squares={'x': 4, 'y': 8, 'w':1, 'h':1},
     status=Table.Status.RESERVED
 )
 
@@ -344,7 +344,7 @@ table12 = Table.objects.create(
     restaurant=restaurant,
     label='T12',
     seats=4,
-    grid_squares={'x': 5, 'y': 8, 'w':1, 'h':1},
+    grid_squares={'x': 6, 'y': 8, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -352,7 +352,7 @@ table13 = Table.objects.create(
     restaurant=restaurant,
     label='T13',
     seats=8,
-    grid_squares={'x': 7, 'y': 8, 'w':1, 'h':1},
+    grid_squares={'x': 8, 'y': 8, 'w':2, 'h':2},
     status=Table.Status.OCCUPIED
 )
 
@@ -360,7 +360,7 @@ table14 = Table.objects.create(
     restaurant=restaurant,
     label='T14',
     seats=4,
-    grid_squares={'x': 9, 'y': 8, 'w':1, 'h':1},
+    grid_squares={'x': 11, 'y': 8, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -368,7 +368,7 @@ table15 = Table.objects.create(
     restaurant=restaurant,
     label='T15',
     seats=4,
-    grid_squares={'x': 11, 'y': 8, 'w':1, 'h':1},
+    grid_squares={'x': 13, 'y': 8, 'w':1, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
@@ -376,10 +376,34 @@ table16 = Table.objects.create(
     restaurant=restaurant,
     label='T16',
     seats=6,
-    grid_squares={'x': 10, 'y': 4, 'w':1, 'h':1},
+    grid_squares={'x': 12, 'y': 4, 'w':2, 'h':1},
     status=Table.Status.AVAILABLE
 )
 
+# ====================== TABLE LAYOUT ======================
+
+TableLayout.objects.create(
+    restaurant=restaurant,
+    uploaded_by=manager,
+    grid_data=[
+        {'table_id': table1.id, 'label': 'T1', 'seats': 4, 'status': 1, 'x': 2, 'y': 2, 'w': 1, 'h': 1},
+        {'table_id': table2.id, 'label': 'T2', 'seats': 4, 'status': 2, 'x': 4, 'y': 2, 'w': 1, 'h': 1},
+        {'table_id': table3.id, 'label': 'T3', 'seats': 4, 'status': 1, 'x': 6, 'y': 2, 'w': 1, 'h': 1},
+        {'table_id': table4.id, 'label': 'T4', 'seats': 4, 'status': 3, 'x': 2, 'y': 4, 'w': 1, 'h': 1},
+        {'table_id': table5.id, 'label': 'T5', 'seats': 4, 'status': 1, 'x': 4, 'y': 4, 'w': 1, 'h': 1},
+        {'table_id': table6.id, 'label': 'T6', 'seats': 4, 'status': 4, 'x': 6, 'y': 4, 'w': 1, 'h': 1},
+        {'table_id': table7.id, 'label': 'T7', 'seats': 4, 'status': 1, 'x': 2, 'y': 6, 'w': 1, 'h': 1},
+        {'table_id': table8.id, 'label': 'T8', 'seats': 4, 'status': 2, 'x': 4, 'y': 6, 'w': 1, 'h': 1},
+        {'table_id': table9.id, 'label': 'T9', 'seats': 4, 'status': 1, 'x': 6, 'y': 6, 'w': 1, 'h': 1},
+        {'table_id': table10.id, 'label': 'T10', 'seats': 4, 'status': 1, 'x': 2, 'y': 8, 'w': 1, 'h': 1},
+        {'table_id': table11.id, 'label': 'T11', 'seats': 4, 'status': 3, 'x': 4, 'y': 8, 'w': 1, 'h': 1},
+        {'table_id': table12.id, 'label': 'T12', 'seats': 4, 'status': 1, 'x': 6, 'y': 8, 'w': 1, 'h': 1},
+        {'table_id': table13.id, 'label': 'T13', 'seats': 8, 'status': 2, 'x': 8, 'y': 8, 'w': 2, 'h': 2},
+        {'table_id': table14.id, 'label': 'T14', 'seats': 4, 'status': 1, 'x': 11, 'y': 8, 'w': 1, 'h': 1},
+        {'table_id': table15.id, 'label': 'T15', 'seats': 4, 'status': 1, 'x': 13, 'y': 8, 'w': 1, 'h': 1},
+        {'table_id': table16.id, 'label': 'T16', 'seats': 6, 'status': 1, 'x': 12, 'y': 4, 'w': 2, 'h': 1},
+    ]
+)
 
 # ====================== INVENTORY ======================
 # Two items are intentionally seeded below their reorder level

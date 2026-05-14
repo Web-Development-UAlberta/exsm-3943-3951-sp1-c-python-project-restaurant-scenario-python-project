@@ -1727,3 +1727,5 @@ def reporting_view(request):
         'date_to': date_to,
         'sort_by': sort_by,
     })
+
+
