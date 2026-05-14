@@ -109,3 +109,4 @@ tzdata==2025.2
 uritemplate==4.2.0
 urllib3==2.5.0
 yarl==1.23.0
+stripe
