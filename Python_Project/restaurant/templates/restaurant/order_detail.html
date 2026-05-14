@@ -109,6 +109,13 @@
             {% endif %}
             <a href="{% url 'order_delete' order.pk %}" class="btn btn-danger">Cancel Order</a>
         {% endif %}
+
+
+        {# show Pay Now button if order is unpaid and not cancelled #}
+        {% if order.payment_status == 1 and order.order_status != 5 %}
+            <a href="{% url 'payment_page' order.id %}" class="btn">Pay Now</a>
+        {% endif %}
+
         {# offer guests the option to link their order to an account #}
         {% if not user.is_authenticated %}
             <a href="{% url 'order_link_to_account' order.pk %}" class="btn btn-secondary">Link to My Account</a>
