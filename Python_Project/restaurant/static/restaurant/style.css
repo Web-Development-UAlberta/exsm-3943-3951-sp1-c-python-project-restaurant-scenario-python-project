@@ -1248,6 +1248,7 @@ input[type="submit"]:active {
     border-radius: var(--radius-md);
     padding: 1.5rem 2rem;
     box-shadow: var(--shadow-sm);
+    margin-top: 1.5rem;
 }
 
 .quick-links h3 {
@@ -1282,6 +1283,10 @@ input[type="submit"]:active {
 .quick-links ul li a:hover {
     background-color: var(--sage-dark);
     color: var(--white);
+}
+
+.tables-floor-plans {
+    margin-top: 1.5rem;
 }
 
 

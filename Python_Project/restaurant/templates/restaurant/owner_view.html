@@ -36,7 +36,7 @@
     {# inventory is scoped per restaurant, show a link for each active location #}
     {# restaurants context is passed from the owner_view in views.py #}
     {% if restaurants %}
-    <section class="quick-links" style="margin-top:1.5rem;">
+    <section class="quick-links">
         <h3>Inventory</h3>
         <ul>
             {% for restaurant in restaurants %}
