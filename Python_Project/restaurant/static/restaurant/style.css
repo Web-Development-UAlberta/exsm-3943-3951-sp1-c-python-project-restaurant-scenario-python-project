@@ -1308,3 +1308,191 @@ input[type="submit"]:active {
     background-color: var(--sage-dark);
     color: var(--white);
 }
+
+/* ====================== MODERN REFRESH ====================== */
+
+/* 1. stronger header shadow and bottom border to lift it off the page */
+header {
+    box-shadow: 0 2px 12px rgba(44, 42, 34, 0.25);
+    border-bottom: 3px solid var(--sage-dark);
+}
+
+/* 2. page background gets a very subtle texture feel via a slightly warmer cream */
+body {
+    background-color: #EDE8DC;
+}
+
+/* 3. main content gets more breathing room and a max width to stop it stretching on wide screens */
+main {
+    max-width: 1300px;
+    margin: 2.5rem auto;
+    padding: 0 2rem;
+}
+
+/* 4. cards get stronger shadows and a warmer white so they pop off the background */
+.dashboard-section,
+.auth-box,
+.review-field-group,
+.review-summary,
+.cart-summary,
+.menu-categories,
+.menu-item-card,
+.menu-item-detail,
+.start-box,
+.quick-links {
+    background-color: #FDFAF5;
+    box-shadow: 0 4px 20px rgba(44, 42, 34, 0.10), 0 1px 4px rgba(44, 42, 34, 0.06);
+    border-color: rgba(44, 42, 34, 0.10);
+}
+
+/* 5. dashboard section header h2 gets proper sizing */
+.dashboard-section-header h2 {
+    font-size: 1.4rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+/* 6. table rows get alternating background and stronger hover */
+.orders-table tbody tr:nth-child(even) {
+    background-color: rgba(245, 240, 232, 0.5);
+}
+
+.orders-table tbody tr:hover {
+    background-color: rgba(192, 82, 42, 0.06);
+}
+
+.orders-table td {
+    padding: 0.75rem 1rem;
+}
+
+.orders-table th {
+    padding: 0.75rem 1rem;
+    background-color: var(--sage-dark);
+}
+
+/* 7. homepage hero — make it actually feel like a restaurant landing page */
+.start-box {
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, #FDFAF5 60%, #EAE4D5 100%);
+    border-left: 5px solid var(--burnt-orange);
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+}
+
+.start-box h2 {
+    font-size: 2.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+}
+
+.start-box p {
+    font-size: 1.1rem;
+    color: #555;
+    line-height: 1.8;
+}
+
+/* 8. quick links grid instead of button row — much more modern */
+.quick-links ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.quick-links ul li a {
+    display: block;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    background-color: #FDFAF5;
+    color: var(--dark-text);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.quick-links ul li a:hover {
+    background-color: var(--burnt-orange);
+    color: var(--white);
+    border-color: var(--burnt-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(192, 82, 42, 0.25);
+}
+
+/* 9. auth box gets more padding and a warmer feel */
+.auth-box {
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    border-top: 4px solid var(--burnt-orange);
+}
+
+/* 10. badge styles for status indicators */
+.badge-active {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: rgba(74, 90, 64, 0.12);
+    color: var(--sage-dark);
+    border: 1px solid rgba(74, 90, 64, 0.3);
+}
+
+.badge-inactive {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: rgba(139, 42, 26, 0.10);
+    color: #8B2A1A;
+    border: 1px solid rgba(139, 42, 26, 0.25);
+}
+
+/* 11. menu item card left accent on hover */
+.menu-item-card {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.menu-item-card:hover {
+    border-left: 3px solid var(--burnt-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(44, 42, 34, 0.12);
+}
+
+/* 12. footer gets a richer feel */
+footer {
+    background: linear-gradient(135deg, var(--sage-dark), #2E3B26);
+    padding: 1.5rem 2rem;
+    opacity: 1;
+    border-top: 3px solid var(--burnt-orange);
+}
+
+/* 13. dashboard section padding increase */
+.dashboard-section {
+    padding: 1.75rem;
+    border-radius: var(--radius-lg);
+}
+
+/* 14. reporting page section spacing */
+.reporting-page .dashboard-section {
+    margin-bottom: 1.5rem;
+}
+
+/* 15. order status info block */
+.order-status-info {
+    background-color: var(--cream);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    border-left: 3px solid var(--sage-green);
+    font-size: 0.9rem;
+}
