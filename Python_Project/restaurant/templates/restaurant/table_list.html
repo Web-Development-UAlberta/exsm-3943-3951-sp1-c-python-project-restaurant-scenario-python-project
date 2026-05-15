@@ -27,7 +27,7 @@
                 <tr>
                     <td>{{table.label}}</td>
                     <td>{{table.seats}}</td>
-                    <td>{{table.status}}</td>
+                    <td>{{table.get_status_display}}</td>
                     <td><a href="{% url 'table_detail' table.pk %}">View</a></td>
                 </tr>
                 {% endfor %}
