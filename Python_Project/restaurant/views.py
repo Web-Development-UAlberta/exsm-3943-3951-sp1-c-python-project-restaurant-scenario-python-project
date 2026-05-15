@@ -43,6 +43,13 @@ def is_owner(user):
     """Only owners can create restaurants"""
     return user.role == models.User.Role.OWNER
 
+def can_access_table_layout(user):
+    return user.role in [
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER,
+        models.User.Role.SERVER_HOST,
+    ]
+
 
 # ====================== EXISTING VIEWS ======================
 
@@ -366,6 +373,7 @@ def manager_view(request):
 def server_host_view(request):
     """Server/Host Dashboard - Now includes assigned servers"""
     tables = models.Table.objects.all().order_by('label').select_related('assigned_server')
+    restaurants = models.Restaurant.objects.all()
     context = {'tables': tables}
     return render(request, 'restaurant/server_host_view.html', context)
 
@@ -737,7 +745,7 @@ def table_confirm_delete(request, pk):
     
 #======= Table Layout =======
 @login_required
-@user_passes_test(is_manager_or_owner)
+@user_passes_test(can_access_table_layout)
 def table_layout_edit(request, restaurant_pk):
     """Display interactive floor plan editor for restaurant.  
     Loads existing table positions and passes them to template for rendering."""
@@ -763,7 +771,7 @@ def table_layout_edit(request, restaurant_pk):
     })
     
 @login_required
-@user_passes_test(is_manager_or_owner)
+@user_passes_test(can_access_table_layout)
 def table_layout_save(request, restaurant_pk):
     """Receives JSON layout data from the floor plan editor and saves table positions"""
     

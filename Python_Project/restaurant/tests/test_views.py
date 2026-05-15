@@ -4,11 +4,13 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 from restaurant.models import (
     Customer, Restaurant, Category, Tag,
-    Table, Order, StaffInvite, MenuItem
+    Table, Order, StaffInvite, MenuItem,
+    TableLayout
 )
 from restaurant import models
 from django.utils import timezone
 import datetime
+import json
 
 User = get_user_model()
 
@@ -917,3 +919,147 @@ def test_reservation_blocked_outside_opening_hours(client, restaurant):
     })
     assert response.status_code == 200
     assert not models.Reservation.objects.filter(table=table).exists()
+    
+    
+# ====================== TABLE LAYOUT TESTS ======================
+
+def make_table(restaurant, label="T1", seats=4):
+     return Table.objects.create(
+         label=label,
+         seats=seats,
+         grid_squares={'x':0, 'y':0},
+         status=Table.Status.AVAILABLE,
+         restaurant=restaurant
+     )
+     
+@pytest.mark.django_db
+def test_manager_can_access_table_layout_edit(client, restaurant, manager_user):
+    """Managers can access floor plan editor"""
+    
+    client.login(username=manager_user.username, password='TestPass123!')
+    
+    response = client.get(reverse('table_layout_edit', args=[restaurant.pk]))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_owner_can_access_table_layout_edit(client, restaurant, owner_user):
+    """Owners can access the floor plan editor"""
+    
+    client.login(username=owner_user.username, password='TestPass123!')
+    
+    response = client.get(reverse('table_layout_edit', args=[restaurant.pk]))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_server_host_can_access_table_layout_edit(client, restaurant):
+    """Servers and Hosts can access the floor plan editor"""
+    server = User.objects.create_user(username='server1', password='TestPass123!', role=User.Role.SERVER_HOST)
+    client.login(username='server1', password='TestPass123!')
+    
+    response = client.get(reverse('table_layout_edit', args=[restaurant.pk]))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_customer_can_access_table_layout_edit(client, restaurant, customer_user):
+    """Customer cannot access the floor plan editor"""
+    
+    client.login(username=customer_user.username, password='TestPass123!')
+    
+    response = client.get(reverse('table_layout_edit', args=[restaurant.pk]))
+    assert response.status_code != 200
+    
+@pytest.mark.django_db
+def test_unathenticated_user_cannot_access_table_layout_edit(client, restaurant):
+    """Logged out users are redirected away from the floor plan editor"""
+    
+    response = client.get(reverse('table_layout_edit', args=[restaurant.pk]))
+    assert response.status_code == 302
+    
+
+@pytest.mark.django_db
+def test_customer_cannot_post_to_table_layout_save(client, restaurant, customer_user):
+    """Customers cannot save layout data"""
+    client.login(username=customer_user.username, password='TestPass123!')
+    
+    response = client.post(
+        reverse('table_layout_save', args=[restaurant.pk]),
+        data=json.dumps({'tables': []}),
+        content_type='application/json'
+    )
+    assert response.status_code != 200
+    
+@pytest.mark.django_db
+def test_layout_save_creates_table_layout(client, restaurant, manager_user):
+    """Posting valid layout data creates a TableLayout record"""
+    table = make_table(restaurant, label='T1', seats=4)
+    client.login(username=manager_user.username, password='TestPass123!')
+    payload = {'tables': [{'table_id':table.id, 'x':3, 'y': 5}]}
+    response = client.post(
+        reverse('table_layout_save', args=[restaurant.pk]),
+        data=json.dumps(payload),
+        content_type='application/json'
+    )
+    
+    assert response.status_code == 200
+    data = json.loads(response.content)
+    assert data['success'] is True
+    assert TableLayout.objects.filter(restaurant=restaurant).exists()
+    
+@pytest.mark.django_db
+def test_layout_save_updates_table_grid_squares(client, restaurant, manager_user):
+    """Saving a layout correctly updates grid_squares on the table"""
+    table = make_table(restaurant, label='T1', seats=4)
+    client.login(username=manager_user.username, password='TestPass123!')
+    
+    payload = {'tables': [{'table_id':table.id, 'x':3, 'y': 5}]}
+    client.post(
+        reverse('table_layout_save', args=[restaurant.pk]),
+        data=json.dumps(payload),
+        content_type='application/json'
+    )
+    table.refresh_from_db()
+    assert table.grid_squares['x'] == 3
+    assert table.grid_squares['y'] == 5
+    
+@pytest.mark.django_db
+def test_layout_save_calcualtes_size_from_seat_count(client, restaurant, manager_user):
+    """Table width/ height is calculated correctly based on seat count"""
+    small_table = make_table(restaurant, label='T1', seats=4) # 1x1
+    large_table = make_table(restaurant, label='T2', seats=8) # 2x2
+    client.login(username=manager_user.username, password='TestPass123!')
+    
+    payload = {'tables': [
+        {'table_id': small_table.id, 'x': 0, 'y': 0},
+        {'table_id': large_table.id, 'x': 5, 'y': 5},
+    ]}
+    client.post(
+        reverse('table_layout_save', args=[restaurant.pk]),
+        data=json.dumps(payload),
+        content_type='application/json'
+    )
+    
+    small_table.refresh_from_db()
+    large_table.refresh_from_db()
+    assert small_table.grid_squares['w'] == 1
+    assert small_table.grid_squares['h'] == 1
+    assert large_table.grid_squares['w'] == 2
+    assert large_table.grid_squares['h'] == 2
+    
+@pytest.mark.django_db
+def test_layout_save_returns_error_on_invalid_data(client, restaurant, manager_user):
+    """Posting malformed data returns a 400 error response"""
+    client.login(username=manager_user.username, password='TestPass123!')
+    
+    response = client.post(
+        reverse('table_layout_save', args=[restaurant.pk]),
+        data='not valid json',
+        content_type='application/json'
+    )
+    assert response.status_code == 400
+    
+@pytest.mark.django_db
+def test_layout_save_rejects_get_request(client, restaurant, manager_user):
+    client.login(username=manager_user.username, password='TestPass123!')
+    
+    response = client.get(reverse('table_layout_save', args=[restaurant.pk]))
+    assert response.status_code == 405
