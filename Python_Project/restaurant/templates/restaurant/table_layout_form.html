@@ -236,8 +236,8 @@
             });
             el.addEventListener('dragend', function(e) {
                 if (e.dataTransfer.dropEffect === 'none') {
-                    const tableId = this.dataset.labelId;
-                    const onGrid = grid.querySelector(`][ata-table-id=${tableId}"]`);
+                    const tableId = this.dataset.tabelId;
+                    const onGrid = grid.querySelector(`][data-table-id=${tableId}"]`);
                     if (!onGrid) {
                         this.classList.remove('palette-placed');
                     }
