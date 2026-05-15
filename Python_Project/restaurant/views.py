@@ -5,13 +5,15 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from restaurant import forms
 from django.urls import reverse
-from django.db.models import Q, F, Count, Sum
+from django.db.models import Q, F, Count, Sum, IntegerField
 from django.utils import timezone
 from .utils import haversine_distance, geocode_address
+from django.http import JsonResponse
+import json
+from django.db.models import IntegerField
 import stripe
 import json
 from django.conf import settings
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -40,6 +42,13 @@ def is_driver_or_manager(user):
 def is_owner(user):
     """Only owners can create restaurants"""
     return user.role == models.User.Role.OWNER
+
+def can_access_table_layout(user):
+    return user.role in [
+        models.User.Role.MANAGER,
+        models.User.Role.OWNER,
+        models.User.Role.SERVER_HOST,
+    ]
 
 
 # ====================== EXISTING VIEWS ======================
@@ -364,6 +373,7 @@ def manager_view(request):
 def server_host_view(request):
     """Server/Host Dashboard - Now includes assigned servers"""
     tables = models.Table.objects.all().order_by('label').select_related('assigned_server')
+    restaurants = models.Restaurant.objects.all()
     context = {'tables': tables}
     return render(request, 'restaurant/server_host_view.html', context)
 
@@ -497,6 +507,14 @@ def update_table_status(request, table_id):
         new_status = int(request.POST.get('status'))
         table.status = new_status
         table.save()
+        
+        # if request came from fetch, return JSON instead of redirecting
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'status': table.status,
+                'status_display': table.get_status_display()
+            })
         messages.success(request, f'Table {table.label} status updated to {table.get_status_display()}')
         return redirect('server_host_view')
 
@@ -655,7 +673,12 @@ def tag_confirm_delete(request, pk):
 def table_list(request, restaurant_pk):
     """takes in restaurant_pk as context identifier for referencing tables belonging to specific restaurant"""
     restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
-    tables = models.Table.objects.filter(restaurant=restaurant)
+    
+    # strip 'T' off table label and sort numerically
+    tables = models.Table.objects.filter(restaurant=restaurant).extra(
+        select={'label_num': "CAST(SUBSTR(label, 2) AS INTEGER)"}
+    ).order_by('label_num')
+    
     return render(request, 'restaurant/table_list.html', {'tables': tables, 'restaurant': restaurant})
 
 
@@ -685,6 +708,7 @@ def table_create(request, restaurant_pk):
 @user_passes_test(is_manager_or_owner)
 def table_edit(request, pk):
     table = get_object_or_404(models.Table, pk=pk)
+    
     if request.method == 'POST':
         form = forms.TableForm(request.POST, instance=table)
         if form.is_valid():
@@ -701,6 +725,15 @@ def table_confirm_delete(request, pk):
     table = get_object_or_404(models.Table, pk=pk)
     if request.method == 'POST':
         restaurant_pk = table.restaurant.pk
+        
+        # remove table from TableLayout grid_data if it exists
+        try:
+            layout  = models.TableLayout.objects.get(restaurant=table.restaurant)
+            layout.grid_data = [t for t in layout.grid_data if t['table_id'] != table.pk]
+            layout.save()
+        except models.TableLayout.DoesNotExist:
+            pass
+        
         table.delete()
         return redirect('table_list', restaurant_pk=restaurant_pk)
     return render(request, 'restaurant/confirm_delete.html', {
@@ -709,7 +742,93 @@ def table_confirm_delete(request, pk):
         'cancel_url': reverse('table_list', kwargs={'restaurant_pk': table.restaurant.pk}),
         'delete_url': request.path
     })
-
+    
+#======= Table Layout =======
+@login_required
+@user_passes_test(can_access_table_layout)
+def table_layout_edit(request, restaurant_pk):
+    """Display interactive floor plan editor for restaurant.  
+    Loads existing table positions and passes them to template for rendering."""
+    
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+    
+    # strip 'T' off table label and sort numerically
+    tables = models.Table.objects.filter(restaurant=restaurant).extra(
+        select={'label_num': "CAST(SUBSTR(label, 2) AS INTEGER)"}
+    ).order_by('label_num')
+    
+    try:
+        layout = models.TableLayout.objects.get(restaurant=restaurant)
+        grid_data = layout.grid_data
+    except models.TableLayout.DoesNotExist:
+        grid_data = []
+            
+    return render(request, 'restaurant/table_layout_form.html', {
+        'restaurant':restaurant,
+        'tables': tables,
+        'grid_data': grid_data,
+        'status_choices': models.Table.Status.choices,
+    })
+    
+@login_required
+@user_passes_test(can_access_table_layout)
+def table_layout_save(request, restaurant_pk):
+    """Receives JSON layout data from the floor plan editor and saves table positions"""
+    
+    if request.method == 'POST':
+        restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+        
+        try:
+            data = json.loads(request.body) # parses raw JSON from the request body received from fetch
+            tables_data = data.get('tables', [])
+            
+            grid_data = []
+            for item in tables_data:
+                table = get_object_or_404(models.Table, id=item['table_id'])
+                
+                #calculate grid size based on seat count
+                if table.seats <= 4:
+                    w, h = 1, 1
+                elif table.seats <= 6:
+                    w, h = 2, 1
+                else:
+                    w, h = 2, 2
+                    
+                # save position to grid_squares on the table
+                table.grid_squares = {
+                    'x': item['x'],
+                    'y': item['y'],
+                    'w': w,
+                    'h': h
+                }
+                table.save()
+                
+                grid_data.append({
+                    'table_id':table.id,
+                    'label': table.label,
+                    'seats': table.seats,
+                    'status': table.status,
+                    'x': item['x'],
+                    'y': item['y'],
+                    'w': w,
+                    'h': h
+                })
+                
+                # save overall layout snapshot
+            models.TableLayout.objects.update_or_create(
+                restaurant=restaurant,
+                defaults={
+                    'grid_data': grid_data,
+                    'uploaded_by': request.user
+                }
+            )
+                
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        
+    return JsonResponse({'success':False, 'error': 'Method not allowed'}, status=405)
 
 #======= Menu Item =======
 
@@ -1641,7 +1760,6 @@ def reporting_view(request):
         'date_to': date_to,
         'sort_by': sort_by,
     })
-
 
 # ====================== PAYMENT VIEWS ======================
 

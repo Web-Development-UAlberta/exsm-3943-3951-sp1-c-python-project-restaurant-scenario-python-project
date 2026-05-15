@@ -736,6 +736,238 @@ input[type="submit"]:active {
     background-color: var(--cream);
 }
 
+/* ====================== Table Layout Floor Plan ====================== */
+
+
+
+.floor-plan-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.floor-plan-legend {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+}
+
+.floor-plan-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.status {
+    padding: .5rem;
+    border-radius: var(--radius-md);
+    color: var(--white);
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+}
+
+.floor-plan-workspace {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.table-palette {
+    min-width: 150px;
+    max-width: 180px;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.palette-table {
+    background-color: var(--sage-green);
+    color: var(--white);
+    border: var(--radius-sm);
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+}
+
+.palette-table:hover {
+    background-color: var(--sage-dark);
+}
+
+.palette-placed {
+    opacity: 0.4;
+    cursor: grab;
+}
+
+.floor-element {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+
+.wall {
+    background-color: #c4c1c1;
+    z-index: 10;
+}
+
+.entrance {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
+.bar {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
+.kitchen {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    z-index: 10;
+}
+
+.restroom {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    z-index: 10;
+}
+
+.floor-plan-elements {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    columns: var(--dark-text);
+}
+
+.outside-element {
+    opacity: 0.7;
+}
+
+.status-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.status-modal-content {
+    background-color: var(--white);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 250px;
+}
+
+.status-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.floor-plan-seciton {
+    margin-top: 2rem;
+}
+
+.floor-plan-container {
+    display: flex;
+    justify-content: center;
+    flex: 1;
+    overflow: auto;
+}
+
+.floor-plan-grid {
+    --cell-size: 50px; 
+    position: relative;
+    width: calc(16 * var(--cell-size));
+    height: calc(13 * var(--cell-size));
+    background-color: var(--white);
+    border: 2px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.2) 1px, transparent 1px);
+    background-size: var(--cell-size) var(--cell-size);
+}
+
+
+.floor-plan-table {
+    position: absolute;
+    border: 2px solid var(--white);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    color: var(--white);
+    text-align: center;
+    padding: 2px;
+    cursor: grab;
+}
+
+.floor-plan-table:active {
+    cursor: grabbing;
+}
+
+.table-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table-seats {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+
+
+/* Status matching colours Table.Status integer choices */
+.status-1 { background-color: var(--sage-green);}       /* AVAILABLE */
+.status-2 { background-color: var(--burnt-orange);}     /* OCCUPIED */
+.status-3 { background-color: var(--gold);}     /* RESERVED */
+.status-4 { background-color: #7B4F9E;}     /* NEEDS CLEANING */
+
+
 /* ====================== Review Order Page ====================== */
 
 .review-page {
@@ -1016,6 +1248,7 @@ input[type="submit"]:active {
     border-radius: var(--radius-md);
     padding: 1.5rem 2rem;
     box-shadow: var(--shadow-sm);
+    margin-top: 1.5rem;
 }
 
 .quick-links h3 {
@@ -1050,6 +1283,10 @@ input[type="submit"]:active {
 .quick-links ul li a:hover {
     background-color: var(--sage-dark);
     color: var(--white);
+}
+
+.tables-floor-plans {
+    margin-top: 1.5rem;
 }
 
 

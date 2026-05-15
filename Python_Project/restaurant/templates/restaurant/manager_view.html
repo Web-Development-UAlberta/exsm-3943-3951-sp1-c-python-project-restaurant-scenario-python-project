@@ -14,8 +14,10 @@
 
     {# quick links to all manager accessible sections #}
     <section class="quick-links">
+        
         <h3>Manage</h3>
         <ul>
+            
             <li><a href="{% url 'staff_list' %}">Staff</a></li>
             <li><a href="{% url 'customer_list' %}">Customers</a></li>
             <li><a href="{% url 'staff_invite_list' %}">Staff Invites</a></li>
@@ -31,11 +33,18 @@
     {# inventory is scoped per restaurant, show a link for each active location #}
     {# restaurants context is passed from the manager_view in views.py #}
     {% if restaurants %}
-    <section class="quick-links" style="margin-top:1.5rem;">
+    <section class="quick-links">
         <h3>Inventory</h3>
         <ul>
             {% for restaurant in restaurants %}
                 <li><a href="{% url 'inventory_list' restaurant.pk %}">{{ restaurant.name }}</a></li>
+            {% endfor %}
+        </ul>
+        <h3 class="tables-floor-plans">Tables & Floor Plans</h3>
+        <ul>
+            {% for restaurant in restaurants %}
+                <li><a href="{% url 'table_list' restaurant.pk %}">Tables - {{ restaurant.name }}</a></li>
+                <li><a href="{% url 'table_layout_edit' restaurant.pk %}">Floor Plan - {{ restaurant.name }}</a></li>
             {% endfor %}
         </ul>
     </section>

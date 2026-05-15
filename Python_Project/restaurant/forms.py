@@ -2,6 +2,7 @@ from django import forms
 from restaurant import models
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
+from django.forms import modelformset_factory
 
 User = get_user_model() # this will return me the 'user' model that we have configured in our database
 
@@ -203,6 +204,35 @@ class InventoryForm(forms.ModelForm):
     class Meta:
         model = models.Inventory
         fields = ['ingredient_name', 'current_level', 'unit', 'reorder_level']
+        
+class TablePositionForm(forms.ModelForm):
+    
+    # x and y fields defined outside Meta class as they're not actually fields in the Table model
+    x = forms.IntegerField(
+        min_value=0,
+        max_value=15,
+        widget=forms.NumberInput(attrs={'placeholder': 'Column (0-14)'})
+    )
+    y = forms.IntegerField(
+        min_value=0,
+        max_value=12,
+        widget=forms.NumberInput(attrs={'placeholder': 'Row (0-12)'})
+    )
+    
+    class Meta:
+        models = models.Table
+        fields = ['label', 'seats']
+        widget = {
+            # readonly allows owner to see which table they're positiong but can't change table's name or capacity in layout editor
+            'label': forms.TextInput(attrs={'readonly': 'readonly'}), 
+            'seats': forms.NumberInput(attrs={'readonly': 'readonly'})
+        }
+        
+TableLayoutFormSet = modelformset_factory(
+    models.Table,
+    form=TablePositionForm,
+    extra=0 # won't allow any extra blank forms, only shows forms for tables that actually exist.
+)
 
 
 class StaffEditForm(forms.ModelForm):

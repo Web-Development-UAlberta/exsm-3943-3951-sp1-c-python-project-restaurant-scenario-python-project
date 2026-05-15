@@ -17,6 +17,10 @@
         <h3>Manage</h3>
         <ul>
             <li><a href="{% url 'restaurant_list' %}">Restaurants</a></li>
+            {% for restaurant in restaurants %}
+                <li><a href="{% url 'table_list' restaurant.pk %}">Tables - {{ restaurant.name }}</a></li>
+                <li><a href="{% url 'table_layout_edit' restaurant.pk %}">Floor Plan - {{ restaurant.name }}</a></li>
+            {% endfor %}
             <li><a href="{% url 'staff_list' %}">Staff</a></li>
             <li><a href="{% url 'staff_invite_list' %}">Staff Invites</a></li>
             <li><a href="{% url 'customer_list' %}">Customers</a></li>
@@ -32,7 +36,7 @@
     {# inventory is scoped per restaurant, show a link for each active location #}
     {# restaurants context is passed from the owner_view in views.py #}
     {% if restaurants %}
-    <section class="quick-links" style="margin-top:1.5rem;">
+    <section class="quick-links">
         <h3>Inventory</h3>
         <ul>
             {% for restaurant in restaurants %}

@@ -52,6 +52,10 @@ urlpatterns = [
     path('table/<int:pk>/delete/', views.table_confirm_delete, name='table_confirm_delete'),
     path('table/<int:table_id>/update_status/', views.update_table_status, name='update_table_status'),
     path('table/<int:table_id>/assign_server/', views.assign_server_to_table, name='assign_server_to_table'),
+    
+    # ====================== TABLE LAYOUT ======================
+    path('restaurant/<int:restaurant_pk>/layout/', views.table_layout_edit, name='table_layout_edit'),
+    path('restaurant/<int:restaurant_pk>/layout/save/', views.table_layout_save, name='table_layout_save'),
 
     # ====================== CATEGORY ======================
     path('category/', views.category_list, name='category_list'),
