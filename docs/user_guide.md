@@ -1,6 +1,6 @@
-# Urban Spark — Complete User Guide
+# Urban Spark: Complete User Guide
 
-> **Welcome!** This guide explains how to use every part of the Urban Spark restaurant web application. Whether you're a customer ordering food, a manager running reports, or a kitchen staff member preparing orders — this guide has step-by-step instructions just for you.
+> **Welcome!** This guide explains how to use every part of the Urban Spark restaurant web application. Whether you're a customer ordering food, a manager running reports, or a kitchen staff member preparing orders, this guide has step-by-step instructions just for you.
 
 ---
 
