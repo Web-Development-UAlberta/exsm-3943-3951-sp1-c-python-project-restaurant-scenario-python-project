@@ -7,25 +7,35 @@
 {# ====== CONFIRM DELETE BOX ====== #}
 {# this is a generic reusable delete confirmation page used across all delete flows #}
 {# the view passes in object_name, object_display, delete_url, and cancel_url as context #}
+{# for orders, cancellation_warning is also passed in if the order is already paid #}
 <div class="auth-box">
 
-    <h2>Delete {{ object_name }}</h2> {# object_name is passed in from the view e.g. 'Restaurant' #}
+    {# use Cancel instead of Delete for orders so it makes sense to the customer #}
+    <h2>{% if object_name == 'Order' %}Cancel{% else %}Delete{% endif %} {{ object_name }}</h2>
 
     <p style="margin-bottom:1.5rem;">
-        Are you sure you want to delete <strong>{{ object_display }}</strong>? This cannot be undone.
-    </p> {# object_display is the name or identifier of the object being deleted #}
+        Are you sure you want to {% if object_name == 'Order' %}cancel{% else %}delete{% endif %}
+        <strong>{{ object_display }}</strong>? This cannot be undone.
+    </p>
 
-    {# action buttons sit side by side #}
+    {# cancellation warning shown when there are financial consequences — only for paid orders #}
+    {% if cancellation_warning %}
+    <div style="margin-bottom:1.5rem; padding:0.75rem 1rem; background:#FFF8E6; border-left:3px solid var(--gold); border-radius:var(--radius-sm); font-size:0.9rem; color:var(--dark-text);">
+        ⚠️ {{ cancellation_warning }}
+    </div>
+    {% endif %}
+
+    {# action buttons sit side by side below the warning #}
     <div style="display:flex; gap:1rem;">
-
         <form method="POST" action="{{ delete_url }}"> {# delete_url is passed in from the view via request.path #}
             {% csrf_token %} {# Django's built-in protection against cross-site request forgery attacks #}
-            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <button type="submit" class="btn btn-danger">
+                Yes, {% if object_name == 'Order' %}Cancel Order{% else %}Delete{% endif %}
+            </button>
         </form>
 
         {# cancel_url is passed in from the view and takes the user back to where they came from #}
-        <a href="{{ cancel_url }}" class="btn btn-secondary">Cancel</a>
-
+        <a href="{{ cancel_url }}" class="btn btn-secondary">Go Back</a>
     </div>
 
 </div>

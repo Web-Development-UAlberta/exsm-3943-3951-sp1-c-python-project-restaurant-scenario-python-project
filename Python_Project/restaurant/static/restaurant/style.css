@@ -1733,3 +1733,703 @@ footer {
     border-left: 3px solid var(--sage-green);
     font-size: 0.9rem;
 }
+
+
+/* ====================== FULL WIDTH LAYOUT FIX ====================== */
+/* Previously main had max-width capping at 1300px but sections inside were
+   also capped. This removes inner caps and lets the page use full width. */
+
+main {
+    max-width: 1400px;
+    width: 100%;
+    padding: 0 1.5rem;
+}
+
+.dashboard-section,
+.reporting-page,
+.menu-page {
+    width: 100%;
+}
+
+/* ====================== FORM FIELD STYLES ====================== */
+/* Used by forms.py .form-input class and inventory/staff/restaurant forms */
+
+.form-input,
+input.form-input,
+select.form-input,
+textarea.form-input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background-color: var(--cream);
+    color: var(--dark-text);
+    transition: border-color 0.2s ease;
+    display: block;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--burnt-orange);
+    box-shadow: 0 0 0 2px rgba(192, 82, 42, 0.15);
+}
+
+.form-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1.1rem;
+}
+
+.form-label {
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+}
+
+.required-star {
+    color: var(--burnt-orange);
+    margin-left: 2px;
+}
+
+.form-help-text {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 0.15rem;
+    margin-bottom: 0;
+}
+
+.form-error {
+    font-size: 0.82rem;
+    color: #8B2A1A;
+    margin-top: 0.15rem;
+    margin-bottom: 0;
+}
+
+
+/* ====================== TOGGLE SWITCH (is_active_staff) ====================== */
+
+.form-toggle-group {
+    margin-bottom: 1.1rem;
+}
+
+.form-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: var(--cream);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    border-radius: 26px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--sage-green);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+
+/* ====================== ORDER TOTALS BOX ====================== */
+
+.order-totals-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--cream);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--burnt-orange);
+    font-size: 0.92rem;
+}
+
+.order-totals-box p {
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+
+/* ====================== TABLE ACTIONS CELL ====================== */
+/* Prevents wrapping in the last column of orders/staff tables */
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+
+/* ====================== NOTIFICATION BAR ====================== */
+/* Shown at the top of server/host view when an order is ready */
+
+.notification-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    animation: slideIn 0.3s ease;
+}
+
+.notification-ready {
+    background-color: #FFF3CD;
+    border: 1px solid var(--gold);
+    border-left: 4px solid var(--gold);
+    color: var(--dark-text);
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.notification-attention {
+    background-color: #EEF4FF;
+    border: 1px solid var(--sky-blue);
+    border-left: 4px solid var(--sky-blue);
+    color: var(--dark-text);
+}
+
+/* ====================== SERVER TABLE GRID ====================== */
+/* Card-based layout for server/host dashboard */
+
+.server-table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.server-table-card {
+    background-color: #FDFAF5;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.server-table-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Highlighted card when there's a ready order notification */
+.server-table-card--ready {
+    border-left: 4px solid var(--gold);
+    background-color: #FFFDF0;
+}
+
+.server-table-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.server-table-label {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--dark-text);
+}
+
+.server-table-seats {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.server-table-meta {
+    font-size: 0.88rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+.server-table-order {
+    background-color: var(--cream);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.server-table-order p {
+    margin-bottom: 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.server-table-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.server-table-actions .btn-sm {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+}
+
+
+/* ====================== RESPONSIVE: MOBILE FIRST ====================== */
+
+/* Tablet: 768px and below */
+@media (max-width: 768px) {
+
+    /* Header: stack logo + nav */
+    header {
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+    }
+
+    header img {
+        width: 50px;
+        height: 50px;
+    }
+
+    header h1 {
+        font-size: 1.3rem;
+    }
+
+    header nav ul {
+        gap: 0.25rem;
+    }
+
+    header nav ul li a {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+    }
+
+    /* Main content — remove horizontal padding */
+    main {
+        padding: 0 0.75rem;
+        margin: 1.5rem auto;
+    }
+
+    /* Menu page: stack to single column */
+    .menu-page {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .menu-categories {
+        position: static;
+    }
+
+    .menu-categories ul {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .menu-categories ul li a {
+        padding: 0.35rem 0.75rem;
+        border: 1px solid var(--border-mid);
+        border-left: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+    }
+
+    .cart-summary {
+        position: static;
+        order: -1; /* show cart at top on mobile */
+    }
+
+    /* Customer dashboard: stack sidebar */
+    .customer-dashboard {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .dashboard-sidebar {
+        position: static;
+    }
+
+    .dashboard-nav ul {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .dashboard-nav ul li a {
+        padding: 0.4rem 0.85rem;
+        border: 1px solid var(--border-mid);
+        border-left: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+    }
+
+    /* Review page: stack layout */
+    .review-page {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .review-summary {
+        position: static;
+        order: -1;
+    }
+
+    /* Auth box: full width with smaller padding */
+    .auth-box {
+        margin: 1rem auto;
+        padding: 1.25rem;
+        max-width: 100%;
+    }
+
+    /* Orders table: allow horizontal scroll */
+    .orders-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    .orders-table th,
+    .orders-table td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.82rem;
+    }
+
+    /* Table actions: wrap on mobile */
+    .table-actions {
+        flex-wrap: wrap;
+    }
+
+    /* Server table grid: single column */
+    .server-table-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Quick links: 2-column on mobile */
+    .quick-links ul {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Dashboard section header: stack on small screens */
+    .dashboard-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    /* Loyalty box: stack */
+    .dashboard-loyalty-box {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+
+    /* Floor plan: allow horizontal scroll */
+    .floor-plan-container {
+        overflow-x: auto;
+    }
+
+    /* Reporting filters: stack */
+    .reporting-filters {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-group select,
+    .filter-group input[type="date"] {
+        width: 100%;
+    }
+
+    /* Start box */
+    .start-box {
+        padding: 2rem 1rem;
+    }
+
+    .start-box h2 {
+        font-size: 1.8rem;
+    }
+}
+
+/* Small phones: 480px and below */
+@media (max-width: 480px) {
+
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.4rem; }
+    h3 { font-size: 1.1rem; }
+
+    header h1 {
+        font-size: 1.1rem;
+    }
+
+    .btn, button, input[type="submit"] {
+        font-size: 0.82rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .auth-button {
+        font-size: 0.9rem;
+    }
+
+    .quick-links ul {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-item-card {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .menu-item-image {
+        width: 100%;
+        height: 160px;
+    }
+
+    .menu-item-image-placeholder {
+        width: 100%;
+        height: 80px;
+    }
+
+    .loyalty-points-number {
+        font-size: 2rem;
+    }
+
+    /* cart at bottom on very small screens */
+    .cart-summary {
+        order: 0;
+    }
+}
+
+
+/* ====================== KITCHEN ORDER CARDS ====================== */
+/* Card layout for kitchen staff and server views, replacing the table list */
+
+.kitchen-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.kitchen-order-card {
+    background-color: #FDFAF5;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-left: 4px solid var(--border-mid);
+}
+
+/* pending orders get a gold left border */
+.kitchen-card--pending {
+    border-left-color: var(--gold);
+}
+
+/* preparing orders get a burnt orange left border */
+.kitchen-card--preparing {
+    border-left-color: var(--burnt-orange);
+}
+
+.kitchen-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kitchen-order-id {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--dark-text);
+    margin-right: 0.5rem;
+}
+
+.kitchen-type-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* colour coding for order type badges */
+.kitchen-type-1 { background-color: rgba(74, 90, 64, 0.15); color: var(--sage-dark); }   /* dine in */
+.kitchen-type-2 { background-color: rgba(212, 149, 43, 0.15); color: #7a5a00; }           /* take out */
+.kitchen-type-3 { background-color: rgba(192, 82, 42, 0.15); color: var(--burnt-orange); } /* delivery */
+
+.kitchen-card-time {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.kitchen-items {
+    border-top: 1px dashed var(--border-mid);
+    border-bottom: 1px dashed var(--border-mid);
+    padding: 0.6rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.kitchen-item-row {
+    font-size: 0.9rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+/* special instructions shown in red so allergy notes stand out */
+.kitchen-special-note {
+    font-size: 0.85rem;
+    color: #C0392B;
+    font-weight: 500;
+    margin-bottom: 0;
+    padding: 0.4rem 0.6rem;
+    background-color: rgba(192, 57, 43, 0.06);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid #C0392B;
+}
+
+.kitchen-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.kitchen-card-status {
+    font-size: 0.82rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+.kitchen-action-btn {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.8rem;
+    white-space: nowrap;
+}
+
+/* ====================== MANAGER NOTES BAR ====================== */
+/* Appears at the top of targeted dashboards */
+
+.manager-note-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background-color: #FFF8E6;
+    border: 1px solid var(--gold);
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--dark-text);
+}
+
+.manager-note-bar p {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.manager-note-bar .note-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* ====================== MENU ITEM UNAVAILABLE ====================== */
+/* Greyed-out style for items marked unavailable by manager/owner */
+
+.menu-item-card--unavailable {
+    opacity: 0.55;
+}
+
+.menu-item-card--unavailable .menu-item-title a,
+.menu-item-card--unavailable .cart-add-btn {
+    pointer-events: none;
+}
+
+.menu-item-card--unavailable .menu-item-title a {
+    color: #aaa;
+}
+
+.menu-item-card--unavailable .menu-item-price {
+    color: #aaa;
+}
+
+.menu-item-unavailable-label {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8B2A1A;
+    background-color: rgba(139, 42, 26, 0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(139, 42, 26, 0.2);
+}
+
+/* responsive: kitchen cards stack to single column on mobile */
+@media (max-width: 768px) {
+    .kitchen-card-grid {
+        grid-template-columns: 1fr;
+    }
+}

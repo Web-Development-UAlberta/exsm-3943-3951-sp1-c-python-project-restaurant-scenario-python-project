@@ -4,18 +4,43 @@
 
 {% block content %}
 
-<main>
+{# ====== STAFF INVITE FORM ====== #}
+{# manager/owner enters email and role to pre-approve a staff member for signup #}
+<div class="auth-box">
     <h2>Add Staff Invite</h2>
-    <p>Enter the email and role for the staff member you want to invite.</p>
+    <p style="color:var(--sage-green); font-size:0.9rem; margin-bottom:1.5rem;">
+        Enter the email address and role for the staff member you want to invite.
+        They will be able to sign up using this email.
+    </p>
 
     <form method="POST" class="auth-form">
         {% csrf_token %}
-        {{ form.as_p }}
+
+        {# render fields individually for consistent label and error styling #}
+        {% for field in form %}
+        <div class="form-field-group">
+            <label for="{{ field.id_for_label }}" class="form-label">
+                {{ field.label }}
+                {% if field.field.required %}<span class="required-star">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="form-help-text">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                {% for error in field.errors %}
+                    <p class="form-error">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endfor %}
+
         <button type="submit" class="auth-button">Send Invite</button>
     </form>
 
-    <a href="{% url 'staff_invite_list' %}">Back to Invites</a>
-
-</main>
+    <a href="{% url 'staff_invite_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Back to Invites
+    </a>
+</div>
 
 {% endblock %}

@@ -47,6 +47,16 @@
             <a href="{% url 'menu_item_edit' menuitem.pk %}" class="btn btn-sm btn-secondary">Edit</a>
             <a href="{% url 'menu_item_confirm_delete' menuitem.pk %}" class="btn btn-sm btn-danger">Delete Item from Menu</a>
         </div>
+            {% if user.is_authenticated and user.role != 5 %}
+                {% for r in restaurants %}
+                    <form method="POST" action="{% url 'toggle_menu_item_availability' r.pk item.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm" style="font-size:0.72rem; margin-top:0.35rem;">
+                            {% if item.pk in unavailable_ids %}Mark Available{% else %}Mark Unavailable{% endif %}
+                        </button>
+                    </form>
+                {% endfor %}
+            {% endif %}
         {% endif %}
 
         <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">

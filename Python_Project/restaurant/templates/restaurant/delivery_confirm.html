@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_pickup %}Confirm Pickup{% else %}Confirm Delivery{% endif %} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== DELIVERY OR PICKUP CONFIRMATION ====== #}
+{# reused for both confirming pickup from kitchen and confirming delivery to customer #}
+<div class="auth-box">
+    <h2>{% if is_pickup %}Confirm Pickup{% else %}Confirm Delivery{% endif %}</h2>
+
+    {# show order details so driver can confirm this is the right order #}
+    <div class="order-status-info">
+        <p><strong>Order #{{ order.id }}</strong></p>
+        <p><strong>Customer:</strong>
+            {% if order.customer %}
+                {{ order.customer.user.first_name }} {{ order.customer.user.last_name }}
+            {% else %}
+                Guest
+            {% endif %}
+        </p>
+        <p><strong>Delivery Address:</strong> {{ order.delivery_address }}</p>
+        <p><strong>Total:</strong> ${{ order.total_price }}</p>
+    </div>
+
+    {% if is_pickup %}
+        <p style="margin:1.5rem 0 1rem;">
+            Confirm you have picked up this order from the kitchen and are heading out for delivery.
+        </p>
+    {% else %}
+        <p style="margin:1.5rem 0 1rem;">
+            Mark this delivery as completed? This cannot be undone.
+        </p>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="auth-button">
+            {% if is_pickup %}Confirm Picked Up{% else %}Confirm Delivered{% endif %}
+        </button>
+    </form>
+
+    <a href="{% url 'driver_view' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Reservation #{{ reservation.id }} Status | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== RESERVATION STATUS UPDATE ====== #}
+{# manager/owner only: allows changing reservation status directly #}
+<div class="auth-box">
+    <h2>Update Reservation #{{ reservation.id }}</h2>
+
+    {# show current reservation details so manager knows what they're updating #}
+    <div class="order-status-info">
+        <p><strong>Current Status:</strong> {{ reservation.get_status_display }}</p>
+        <p><strong>Restaurant:</strong> {{ reservation.restaurant.name }}</p>
+        <p><strong>Date & Time:</strong> {{ reservation.reservation_datetime|date:"M d, Y h:i A" }}</p>
+        <p><strong>Party Size:</strong> {{ reservation.party_size }}</p>
+        <p><strong>Table:</strong> {% if reservation.table %}{{ reservation.table.label }}{% else %}Not assigned{% endif %}</p>
+        <p><strong>Customer:</strong>
+            {% if reservation.customer %}
+                {{ reservation.customer.user.first_name }} {{ reservation.customer.user.last_name }}
+            {% elif reservation.guest_name %}
+                {{ reservation.guest_name }} (Guest)
+            {% else %}
+                —
+            {% endif %}
+        </p>
+    </div>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <p>
+            <label for="status">New Status</label>
+            <select name="status" id="status">
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if value == reservation.status %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+        <button type="submit" class="auth-button">Update Status</button>
+    </form>
+
+    <a href="{% url 'reservation_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Back to Reservations
+    </a>
+</div>
+
+{% endblock %}

@@ -1,17 +1,26 @@
 {% extends 'base.html' %}
 
-{% block title %}My Orders | Urban Spark{% endblock %}
+{% block title %}
+    {# title changes based on role — staff see "Active Orders", customers see "My Orders" #}
+    {% if user.is_authenticated and user.role != 5 %}Active Orders{% else %}My Orders{% endif %} | Urban Spark
+{% endblock %}
 
 {% block content %}
 
 {# ====== ORDER LIST ====== #}
-{# customers see only their own orders, staff see all orders, guests see their session order #}
+{# customers see only their own paid orders, staff see all orders, guests see their session order #}
 <div class="dashboard-section">
 
     <div class="dashboard-section-header">
-        {# heading changes depending on whether the user is logged in or a guest #}
-        <h2>{% if user.is_authenticated %}Your Orders{% else %}Your Order{% endif %}</h2>
-        <a href="{% url 'menu_item_list' %}" class="btn btn-sm">Place an Order</a>
+        {# heading changes depending on role #}
+        <h2>{% if user.is_authenticated and user.role != 5 %}Active Orders{% elif user.is_authenticated %}Your Orders{% else %}Your Order{% endif %}</h2>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="{% url 'menu_item_list' %}" class="btn btn-sm">Place an Order</a>
+            {# back button goes to dashboard based on role #}
+            {% if back_url %}
+                <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+            {% endif %}
+        </div>
     </div>
 
     {% if orders %}
@@ -34,14 +43,18 @@
                     <td><span class="badge-active">{{ order.get_order_status_display }}</span></td>
                     <td>${{ order.total_price }}</td>
                     <td>{{ order.created_at|date:"M d, Y" }}</td>
-                    <td style="display:flex; gap:0.5rem; align-items:center;">
+                    <td class="table-actions">
                         <a href="{% url 'order_detail' order.pk %}">View</a>
                         {# only show edit and cancel if order is still pending #}
                         {% if order.order_status == 1 %}
-                            {% if user.is_authenticated %}
-                                <a href="{% url 'order_edit' order.pk %}">Edit</a>
-                            {% endif %}
+                            <a href="{% url 'order_edit' order.pk %}">Edit</a>
                             <a href="{% url 'order_delete' order.pk %}" class="btn btn-sm btn-danger">Cancel</a>
+                        {% endif %}
+                        {# assign driver button for managers/owners on unassigned delivery orders #}
+                        {% if user.is_authenticated and user.role != 5 %}
+                            {% if order.order_type == 3 and not order.assigned_driver %}
+                                <a href="{% url 'assign_driver_to_order' order.id %}" class="btn btn-sm btn-secondary">Assign Driver</a>
+                            {% endif %}
                         {% endif %}
                     </td>
                 </tr>

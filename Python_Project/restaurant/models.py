@@ -209,14 +209,18 @@ class Order(models.Model):
 
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True) # Customer being Null allows a guest to order
     restaurant = models.ForeignKey(Restaurant, on_delete=models.SET_NULL, null=True) # if a restaurant is deleted, its order history is not
-    reservation = models.ForeignKey(Reservation, on_delete=models.SET_NULL, null=True)
-    assigned_server = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='served_orders')
-    assigned_driver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='delivered_orders')
+    reservation = models.ForeignKey(Reservation, on_delete=models.SET_NULL, null=True, blank=True)
+    # Direct table FK, allows server view to group orders by table without needing a reservation
+    table = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
+    assigned_server = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='served_orders', blank=True)
+    assigned_driver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='delivered_orders', blank=True)
     order_type = models.IntegerField(choices=OrderType.choices) 
     delivery_address = models.CharField(max_length=255, null=True, blank=True)
     delivery_fee = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     sub_total = models.DecimalField(max_digits=10, decimal_places=2)
     loyalty_discount = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal('0')) # Decimal('0') used instead of 0 to satisfy DecimalField type requirements
+    # Tax is calculated as 5% GST on (sub_total: loyalty_discount)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     special_instruction = models.TextField(null=True, blank=True)
     payment_status = models.IntegerField(choices=PaymentStatus.choices, default=PaymentStatus.UNPAID)
@@ -247,8 +251,170 @@ class Payment(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     method = models.IntegerField(choices=PaymentMethod.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    transaction_id = models.CharField(max_length=50, unique=True)
+    transaction_id = models.CharField(max_length=255, unique=True)
     processed_at = models.DateTimeField(auto_now_add=True)
+    # Tracking failed payments too
+    status = models.CharField(max_length=20, default='succeeded')
 
     def __str__(self):
         return f'Payment {self.transaction_id} - Order {self.order.id}'
+    
+
+class PreOrder(models.Model):
+    """
+    A pre-order is created by a customer when they book a reservation.
+    It holds items they want to order before arriving at the restaurant.
+    The server activates it once the customer is seated, which converts
+    it into a real Order and sends it to the kitchen.
+    """
+    class Status(models.IntegerChoices):
+        PENDING = 1      # customer has added items, not yet activated
+        ACTIVATED = 2    # server has activated it, order sent to kitchen
+        CANCELLED = 3    # customer cancelled before arrival
+
+    reservation = models.OneToOneField(
+        Reservation,
+        on_delete=models.CASCADE,
+        related_name='preorder'
+    )
+    customer = models.ForeignKey(
+        Customer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE
+    )
+    special_instruction = models.TextField(null=True, blank=True)
+    status = models.IntegerField(
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'PreOrder for Reservation {self.reservation.id}'
+
+
+class PreOrderItem(models.Model):
+    """
+    An individual item inside a pre-order.
+    Mirrors OrderItem but linked to PreOrder instead of Order.
+    """
+    preorder = models.ForeignKey(
+        PreOrder,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    menu_item = models.ForeignKey(
+        MenuItem,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f'PreOrderItem {self.menu_item} x{self.quantity}'
+
+
+class TableTransferRequest(models.Model):
+    """
+    When a server wants to transfer a table to another server,
+    this request is created. The receiving server sees a notification
+    and can accept or decline. On accept, the table is reassigned.
+    On decline, the table stays with the requesting server and
+    the requester gets a notification that it was declined.
+    """
+    class Status(models.IntegerChoices):
+        PENDING = 1
+        ACCEPTED = 2
+        DECLINED = 3
+
+    table = models.ForeignKey(
+        Table,
+        on_delete=models.CASCADE,
+        related_name='transfer_requests'
+    )
+    # the server who currently owns the table and is requesting the transfer
+    requesting_server = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='outgoing_transfer_requests'
+    )
+    # the server who is being asked to take the table
+    receiving_server = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='incoming_transfer_requests'
+    )
+    status = models.IntegerField(
+        choices=Status.choices,
+        default=Status.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Transfer request for {self.table.label} from {self.requesting_server} to {self.receiving_server}'
+
+
+class ManagerNote(models.Model):
+    """
+    A note created by a manager or owner that appears at the top of
+    the targeted role's dashboard. Scoped to a specific restaurant so
+    notes from one location do not bleed into another location's staff.
+    Notes auto-expire after 24 hours. Manager can edit or delete early.
+    Target role of 0 means all staff at this restaurant see it.
+    """
+    TARGET_ALL = 0
+
+    TARGET_CHOICES = [
+        (0, 'All Staff'),
+        (User.Role.MANAGER,         'Managers'),
+        (User.Role.SERVER_HOST,     'Servers / Hosts'),
+        (User.Role.KITCHEN_STAFF,   'Kitchen Staff'),
+        (User.Role.DELIVERY_DRIVER, 'Delivery Drivers'),
+        (User.Role.OWNER,           'Owners'),
+    ]
+
+    restaurant = models.ForeignKey(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='manager_notes'
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    message = models.TextField()
+    # target_role of 0 means broadcast to all staff at this restaurant
+    target_role = models.IntegerField(choices=TARGET_CHOICES, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    # expires_at is set automatically to 24 hours after creation
+    expires_at = models.DateTimeField()
+
+    def __str__(self):
+        return f'Note by {self.created_by} at {self.restaurant}: {self.message[:40]}'
+
+class Notification(models.Model):
+    """
+    Notification for server/host when a table's order status changes to READY.
+    Linked to the table so server view can show per-table alerts.
+    """
+    class NotificationType(models.IntegerChoices):
+        ORDER_READY = 1
+        ORDER_CANCELLED = 2
+        TABLE_ATTENTION = 3
+
+    table = models.ForeignKey(Table, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.IntegerField(choices=NotificationType.choices, default=NotificationType.ORDER_READY)
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Notification for Order #{self.order.id} - {self.message}'

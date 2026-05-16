@@ -19,6 +19,10 @@
         <p><strong>Order Status:</strong> <span class="badge-active">{{ order.get_order_status_display }}</span></p>
         <p><strong>Payment Status:</strong> {{ order.get_payment_status_display }}</p>
         <p><strong>Placed On:</strong> {{ order.created_at|date:"M d, Y h:i A" }}</p>
+        {# show table if this order is linked to one #}
+        {% if order.table %}
+            <p><strong>Table:</strong> {{ order.table.label }}</p>
+        {% endif %}
         {# delivery specific fields only shown for delivery orders #}
         {% if order.order_type == 3 %}
             <p><strong>Delivery Address:</strong> {{ order.delivery_address }}</p>
@@ -60,7 +64,8 @@
     {% endif %}
 
     {# ====== ORDER TOTALS ====== #}
-    <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1.5rem; padding:1rem; background:var(--cream); border-radius:var(--radius-sm);">
+    {# uses order-totals-box class for consistent styling across all order views #}
+    <div class="order-totals-box">
         <p><strong>Subtotal:</strong> ${{ order.sub_total }}</p>
         {# only show loyalty discount row if a discount was applied #}
         {% if order.loyalty_discount > 0 %}
@@ -69,6 +74,10 @@
         {% endif %}
         {% if order.delivery_fee %}
             <p><strong>Delivery Fee:</strong> ${{ order.delivery_fee }}</p>
+        {% endif %}
+        {# show tax if it was calculated on this order #}
+        {% if order.tax_amount %}
+            <p><strong>Tax (5% GST):</strong> ${{ order.tax_amount }}</p>
         {% endif %}
         <p><strong>Total:</strong> ${{ order.total_price }}</p>
         {# only show points earned after order is completed #}
@@ -80,7 +89,7 @@
     {# ====== STAFF INFO ====== #}
     {# staff details section only visible to logged in staff roles, not customers #}
     {% if user.is_authenticated and user.role != 5 %}
-        <div class="dashboard-section-header" style="margin-bottom:1rem;">
+        <div class="dashboard-section-header" style="margin-bottom:1rem; margin-top:1.5rem;">
             <h3>Staff Details</h3>
         </div>
         <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
@@ -102,18 +111,36 @@
 
     {# ====== ACTIONS ====== #}
     <div style="display:flex; gap:1rem; flex-wrap:wrap;">
-        {# edit and cancel only available while the order is still pending #}
+        {# edit only available while order is still pending (not yet sent to kitchen) #}
         {% if order.order_status == 1 %}
             {% if user.is_authenticated and user.role == 5 %}
                 <a href="{% url 'order_edit' order.pk %}" class="btn btn-secondary">Edit Order</a>
             {% endif %}
-            <a href="{% url 'order_delete' order.pk %}" class="btn btn-danger">Cancel Order</a>
+            {% if user.is_authenticated and user.role != 5 %}
+                <a href="{% url 'order_edit' order.pk %}" class="btn btn-secondary">Edit Order</a>
+            {% endif %}
         {% endif %}
 
+        {# cancel available while pending or preparing, but NOT once ready, completed, or cancelled #}
+        {# customers cannot cancel a paid order mid-delivery — only pending and preparing are cancellable #}
+        {% if order.order_status == 1 or order.order_status == 2 %}
+            {% if order.order_status != 5 %}
+                <a href="{% url 'order_delete' order.pk %}" class="btn btn-danger">Cancel Order</a>
+            {% endif %}
+        {% endif %}
 
-        {# show Pay Now button if order is unpaid and not cancelled #}
+        {# Pay Now: show to customers and guests only, not to staff or owners #}
         {% if order.payment_status == 1 and order.order_status != 5 %}
-            <a href="{% url 'payment_page' order.id %}" class="btn">Pay Now</a>
+            {% if not user.is_authenticated or user.role == 5 %}
+                <a href="{% url 'payment_page' order.id %}" class="btn">Pay Now</a>
+            {% endif %}
+        {% endif %}
+
+        {# assign driver: show to managers and owners on unassigned delivery orders #}
+        {% if user.is_authenticated and user.role != 5 %}
+            {% if order.order_type == 3 and not order.assigned_driver %}
+                <a href="{% url 'assign_driver_to_order' order.id %}" class="btn btn-secondary">Assign Driver</a>
+            {% endif %}
         {% endif %}
 
         {# offer guests the option to link their order to an account #}

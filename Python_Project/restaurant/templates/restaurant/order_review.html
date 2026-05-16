@@ -17,10 +17,15 @@
             <div class="review-field-group">
                 <h3>Order Type</h3>
                 {{ form.order_type }}
+                {% if form.order_type.errors %}
+                    {% for error in form.order_type.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
             </div>
 
             {# ====== DELIVERY ADDRESS: shown/hidden by JS based on order type ====== #}
-            <div class="review-field-group" id="delivery-fields">
+            <div class="review-field-group" id="delivery-fields" style="display:none;">
                 <h3>Delivery Address</h3>
                 {{ form.delivery_address }}
             </div>
@@ -29,25 +34,26 @@
             {% if not user.is_authenticated %}
             <div class="review-field-group">
                 <h3>Your Details</h3>
-                <input type="text" name="guest_name" placeholder="Full Name" class="review-input" required>
-                <input type="text" name="guest_phone" placeholder="Phone Number" class="review-input" style="margin-top: 0.5rem;" required>
+                <input type="text" name="guest_name" placeholder="Full Name" class="form-input" required>
+                <input type="text" name="guest_phone" placeholder="Phone Number" class="form-input" style="margin-top:0.5rem;" required>
             </div>
             {% endif %}
 
-            {# ====== LOYALTY POINTS: only shown to logged in customers ====== #}
+            {# ====== LOYALTY POINTS: only shown to logged in customers with enough points ====== #}
             {% if user.is_authenticated and user.role == 5 and customer %}
             <div class="review-field-group">
                 <h3>Loyalty Points</h3>
                 <p class="loyalty-balance">
                     Your balance: <strong>{{ customer.loyalty_points }} pts</strong>
                     {% if customer.loyalty_points >= 2000 %}
-                        — Eligible for $25 off
+                        — Eligible for <strong>$25 off</strong>
                     {% elif customer.loyalty_points >= 1000 %}
-                        — Eligible for $10 off
+                        — Eligible for <strong>$10 off</strong>
                     {% else %}
                         — Need {{ 1000|add:"-"|add:customer.loyalty_points }} more points to redeem
                     {% endif %}
                 </p>
+                {# redeem_points dropdown — JS listens to this to update the total preview #}
                 {{ form.redeem_points }}
             </div>
             {% endif %}
@@ -57,6 +63,15 @@
                 <h3>Special Instructions</h3>
                 {{ form.special_instruction }}
             </div>
+
+            {# ====== NON-FIELD ERRORS ====== #}
+            {% if form.non_field_errors %}
+            <div class="review-field-group">
+                {% for error in form.non_field_errors %}
+                    <p class="form-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
 
         </form>
     </section>
@@ -80,20 +95,32 @@
         <div class="review-totals">
             <div class="review-total-row">
                 <span>Subtotal</span>
-                <span>${{ sub_total }}</span>
+                <span id="subtotal-display">${{ sub_total }}</span>
             </div>
+            {# loyalty discount row — shown by JS when points are selected #}
+            <div class="review-total-row" id="loyalty-discount-row" style="display:none;">
+                <span>Loyalty Discount</span>
+                <span id="loyalty-discount-display" style="color:var(--burnt-orange);">-$0.00</span>
+            </div>
+            {# delivery fee row — shown by JS when delivery order type is selected #}
             <div class="review-total-row" id="delivery-fee-row" style="display:none;">
                 <span>Delivery Fee</span>
                 <span id="delivery-fee-display">$10.00</span>
             </div>
+            {# tax row — always visible, calculated by JS #}
+            <div class="review-total-row">
+                <span>Tax ({{ tax_rate }}% GST)</span>
+                <span id="tax-display">$0.00</span>
+            </div>
             <div class="review-total-row review-total-final">
-                <strong>Total (before tax)</strong>
+                <strong>Total</strong>
                 <strong id="total-display">${{ sub_total }}</strong>
             </div>
         </div>
 
+        {# submits the review-form above — takes customer to payment page #}
         <button type="submit" form="review-form" class="btn" style="width:100%; margin-top:1rem; text-align:center;">
-            Confirm Order
+            Confirm Order &amp; Pay
         </button>
 
         <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
@@ -103,34 +130,66 @@
 
 </div>
 
-{# ====== Showing/hiding delivery fields and update total based on order type ====== #}
+{# ====== JS: delivery toggle, loyalty discount preview, tax calculation ====== #}
 <script>
     var subTotal = {{ sub_total }};
+    var taxRate = {{ tax_rate }} / 100;  // e.g. 5 -> 0.05
+    var loyaltyDiscountAmount = {{ loyalty_discount_preview }};  // $10 or $25 based on points balance
 
-    function updateForm() {
+    function updateSummary() {
         // get the currently selected order type value
         var orderType = document.querySelector('[name="order_type"]').value;
-        var deliveryFields = document.getElementById('delivery-fields');
-        var deliveryFeeRow = document.getElementById('delivery-fee-row');
-        var totalDisplay = document.getElementById('total-display');
-        var deliveryFeeDisplay = document.getElementById('delivery-fee-display');
+
+        // check if loyalty points are being redeemed
+        var redeemEl = document.getElementById('id_redeem_points');
+        var redeemPoints = redeemEl ? redeemEl.value : 'False';
+
+        var deliveryFee = 0;
+        var loyaltyDiscount = 0;
 
         // show delivery address field and fee only for delivery orders
         if (orderType == 3) {
-            deliveryFields.style.display = 'block';
-            deliveryFeeRow.style.display = 'flex';
-            deliveryFeeDisplay.textContent = '$10.00';
-            totalDisplay.textContent = '$' + (subTotal + 10).toFixed(2);
+            deliveryFee = 10;
+            document.getElementById('delivery-fields').style.display = 'block';
+            document.getElementById('delivery-fee-row').style.display = 'flex';
+            document.getElementById('delivery-fee-display').textContent = '$10.00';
         } else {
-            deliveryFields.style.display = 'none';
-            deliveryFeeRow.style.display = 'none';
-            totalDisplay.textContent = '$' + subTotal.toFixed(2);
+            deliveryFee = 0;
+            document.getElementById('delivery-fields').style.display = 'none';
+            document.getElementById('delivery-fee-row').style.display = 'none';
         }
+
+        // show loyalty discount row and update amount when points are selected
+        if (redeemPoints === 'True') {
+            loyaltyDiscount = loyaltyDiscountAmount;
+            if (loyaltyDiscount > 0) {
+                document.getElementById('loyalty-discount-row').style.display = 'flex';
+                document.getElementById('loyalty-discount-display').textContent = '-$' + loyaltyDiscount.toFixed(2);
+            }
+        } else {
+            loyaltyDiscount = 0;
+            document.getElementById('loyalty-discount-row').style.display = 'none';
+        }
+
+        // calculate tax on (subtotal - loyalty discount + delivery fee)
+        var taxable = subTotal - loyaltyDiscount + deliveryFee;
+        if (taxable < 0) taxable = 0;
+        var tax = taxable * taxRate;
+        var total = taxable + tax;
+
+        document.getElementById('tax-display').textContent = '$' + tax.toFixed(2);
+        document.getElementById('total-display').textContent = '$' + total.toFixed(2);
     }
 
-    // run on page load and whenever order type changes
-    document.querySelector('[name="order_type"]').addEventListener('change', updateForm);
-    updateForm();
+    // run on page load and whenever order type or loyalty points selection changes
+    document.querySelector('[name="order_type"]').addEventListener('change', updateSummary);
+
+    var redeemEl = document.getElementById('id_redeem_points');
+    if (redeemEl) {
+        redeemEl.addEventListener('change', updateSummary);
+    }
+
+    updateSummary();
 </script>
 
 {% endblock %}

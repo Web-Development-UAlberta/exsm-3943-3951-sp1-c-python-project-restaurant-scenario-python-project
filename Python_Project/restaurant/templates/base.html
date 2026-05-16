@@ -15,39 +15,39 @@
     </head>
     <body>
 
-    {# ====== HEADER & NAV ====== #}
-    <header>
-        <img src="{% static 'restaurant/Images/logo.png' %}" alt="Urban Spark Logo" width="120">
-        <h1>Urban Spark</h1>
-        <nav>
-            <ul>
-                {# Customer-facing links: only show to guests and logged in customers #}
-                {% if not user.is_authenticated or user.role == 5 %}
-                    <li><a href="{% url 'index' %}">Home</a></li>
-                    <li><a href="{% url 'menu_item_list' %}">Menu</a></li>
-                    <li><a href="{% url 'reservation_create' %}">Book a Table</a></li>
-                    <li><a href="{% url 'menu_item_list' %}">Place an Order</a></li>
-                {% endif %}
-                {# Customer account links — only for logged in customers #}
-                {% if user.is_authenticated and user.role == 5 %}
-                    <li><a href="{% url 'customer_dashboard' %}">My Account</a></li>
-                    <li><a href="{% url 'order_list' %}">My Orders</a></li>
-                    <li><a href="{% url 'reservation_list' %}">My Reservations</a></li>
-                {% endif %}
-                {# Staff dashboard link — only for logged in staff #}
-                {% if user.is_authenticated and user.role != 5 %}
-                    <li><a href="{% url 'staff_index' %}">Dashboard</a></li>
-                {% endif %}
-                {# Toggle between logout and login depending on auth state #}
-                {% if user.is_authenticated %}
-                    <li class="logout-button"><a href="{% url 'user_logout' %}">Logout</a></li>
-                {% else %}
-                    <li class="logout-button"><a href="{% url 'customer_login' %}">Login</a></li>
-                    <li><a href="{% url 'staff_login' %}">Staff View</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
+        {# ====== HEADER & NAV ====== #}
+        <header>
+            <img src="{% static 'restaurant/Images/logo.png' %}" alt="Urban Spark Logo" width="120">
+            <h1>Urban Spark</h1>
+            <nav>
+                <ul>
+                    {# Customer-facing links: only show to guests and logged in customers #}
+                    {% if not user.is_authenticated or user.role == 5 %}
+                        <li><a href="{% url 'index' %}">Home</a></li>
+                        <li><a href="{% url 'menu_item_list' %}">Menu</a></li>
+                        <li><a href="{% url 'reservation_create' %}">Book a Table</a></li>
+                        <li><a href="{% url 'menu_item_list' %}">Place an Order</a></li>
+                    {% endif %}
+                    {# Customer account links — only for logged in customers #}
+                    {% if user.is_authenticated and user.role == 5 %}
+                        <li><a href="{% url 'customer_dashboard' %}">My Account</a></li>
+                        <li><a href="{% url 'order_list' %}">My Orders</a></li>
+                        <li><a href="{% url 'reservation_list' %}">My Reservations</a></li>
+                    {% endif %}
+                    {# Staff dashboard link — only for logged in staff #}
+                    {% if user.is_authenticated and user.role != 5 %}
+                        <li><a href="{% url 'staff_index' %}">Dashboard</a></li>
+                    {% endif %}
+                    {# Toggle between logout and login depending on auth state #}
+                    {% if user.is_authenticated %}
+                        <li class="logout-button"><a href="{% url 'user_logout' %}">Logout</a></li>
+                    {% else %}
+                        <li class="logout-button"><a href="{% url 'customer_login' %}">Login</a></li>
+                        <li><a href="{% url 'staff_login' %}">Staff View</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </header>
 
         {# ====== FLASH MESSAGES ====== #}
         {# Django messages framework: success, error, warning shown here #}
@@ -57,6 +57,24 @@
             <div class="message {{ message.tags }}">{{ message }}</div>
             {% endfor %}
         </div>
+        {% endif %}
+
+        {# ====== MANAGER NOTES BAR ====== #}
+        {# shows active notes from managers targeted at the logged-in user's role #}
+        {# notes are scoped to the user's restaurant and expire after 24 hours #}
+        {% if user.is_authenticated and user.role != 5 %}
+            {# fetch active notes targeted at this user's role or broadcast to all staff #}
+            {% for note in active_manager_notes %}
+            <div class="manager-note-bar">
+                <p>📌 <strong>Note from Management:</strong> {{ note.message }}</p>
+                {% if user.role == 1 or user.role == 6 %}
+                <div class="note-actions">
+                    <a href="{% url 'manager_note_edit' note.id %}" class="btn btn-sm btn-secondary" style="font-size:0.75rem;">Edit</a>
+                    <a href="{% url 'manager_note_delete' note.id %}" class="btn btn-sm btn-danger" style="font-size:0.75rem;">Delete</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
         {% endif %}
 
         {# ====== MAIN CONTENT BLOCK ====== #}

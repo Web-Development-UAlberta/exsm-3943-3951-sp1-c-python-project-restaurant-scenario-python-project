@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Receipt | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== BILL CLOSE TABLE ====== #}
+{# shown after successful payment, server sees receipt and closes the table #}
+<div class="auth-box" style="max-width:520px;">
+
+    {# ====== RECEIPT HEADER ====== #}
+    <div style="text-align:center; margin-bottom:1.5rem;">
+        <h2 style="color:var(--sage-green);">Payment Successful</h2>
+        <p style="font-size:0.9rem; color:#888;">{{ order.restaurant.name }}</p>
+        {% if order.table %}
+            <p style="font-size:0.9rem; color:#888;">Table {{ order.table.label }}</p>
+        {% endif %}
+        {% if payment %}
+            <p style="font-size:0.8rem; color:#aaa;">Transaction: {{ payment.transaction_id }}</p>
+        {% endif %}
+    </div>
+
+    {# ====== RECEIPT ITEMS ====== #}
+    <div style="border-top:1px dashed var(--border-mid); border-bottom:1px dashed var(--border-mid); padding:1rem 0; margin-bottom:1rem;">
+        {% for item in order_items %}
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.4rem;">
+            <span>{{ item.quantity }}x {{ item.menu_item.name }}</span>
+            <span>${{ item.unit_price }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# ====== RECEIPT TOTALS ====== #}
+    <div style="margin-bottom:1.5rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.3rem;">
+            <span>Subtotal</span>
+            <span>${{ order.sub_total }}</span>
+        </div>
+        {% if order.loyalty_discount > 0 %}
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.3rem; color:var(--burnt-orange);">
+            <span>Loyalty Discount</span>
+            <span>-${{ order.loyalty_discount }}</span>
+        </div>
+        {% endif %}
+        {% if order.tax_amount %}
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.3rem;">
+            <span>Tax (5% GST)</span>
+            <span>${{ order.tax_amount }}</span>
+        </div>
+        {% endif %}
+        <div style="display:flex; justify-content:space-between; font-size:1.1rem; font-weight:700; border-top:2px solid var(--border-mid); padding-top:0.5rem; margin-top:0.5rem;">
+            <span>TOTAL</span>
+            <span>${{ order.total_price }}</span>
+        </div>
+        {% if order.points_earned > 0 %}
+        <p style="font-size:0.8rem; color:var(--sage-green); margin-top:0.5rem; text-align:center;">
+            {{ order.points_earned }} loyalty points earned on this order.
+        </p>
+        {% endif %}
+    </div>
+
+    {# ====== ACTION BUTTONS ====== #}
+    {# close table changes status to needs cleaning — with or without printing #}
+    <form method="POST" style="display:flex; gap:0.75rem; flex-direction:column;">
+        {% csrf_token %}
+        <button type="button" onclick="window.print(); return false;" class="btn btn-secondary">
+            Print Receipt
+        </button>
+        <button type="submit" name="close_table" class="btn">
+            Close Table (Mark Needs Cleaning)
+        </button>
+    </form>
+
+</div>
+
+{% endblock %}

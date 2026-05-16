@@ -33,7 +33,13 @@
     </div>
 
     {# cancel button only shown if reservation is still pending or confirmed #}
+    {# pre-order button shown for pending or confirmed reservations that have not yet been completed #}
     <div style="display:flex; gap:1rem;">
+        {% if user.is_authenticated and user.role == 5 %}
+            {% if reservation.status == 1 or reservation.status == 2 %}
+                <a href="{% url 'reservation_preorder_prompt' reservation.pk %}" class="btn btn-secondary">Pre-Order Meal</a>
+            {% endif %}
+        {% endif %}
         {% if reservation.status == 1 or reservation.status == 2 %}
             <a href="{% url 'reservation_cancel' reservation.pk %}" class="btn btn-danger">Cancel Reservation</a>
         {% endif %}
