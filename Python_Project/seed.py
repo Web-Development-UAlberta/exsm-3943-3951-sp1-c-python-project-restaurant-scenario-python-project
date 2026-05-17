@@ -734,7 +734,7 @@ reservation1 = Reservation.objects.create(
     customer=customer1,
     table=table3,
     restaurant=restaurant,
-    reservation_datetime=timezone.now() + datetime.timedelta(hours=3),
+    reservation_datetime=timezone.make_aware(datetime.datetime(2026, 5, 22, 18, 0)),
     party_size=4,
     deposit_amount=Decimal('10.00'),
     status=Reservation.Status.CONFIRMED
