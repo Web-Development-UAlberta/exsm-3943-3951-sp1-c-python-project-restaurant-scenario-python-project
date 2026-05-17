@@ -3066,10 +3066,23 @@ def manager_note_create(request):
             return redirect('manager_view')
 
     restaurants = models.Restaurant.objects.all() if request.user.role == models.User.Role.OWNER else None
+
+    # show all active notes so manager can edit or delete from the same page
+    if request.user.role == models.User.Role.OWNER:
+        active_notes = models.ManagerNote.objects.filter(
+            expires_at__gt=timezone.now()
+        ).order_by('-created_at')
+    else:
+        active_notes = models.ManagerNote.objects.filter(
+            restaurant=restaurant,
+            expires_at__gt=timezone.now()
+        ).order_by('-created_at')
+
     return render(request, 'restaurant/manager_note_form.html', {
         'target_choices': models.ManagerNote.TARGET_CHOICES,
         'restaurant': restaurant,
         'restaurants': restaurants,
+        'active_notes': active_notes,
     })
 
 

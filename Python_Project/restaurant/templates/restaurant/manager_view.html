@@ -4,6 +4,11 @@
 
 {% block content %}
 
+<p>DEBUG notes: {{ active_manager_notes|length }}</p>
+{% for note in active_manager_notes %}
+    <p>{{ note.message }} | expires: {{ note.expires_at }} | now: {% now "Y-m-d H:i" %}</p>
+{% endfor %}
+
 {# ====== MANAGER DASHBOARD ====== #}
 {# central hub for managers to access all management features #}
 <div class="dashboard-section">
