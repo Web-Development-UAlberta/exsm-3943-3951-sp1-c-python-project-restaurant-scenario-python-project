@@ -33,7 +33,10 @@
                 </div>
                 {% for item in menuitems %}
                     {% if item.category == category %}
-                    <div class="menu-item-card">
+                    <div class="menu-item-card {% if item.pk in unavailable_ids %}menu-item-card--unavailable{% endif %}">
+                        {% if item.pk in unavailable_ids %}
+                            <span class="menu-item-unavailable-label">Temporarily Unavailable</span>
+                        {% endif %}
                         {% if item.image %}
                             <img src="{{ item.image.url }}" alt="{{ item.name }}" class="menu-item-image">
                         {% else %}
@@ -50,6 +53,16 @@
                             {# only show Add to Cart for guests and customers: staff are browsing only #}
                             {% if not user.is_authenticated or user.role == 5 %}
                                 <a href="{% url 'cart_add' item.pk %}" class="btn btn-sm cart-add-btn">+ Add to Cart</a>
+                            {% endif %}
+                            {% if user.is_authenticated and user.role != 5 %}
+                                {% for r in restaurants %}
+                                    <form method="POST" action="{% url 'toggle_menu_item_availability' r.pk item.pk %}" style="display:inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm" style="font-size:0.72rem; margin-top:0.35rem;">
+                                            {% if item.pk in unavailable_ids %}Mark Available{% else %}Mark Unavailable{% endif %}
+                                        </button>
+                                    </form>
+                                {% endfor %}
                             {% endif %}
                         </div>
                     </div>

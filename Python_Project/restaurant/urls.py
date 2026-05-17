@@ -92,6 +92,7 @@ urlpatterns = [
     path('reservation/<int:pk>/', views.reservation_detail, name='reservation_detail'),
     path('reservation/new/', views.reservation_create, name='reservation_create'),
     path('reservation/<int:pk>/cancel/', views.reservation_cancel, name='reservation_cancel'),
+    path('reservation/<int:pk>/update-status/', views.reservation_update_status, name='reservation_update_status'),
 
     # ====================== INVENTORY ======================
     path('restaurant/<int:restaurant_pk>/inventory/', views.inventory_list, name='inventory_list'),
@@ -102,6 +103,7 @@ urlpatterns = [
     # ====================== Delivery ======================
     path('order/<int:order_id>/assign-driver/', views.assign_driver_to_order, name='assign_driver_to_order'),
     path('order/<int:order_id>/complete-delivery/', views.delivery_complete, name='delivery_complete'),
+    path('order/<int:order_id>/confirm-pickup/', views.confirm_pickup, name='confirm_pickup'),
 
     # ====================== CART ======================
     path('cart/add/<int:item_id>/', views.cart_add, name='cart_add'),
@@ -116,4 +118,42 @@ urlpatterns = [
     path('order/<int:order_id>/create-payment-intent/', views.create_payment_intent, name='create_payment_intent'),
     path('order/<int:order_id>/payment/success/', views.payment_success, name='payment_success'),
     path('order/<int:order_id>/payment/confirmation/', views.payment_confirmation, name='payment_confirmation'),
+
+    # ====================== NOTIFICATIONS ======================
+    path('notification/<int:notification_id>/dismiss/', views.dismiss_notification, name='dismiss_notification'),
+
+    # ====================== PRE-ORDER ======================
+    path('reservation/<int:reservation_pk>/preorder/', views.reservation_preorder_prompt, name='reservation_preorder_prompt'),
+    path('reservation/<int:reservation_pk>/preorder/menu/', views.preorder_menu, name='preorder_menu'),
+    path('reservation/<int:reservation_pk>/preorder/cart/add/<int:item_id>/', views.preorder_cart_add, name='preorder_cart_add'),
+    path('reservation/<int:reservation_pk>/preorder/cart/remove/<int:item_id>/', views.preorder_cart_remove, name='preorder_cart_remove'),
+
+    # ====================== SERVER TABLE DETAIL ======================
+    path('table/<int:table_id>/detail/', views.server_table_detail, name='server_table_detail'),
+    path('table/<int:table_id>/add-to-order/', views.server_add_to_order, name='server_add_to_order'),
+    path('table/<int:table_id>/server-cart/add/<int:item_id>/', views.server_cart_add, name='server_cart_add'),
+    path('table/<int:table_id>/server-cart/remove/<int:item_id>/', views.server_cart_remove, name='server_cart_remove'),
+    path('preorder/<int:preorder_id>/activate/', views.server_activate_preorder, name='server_activate_preorder'),
+
+    # ====================== TABLE TRANSFER ======================
+    path('table/<int:table_id>/transfer/request/', views.request_table_transfer, name='request_table_transfer'),
+    path('transfer/<int:transfer_id>/respond/', views.respond_table_transfer, name='respond_table_transfer'),
+
+    # ====================== GENERATE BILL ======================
+    path('order/<int:order_id>/bill/', views.generate_bill, name='generate_bill'),
+    path('order/<int:order_id>/bill/payment-success/', views.bill_payment_success, name='bill_payment_success'),
+    path('order/<int:order_id>/bill/close/', views.bill_close_table, name='bill_close_table'),
+
+    # ====================== MANAGER NOTES ======================
+    path('manager-notes/', views.manager_note_list, name='manager_note_list'),
+    path('manager-notes/new/', views.manager_note_create, name='manager_note_create'),
+    path('manager-notes/<int:note_id>/edit/', views.manager_note_edit, name='manager_note_edit'),
+    path('manager-notes/<int:note_id>/delete/', views.manager_note_delete, name='manager_note_delete'),
+
+    # ====================== MENU ITEM AVAILABILITY ======================
+    path('restaurant/<int:restaurant_pk>/menu-item/<int:menu_item_pk>/toggle-availability/', views.toggle_menu_item_availability, name='toggle_menu_item_availability'),
+
+    # ====================== HOST MODE TOGGLE ======================
+    path('server/toggle-host-mode/', views.toggle_host_mode, name='toggle_host_mode'),
+    path('table/<int:table_id>/request-attention/', views.request_table_attention, name='request_table_attention'),
 ]

@@ -5,17 +5,19 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from restaurant import forms
 from django.urls import reverse
-from django.db.models import Q, F, Count, Sum, IntegerField
+from django.db.models import Q, F, Count, Sum
 from django.utils import timezone
 from .utils import haversine_distance, geocode_address
 from django.http import JsonResponse
 import json
-from django.db.models import IntegerField
 import stripe
-import json
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from decimal import Decimal
 
+
+# GST rate applied to all orders
+TAX_RATE = Decimal('0.05')
 
 
 # ====================== CONSISTENT ROLE HELPERS ======================
@@ -71,7 +73,19 @@ def restaurant_create(request):
         if form.is_valid():
             restaurant = form.save(commit=False)
             restaurant.user = request.user
+            # Geocode the address to get lat/lng automatically
+            address = form.cleaned_data.get('address')
+            coords = geocode_address(address)
+            if coords:
+                restaurant.latitude = Decimal(str(coords[0]))
+                restaurant.longitude = Decimal(str(coords[1]))
+            else:
+                # Fallback: set to 0 if geocoding fails, owner can update later
+                restaurant.latitude = Decimal('0')
+                restaurant.longitude = Decimal('0')
+                messages.warning(request, 'Could not geocode the address. Coordinates set to 0. You can update them later')
             restaurant.save()
+            messages.success(request, f'{restaurant.name} created successfully.')
             return redirect('restaurant_list')
     else:
         form = forms.RestaurantForm()
@@ -84,7 +98,15 @@ def restaurant_edit(request, pk):
     if request.method == 'POST':
         form = forms.RestaurantForm(request.POST, instance=restaurant)
         if form.is_valid():
-            form.save()
+            restaurant = form.save(commit=False)
+            # Re-geocode if address changes
+            address = form.cleaned_data.get('address')
+            coords = geocode_address(address)
+            if coords:
+                restaurant.latitude = Decimal(str(coords[0]))
+                restaurant.longitude = Decimal(str(coords[1]))
+            restaurant.save()
+            messages.success(request, f'{restaurant.name} updated successfully.')
             return redirect('restaurant_list')
     else:
         form = forms.RestaurantForm(instance=restaurant)
@@ -185,6 +207,12 @@ def customer_edit(request, pk):
         return redirect('staff_index')
 
     customer = get_object_or_404(models.Customer, pk=pk)
+
+    # Determine where to go back to based on who is editing
+    if is_manager_or_owner(request.user):
+        back_url = reverse('customer_detail', args=[customer.pk])
+    else:
+        back_url = reverse('customer_dashboard')
     
     # checks logged in user owns this customer profile, unless they're a manager or owner
     if customer.user != request.user and not is_manager_or_owner(request.user):
@@ -209,9 +237,7 @@ def customer_edit(request, pk):
             customer.save()
             messages.success(request, f"{customer.user.first_name}'s profile updated successfully!")
             # managers and owners go back to customer detail, customers go back to their dashboard
-            if is_manager_or_owner(request.user):
-                return redirect('customer_detail', pk=customer.pk)
-            return redirect('customer_dashboard')
+            return redirect(back_url)
 
     else:
         # passing in user fields explicitly as they live on User not Customer
@@ -221,7 +247,10 @@ def customer_edit(request, pk):
             'email': customer.user.email
         })
 
-    return render(request, 'restaurant/customer_signup.html', {'customer_form': customer_form})
+    return render(request, 'restaurant/customer_signup.html', {
+            'customer_form': customer_form, 
+            'back_url':back_url
+        })
 
 
 # View to list all customers — manager/owner only
@@ -229,7 +258,12 @@ def customer_edit(request, pk):
 @user_passes_test(is_manager_or_owner)
 def customer_list(request):
     customers = models.Customer.objects.all().order_by('user__last_name')
-    return render(request, 'restaurant/customer_list.html', {'customers': customers})
+    # determine back url: owner goest to owner_view, manager goes to manager_view
+    if request.user.role == models.User.Role.OWNER:
+        back_url = reverse('owner_view')
+    else:
+        back_url = reverse('manager_view')
+    return render(request, 'restaurant/customer_list.html', {'customers': customers, 'back_url':back_url})
 
 
 # View to see a specific customer's details — manager/owner only
@@ -244,9 +278,16 @@ def customer_detail(request, pk):
     customer = get_object_or_404(models.Customer, pk=pk)
     # pulling the customer's order history as well
     orders = models.Order.objects.filter(customer=customer).order_by('-created_at')
+    
+    # determine back url: owner goes to owner_view, manager goes to manager_view
+    if request.user.role == models.User.Role.OWNER:
+        back_url = reverse('owner_view')
+    else:
+        back_url = reverse('manager_view')
     return render(request, 'restaurant/customer_detail.html', {
         'customer': customer,
-        'orders': orders
+        'orders': orders,
+        'back_url': back_url,
     })
 
 
@@ -284,9 +325,12 @@ def customer_dashboard(request):
         reservation_datetime__gte=timezone.now()
     ).order_by('reservation_datetime')[:3]
 
-    # get recent orders: last 5
+    # show recent orders regardless of payment status
+    # exclude only cancelled orders so the dashboard stays relevant
     recent_orders = models.Order.objects.filter(
-        customer=customer
+        customer=customer,
+    ).exclude(
+        order_status=models.Order.OrderStatus.CANCELLED
     ).order_by('-created_at')[:5]
 
     return render(request, 'restaurant/customer_dashboard.html', {
@@ -371,11 +415,92 @@ def manager_view(request):
 @login_required
 @user_passes_test(is_server_or_manager)
 def server_host_view(request):
-    """Server/Host Dashboard - Now includes assigned servers"""
-    tables = models.Table.objects.all().order_by('label').select_related('assigned_server')
-    restaurants = models.Restaurant.objects.all()
-    context = {'tables': tables}
+    """Server/Host Dashboard.
+        Servers only see tables assigned to them.
+        Managers and owners see all tables.
+        Includes ready-order notification per table"""
+    
+    if request.user.role == models.User.Role.SERVER_HOST:
+        # cards only show assigned tables, but grid shows all tables in the restaurant
+        assigned_tables = models.Table.objects.filter(
+            assigned_server=request.user
+        ).order_by('label').select_related('assigned_server', 'restaurant')
+
+        # get the restaurant from the first assigned table to scope the full grid
+        # if no tables are assigned yet, fall back to all tables
+        if assigned_tables.exists():
+            restaurant = assigned_tables.first().restaurant
+            all_restaurant_tables = models.Table.objects.filter(
+                restaurant=restaurant
+            ).order_by('label').select_related('assigned_server', 'restaurant')
+        else:
+            assigned_tables = models.Table.objects.none()
+            all_restaurant_tables = models.Table.objects.all().order_by('label').select_related('assigned_server', 'restaurant')
+
+        tables = assigned_tables
+        grid_tables = all_restaurant_tables
+    else:
+        tables = models.Table.objects.all().order_by('label').select_related('assigned_server', 'restaurant')
+        grid_tables = tables
+    
+    # Building per-table notification data: orders at READY status linked to each table
+    ready_notifications = models.Notification.objects.filter(
+        notification_type__in=[
+            models.Notification.NotificationType.ORDER_READY,
+            models.Notification.NotificationType.TABLE_ATTENTION,
+        ],
+        is_read=False,
+        table__in=grid_tables
+    ).select_related('order', 'table')
+    
+    # Building a dict of table_id -> list of ready notifications for template use
+    notification_by_table = {}
+    for n in ready_notifications:
+        if n.table_id not in notification_by_table:
+            notification_by_table[n.table_id] = []
+        notification_by_table[n.table_id].append(n)
+
+    # Enrich table objects with their active order (if any) for actions
+    table_data = []
+    for table in tables:
+        active_order = models.Order.objects.filter(
+            table=table,
+            order_status__in=[
+                models.Order.OrderStatus.PENDING,
+                models.Order.OrderStatus.PREPARING,
+                models.Order.OrderStatus.READY,
+            ]
+        ).order_by('-created_at').first()
+        table_data.append({
+            'table': table,
+            'active_order': active_order,
+            'notifications': notification_by_table.get(table.id, [])
+        })
+
+    # pending transfer requests where this user is the receiving server
+    # shown as a separate notification bar above the table cards
+    pending_transfers = models.TableTransferRequest.objects.filter(
+        receiving_server=request.user,
+        status=models.TableTransferRequest.Status.PENDING
+    ).select_related('table', 'requesting_server')
+
+    context = {
+        'table_data': table_data,
+        'tables': tables,
+        'grid_tables': grid_tables,
+        'pending_transfers': pending_transfers,
+    }
     return render(request, 'restaurant/server_host_view.html', context)
+
+
+# View to dismiss a notification
+@login_required
+def dismiss_notification(request, notification_id):
+    """Mark a server notification as read via POST."""
+    notification = get_object_or_404(models.Notification, id=notification_id)
+    notification.is_read = True
+    notification.save()
+    return redirect('server_host_view')
 
 
 # View for the Kitchen dashboard
@@ -406,13 +531,68 @@ def owner_view(request):
 @login_required
 @user_passes_test(is_manager_or_owner)
 def staff_list(request):
-    """List all staff members with shift info and status"""
-    staff_members = models.User.objects.exclude(role=models.User.Role.CUSTOMER).order_by('role', 'first_name')
-    context = {
+    """List all staff members with shift info and status.
+    Owners can filter by restaurant location via query param.
+    Location is determined by the restaurant each staff member is linked to
+    via their assigned tables."""
+    staff_members = models.User.objects.exclude(
+        role=models.User.Role.CUSTOMER
+    ).order_by('role', 'first_name')
+
+    # managers only see staff at their own restaurant
+    # owners see everyone across all locations
+    if request.user.role == models.User.Role.MANAGER:
+        manager_restaurant = models.Restaurant.objects.filter(user=request.user).first()
+        if manager_restaurant:
+            # get servers assigned to tables at this restaurant
+            servers_at_restaurant = models.Table.objects.filter(
+                restaurant=manager_restaurant,
+                assigned_server__isnull=False
+            ).values_list('assigned_server_id', flat=True)
+            # include the manager themselves and their restaurant's servers
+            staff_members = staff_members.filter(
+                Q(pk__in=servers_at_restaurant) |
+                Q(pk=request.user.pk)
+            )
+        else:
+            # manager has no restaurant linked, only show themselves
+            staff_members = staff_members.filter(pk=request.user.pk)
+
+    # get all restaurants for the filter dropdown
+    # owners see all restaurants in the filter dropdown
+    # managers only have one restaurant so no filter is needed
+    if request.user.role == models.User.Role.OWNER:
+        restaurants = models.Restaurant.objects.all()
+    else:
+        restaurants = models.Restaurant.objects.none()
+
+    # apply location filter if selected
+    selected_restaurant_id = request.GET.get('restaurant_id')
+    if selected_restaurant_id:
+        # filter staff by tables assigned to the selected restaurant
+        staff_at_restaurant = models.Table.objects.filter(
+            restaurant__pk=selected_restaurant_id,
+            assigned_server__isnull=False
+        ).values_list('assigned_server_id', flat=True)
+        # also include managers linked to that restaurant
+        managers_at_restaurant = models.Restaurant.objects.filter(
+            pk=selected_restaurant_id
+        ).values_list('user_id', flat=True)
+        combined_ids = set(list(staff_at_restaurant) + list(managers_at_restaurant))
+        staff_members = staff_members.filter(pk__in=combined_ids)
+
+    if request.user.role == models.User.Role.OWNER:
+        back_url = reverse('owner_view')
+    else:
+        back_url = reverse('manager_view')
+
+    return render(request, 'restaurant/staff_list.html', {
         'staff_members': staff_members,
-        'total_staff': staff_members.count()
-    }
-    return render(request, 'restaurant/staff_list.html', context)
+        'total_staff': staff_members.count(),
+        'back_url': back_url,
+        'restaurants': restaurants,
+        'selected_restaurant_id': selected_restaurant_id,
+    })
 
 
 # View to see a specific staff member's details and their assigned orders
@@ -424,11 +604,16 @@ def staff_detail(request, pk):
     assigned_orders = models.Order.objects.filter(
         Q(assigned_server=staff) | Q(assigned_driver=staff)
     ).order_by('-created_at')
-    context = {
+    
+    if request.user.role == models.User.Role.OWNER:
+        back_url = reverse('owner_view')
+    else:
+        back_url = reverse('manager_view')
+    return render(request, 'restaurant/staff_detail.html', {
         'staff': staff,
         'assigned_orders': assigned_orders,
-    }
-    return render(request, 'restaurant/staff_detail.html', context)
+        'back_url': back_url,
+    })
 
 
 # View to edit a staff member: manager/owner only
@@ -528,7 +713,12 @@ def update_table_status(request, table_id):
 @login_required
 @user_passes_test(is_kitchen_or_manager)
 def update_order_status(request, order_id):
-    """Kitchen Staff can update order status"""
+    """
+    Kitchen Staff can update order status.
+    When a delivery order is marked READY, it is automatically assigned to the
+    next available driver using round-robin rotation based on current assignment count.
+    The assigned driver receives a notification on their dashboard.
+    """
     order = get_object_or_404(models.Order, id=order_id)
 
     if request.method == 'POST':
@@ -542,9 +732,53 @@ def update_order_status(request, order_id):
 
         order.order_status = new_status
 
-        # award loyalty points when order is marked as completed
-        if new_status == models.Order.OrderStatus.COMPLETED and order.customer:
-            points_to_award = int(order.sub_total) * 10  # 10 points per dollar, excluding tax
+        # When a delivery order is marked READY, auto-assign to next available driver
+        # using round-robin: the driver with the fewest active deliveries gets assigned
+        if new_status == models.Order.OrderStatus.READY and order.order_type == models.Order.OrderType.DELIVERY:
+            active_drivers = models.User.objects.filter(
+                role=models.User.Role.DELIVERY_DRIVER,
+                is_active_staff=True
+            )
+            if active_drivers.exists():
+                # count active (READY status) delivery orders per driver
+                # the driver with the lowest count gets this order
+                from django.db.models import Count
+                driver_load = active_drivers.annotate(
+                    active_deliveries=Count(
+                        'delivered_orders',
+                        filter=Q(
+                            delivered_orders__order_status=models.Order.OrderStatus.READY,
+                            delivered_orders__order_type=models.Order.OrderType.DELIVERY
+                        )
+                    )
+                ).order_by('active_deliveries', 'id')
+
+                assigned_driver = driver_load.first()
+                order.assigned_driver = assigned_driver
+
+                # create a notification for the assigned driver
+                # notification is linked to the order so the driver can see it on their dashboard
+                models.Notification.objects.create(
+                    table=order.table,
+                    order=order,
+                    notification_type=models.Notification.NotificationType.ORDER_READY,
+                    message=f'Delivery order #{order.id} has been assigned to you. Please pick up from the kitchen.'
+                )
+
+                messages.info(request, f'Order #{order.id} auto-assigned to driver {assigned_driver.get_full_name() or assigned_driver.username}.')
+
+        # When a dine-in order is marked READY, notify the server for that table
+        if new_status == models.Order.OrderStatus.READY and order.table:
+            models.Notification.objects.create(
+                table=order.table,
+                order=order,
+                notification_type=models.Notification.NotificationType.ORDER_READY,
+                message=f'Order #{order.id} at Table {order.table.label} is ready!'
+            )
+
+        # only award points if they have not already been awarded for this order
+        if new_status == models.Order.OrderStatus.COMPLETED and order.customer and order.points_earned == 0:
+            points_to_award = int(order.sub_total) * 10
             order.points_earned = points_to_award
             order.customer.loyalty_points += points_to_award
             order.customer.save()
@@ -852,12 +1086,25 @@ def menu_item_list(request):
             'line_total': round(line_total, 2)
         })
 
+    # pass active restaurants so the toggle availability button knows which restaurant to scope to
+    restaurants = models.Restaurant.objects.filter(is_active=True)
+
+    # build a set of unavailable menu item IDs for this restaurant
+    # so the template can grey them out without a per-item DB query
+    unavailable_ids = set(
+        models.RestaurantMenuItem.objects.filter(
+            is_available=False
+        ).values_list('menu_item_id', flat=True)
+    )
+
     return render(request, 'restaurant/menu_item_list.html', {
         'menuitems': menuitems,
         'categories': categories,
         'cart_items': cart_items,
         'cart_total': round(cart_total, 2),
         'restaurant_active': restaurant_active,
+        'restaurants': restaurants,
+        'unavailable_ids': unavailable_ids,
     })
 
 
@@ -930,9 +1177,14 @@ def order_list(request):
     if request.user.is_authenticated:
         if request.user.role == models.User.Role.CUSTOMER:
             customer = get_object_or_404(models.Customer, user=request.user)
-            orders = models.Order.objects.filter(customer=customer)
+            # Customers see only their paid orders + any pending that are still being processed
+            orders = models.Order.objects.filter(customer=customer).exclude(
+                    payment_status=models.Order.PaymentStatus.UNPAID,
+                    order_status=models.Order.OrderStatus.PENDING
+                ).order_by('-created_at')
+
         else:
-            orders = models.Order.objects.all()
+            orders = models.Order.objects.all().order_by('-created_at')
     else:
         guest_order_id = request.session.get('guest_order_id')
         if guest_order_id:
@@ -940,7 +1192,15 @@ def order_list(request):
         else:
             orders = models.Order.objects.none()
 
-    return render(request, 'restaurant/order_list.html', {'orders': orders})
+    if request.user.is_authenticated and is_manager_or_owner(request.user):
+        back_url = reverse('owner_view') if request.user.role == models.User.Role.OWNER else reverse('manager_view')
+    else:
+        back_url = reverse('customer_dashboard') if request.user.is_authenticated else reverse('index')
+
+    return render(request, 'restaurant/order_list.html', {
+        'orders': orders,
+        'back_url': back_url,
+    })
 
 
 # View to get specific order details
@@ -958,9 +1218,10 @@ def order_detail(request, pk):
     return render(request, 'restaurant/order_detail.html', {'order': order})
 
 
-# View for the review order page — replaces the old order_create view
-# Pulls cart from session, handles order type, delivery validation, loyalty points, and guest info
-# Creates the Order and OrderItem records when the customer confirms
+# Review order page — creates Order and OrderItem records on confirmation.
+# Order is only saved AFTER payment intent is created and confirmed.
+# Here we save a PENDING/UNPAID order, then redirect to payment.
+# The success notification fires only after payment_success.
 def order_create(request):
     # block staff roles from accessing customer order views
     if request.user.is_authenticated and request.user.role not in [
@@ -1060,6 +1321,7 @@ def order_create(request):
                         'sub_total': sub_total,
                         'customer': customer,
                     })
+                
 
             # ====== LOYALTY POINTS REDEMPTION ======
             loyalty_discount = 0
@@ -1084,8 +1346,12 @@ def order_create(request):
             if order_type == models.Order.OrderType.DELIVERY:
                 delivery_fee = 5 if distance and distance <= 5 else 10
 
+            # Tax: 5% GST on (sub_total = loyalty_discount + delivery_fee)
+            taxable_amount = sub_total - loyalty_discount + (delivery_fee or 0)
+            tax_amount = round(taxable_amount * float(TAX_RATE), 2)
+
             # ====== TOTAL PRICE ======
-            total_price = round(sub_total - loyalty_discount + (delivery_fee or 0), 2)
+            total_price = round(taxable_amount + tax_amount, 2)
 
             # ====== SAVE ORDER ======
             order.sub_total = sub_total
@@ -1127,8 +1393,8 @@ def order_create(request):
             if not request.user.is_authenticated:
                 request.session['guest_order_id'] = order.id
 
-            messages.success(request, f'Order #{order.id} placed successfully!')
-            return redirect('order_detail', pk=order.pk)
+            # Go straight to payment, do NOT show success message here
+            return redirect('payment_page', order_id=order.pk)
 
     else:
         # pre-fill delivery address for logged in customers
@@ -1137,14 +1403,24 @@ def order_create(request):
             initial['delivery_address'] = customer.address
         form = forms.OrderForm(initial=initial)
 
+    # Calculate loyalty discount preview for template
+    loyalty_discount_preview = Decimal('0')
+    if customer:
+        if customer.loyalty_points >= 2000:
+            loyalty_discount_preview = Decimal('25')
+        elif customer.loyalty_points >= 1000:
+            loyalty_discount_preview = Decimal('10')
+
     return render(request, 'restaurant/order_review.html', {
         'form': form,
         'cart_items': cart_items,
-        'sub_total': sub_total,
+        'sub_total': float(sub_total),
+        'tax_rate': float(TAX_RATE * 100),
         'customer': customer,
+        'loyalty_discount_preview': float(loyalty_discount_preview),
     })
 
-# View to edit orders - only available for logged in customers
+# View to edit orders: only available for logged in customers
 @login_required
 def order_edit(request, pk):
     # block staff roles from accessing customer order views
@@ -1159,16 +1435,13 @@ def order_edit(request, pk):
     # only logged in customers can edit their own orders and only if the order status is still 'pending'
     order = get_object_or_404(models.Order, pk=pk)
     
-    # only customers can edit orders
-    if request.user.role != models.User.Role.CUSTOMER:
-        messages.error(request, 'You do not have permission to edit orders.')
-        return redirect('order_list')
-
-    customer = get_object_or_404(models.Customer, user=request.user)
-
-    if order.customer != customer:
-        messages.error(request, 'You can only edit your own orders.')
-        return redirect('order_list')
+    customer = None
+    # Managers and owners can edit any order, customers can only edit their own
+    if request.user.role == models.User.Role.CUSTOMER:
+        customer = get_object_or_404(models.Customer, user=request.user)
+        if order.customer != customer:
+            messages.error(request, 'You can only edit your own orders.')
+            return redirect('order_list')
 
     if order.order_status != models.Order.OrderStatus.PENDING:
         messages.error(request, 'You can only edit orders that are still pending.')
@@ -1201,9 +1474,15 @@ def order_edit(request, pk):
                 order.loyalty_discount = 0
                 order.points_redeemed = 0
 
+            # Recalculate tax and total
+            delivery_fee = order.delivery_fee or Decimal('0')
+            taxable_amount = order.sub_total - order.loyalty_discount + delivery_fee
+            order.tax_amount = round(taxable_amount * TAX_RATE, 2)
+            order.total_price = round(taxable_amount + order.tax_amount, 2)
             order.save()
             messages.success(request, 'Order updated successfully!')
             return redirect('order_detail', pk=pk)
+
     else:
         form = forms.OrderForm(instance=order, initial={
             'delivery_address': order.delivery_address,
@@ -1260,12 +1539,19 @@ def order_delete(request, pk):
         messages.success(request, 'Order cancelled successfully.')
         return redirect('index')
 
+    # warn the customer if the order is already paid and preparing
+    # a cancellation fee may apply since the kitchen is already working on it
+    cancellation_warning = None
+    if order.payment_status == models.Order.PaymentStatus.PAID:
+        cancellation_warning = 'This order has already been paid and is being prepared. A cancellation fee may apply and a refund will be processed to your original payment method.'
+
     return render(request, 'restaurant/confirm_delete.html', {
         'object_name': 'Order',
         'object_display': f'Order #{order.id}',
-        'cancel_url': reverse('order_detail', args=[order.pk]),  # reverse() converts the URL name to an actual path e.g. /order/5/ — required since confirm_delete.html uses {{ cancel_url }} not {% url %}
-        'delete_url': request.path  # grabs the current URL path e.g. /order/5/delete/ and passes it to the form action so the POST submits back to this same view
-    })
+        'cancel_url': reverse('order_detail', args=[order.pk]),
+        'delete_url': request.path,
+        'cancellation_warning': cancellation_warning,
+    })  
 
 
 # View to allow customers to link their guest order to their account after signing up
@@ -1334,16 +1620,46 @@ def reservation_list(request):
             customer = get_object_or_404(models.Customer, user=request.user)
             reservations = models.Reservation.objects.filter(customer=customer).order_by('-reservation_datetime')
         else:
-            reservations = models.Reservation.objects.all().order_by('-reservation_datetime')
+            reservations = models.Reservation.objects.all().select_related(
+                'customer__user', 'table', 'restaurant'
+            ).order_by('-reservation_datetime')
     else:
         reservations = models.Reservation.objects.none()
-    return render(request, 'restaurant/reservation_list.html', {'reservations': reservations})
+
+    if request.user.is_authenticated and is_manager_or_owner(request.user):
+        back_url = reverse('owner_view') if request.user.role == models.User.Role.OWNER else reverse('manager_view')
+    else:
+        back_url = reverse('customer_dashboard') if request.user.is_authenticated else reverse('index')
+
+    return render(request, 'restaurant/reservation_list.html', {
+        'reservations': reservations,
+        'back_url': back_url,
+        'status_choices': models.Reservation.Status.choices,
+    })
 
 
 # View to see a specific reservation's details
 def reservation_detail(request, pk):
     reservation = get_object_or_404(models.Reservation, pk=pk)
     return render(request, 'restaurant/reservation_detail.html', {'reservation': reservation})
+
+
+# View to update the reservation status
+@login_required
+@user_passes_test(is_manager_or_owner)
+def reservation_update_status(request, pk):
+    """Manager/owner can change reservation status directly."""
+    reservation = get_object_or_404(models.Reservation, pk=pk)
+    if request.method == 'POST':
+        new_status = int(request.POST.get('status'))
+        reservation.status = new_status
+        reservation.save()
+        messages.success(request, f'Reservation #{reservation.id} status updated to {reservation.get_status_display()}.')
+        return redirect('reservation_list')
+    return render(request, 'restaurant/reservation_update_status.html', {
+        'reservation': reservation,
+        'status_choices': models.Reservation.Status.choices,
+    })
 
 
 # View to create a new reservation, available to both guests and logged in customers
@@ -1360,7 +1676,7 @@ def reservation_create(request):
         return redirect('staff_index')
 
     if request.method == 'POST':
-        form = forms.ReservationForm(request.POST)
+        form = forms.ReservationForm(request.POST, user=request.user)
         if form.is_valid():
             reservation = form.save(commit=False)
 
@@ -1400,7 +1716,7 @@ def reservation_create(request):
             messages.success(request, f'Reservation #{reservation.id} confirmed. A $10 deposit is required.')
             return redirect('reservation_detail', pk=reservation.pk)
     else:
-        form = forms.ReservationForm()
+        form = forms.ReservationForm(user=request.user)
     return render(request, 'restaurant/reservation_form.html', {'form': form})
 
 
@@ -1412,7 +1728,15 @@ def reservation_create(request):
 def staff_invite_list(request):
     # shows all staff invites — used and unused
     invites = models.StaffInvite.objects.all().order_by('-created_at')
-    return render(request, 'restaurant/staff_invite_list.html', {'invites': invites})
+    
+    if request.user.role == models.User.Role.OWNER:
+        back_url = reverse('owner_view')
+    else:
+        back_url = reverse('manager_view')
+    return render(request, 'restaurant/staff_invite_list.html', {
+        'invites': invites,
+        'back_url': back_url,
+    })
 
 
 # View to create a new staff invite, manager/owner adds email and role to pre-approve a staff member
@@ -1464,10 +1788,18 @@ def inventory_list(request, restaurant_pk):
 
     inventory = models.Inventory.objects.filter(restaurant=restaurant).order_by('ingredient_name')
     low_stock = inventory.filter(current_level__lte=F('reorder_level'))
+    
+    # back button: owner goes to owner dashboard, manager goes to manager dashboard
+    if request.user.role == models.User.Role.OWNER:
+        back_url = reverse('owner_view')
+    else:
+        back_url = reverse('manager_view')
+
     return render(request, 'restaurant/inventory_list.html', {
         'inventory': inventory,
         'low_stock': low_stock,
-        'restaurant': restaurant
+        'restaurant': restaurant,
+        'back_url': back_url,
     })
 
 
@@ -1490,7 +1822,11 @@ def inventory_create(request, restaurant_pk):
             return redirect('inventory_list', restaurant_pk=restaurant.pk)
     else:
         form = forms.InventoryForm()
-    return render(request, 'restaurant/inventory_form.html', {'form': form})
+
+    return render(request, 'restaurant/inventory_form.html', {
+        'form': form,
+        'restaurant': restaurant,
+    })
 
 
 @login_required
@@ -1510,7 +1846,11 @@ def inventory_edit(request, pk):
             return redirect('inventory_list', restaurant_pk=item.restaurant.pk)
     else:
         form = forms.InventoryForm(instance=item)
-    return render(request, 'restaurant/inventory_form.html', {'form': form})
+
+    return render(request, 'restaurant/inventory_form.html', {
+        'form': form,
+        'restaurant': item.restaurant,
+    })
 
 
 @login_required
@@ -1541,14 +1881,39 @@ def inventory_confirm_delete(request, pk):
 @login_required
 @user_passes_test(is_driver_or_manager)
 def driver_view(request):
-    """Driver Dashboard shows orders ready for delivery"""
-    orders = models.Order.objects.filter(
-        assigned_driver = request.user,
+    """
+    Driver dashboard.
+    Shows new assignments (READY, not yet picked up) separately from
+    in-transit orders (picked up, en route) and completed history.
+    Drivers are auto-assigned when kitchen marks delivery orders READY.
+    """
+    # new assignments: READY orders assigned to this driver
+    # these need to be acknowledged and picked up
+    new_assignments = models.Order.objects.filter(
+        assigned_driver=request.user,
         order_type=models.Order.OrderType.DELIVERY,
         order_status=models.Order.OrderStatus.READY
     ).order_by('created_at')
-    context = {'orders':orders}
-    return render(request, 'restaurant/driver_view.html', context)
+
+    # completed delivery history
+    completed_orders = models.Order.objects.filter(
+        assigned_driver=request.user,
+        order_type=models.Order.OrderType.DELIVERY,
+        order_status=models.Order.OrderStatus.COMPLETED
+    ).order_by('-created_at')
+
+    # unread driver notifications
+    driver_notifications = models.Notification.objects.filter(
+        order__assigned_driver=request.user,
+        is_read=False,
+        notification_type=models.Notification.NotificationType.ORDER_READY
+    ).select_related('order').order_by('-created_at')
+
+    return render(request, 'restaurant/driver_view.html', {
+        'orders': new_assignments,
+        'completed_orders': completed_orders,
+        'driver_notifications': driver_notifications,
+    })
 
 
 @login_required
@@ -1565,16 +1930,50 @@ def delivery_complete(request, order_id):
     if request.method == 'POST':
         order.order_status = models.Order.OrderStatus.COMPLETED
         order.save()
+        # Award loyalty points on delivery completion
+        if order.customer and order.points_earned == 0:
+            points = int(order.sub_total) * 10
+            order.points_earned = points
+            order.save()
+            order.customer.loyalty_points += points
+            order.customer.save()
         messages.success(request, f'Order #{order.id} marked as delivered!')
         return redirect('driver_view')
     
-    return render(request, 'restaurant/confirm_delete.html', {
-        'object_name': 'Delivery',
-        'object_display': f'Order #{order.id}',
-        'cancel_url': reverse('driver_view'),
-        'delete_url': request.path
+    # GET: show a proper delivery confirmation page (not the generic confirm_delete)
+    return render(request, 'restaurant/delivery_confirm.html', {'order': order})
+
+
+@login_required
+@user_passes_test(is_driver_or_manager)
+def confirm_pickup(request, order_id):
+    """
+    Driver confirms they have picked up the order from the kitchen.
+    This does not mark the order as completed — that happens on delivery_complete.
+    Reuses delivery_confirm.html but with pickup-specific messaging.
+    Dismisses the assignment notification once confirmed.
+    """
+    order = get_object_or_404(models.Order, id=order_id)
+
+    if order.assigned_driver != request.user and not is_manager_or_owner(request.user):
+        messages.error(request, 'You can only confirm your own pickups.')
+        return redirect('driver_view')
+
+    if request.method == 'POST':
+        # mark all assignment notifications for this order as read
+        models.Notification.objects.filter(
+            order=order,
+            notification_type=models.Notification.NotificationType.ORDER_READY
+        ).update(is_read=True)
+
+        messages.success(request, f'Order #{order.id} picked up. Head to {order.delivery_address}.')
+        return redirect('driver_view')
+
+    # reuse delivery_confirm.html — pass a flag so the template can change the button label
+    return render(request, 'restaurant/delivery_confirm.html', {
+        'order': order,
+        'is_pickup': True,
     })
-    
     
 @login_required
 @user_passes_test(is_manager_or_owner)
@@ -1816,6 +2215,9 @@ def create_payment_intent(request, order_id):
             intent = stripe.PaymentIntent.create(
                 amount=amount_in_cents,
                 currency='cad',
+                # automatic_payment_methods causes the "automatic payment methods" error
+                # we only accept card so we specify explicitly
+                payment_method_types=['card'],
                 metadata={
                     'order_id': order.id,
                     'restaurant': str(order.restaurant),
@@ -1851,19 +2253,40 @@ def payment_success(request, order_id):
         if intent.status == 'succeeded':
             # update order payment status to paid
             order.payment_status = models.Order.PaymentStatus.PAID
+            # Move order to PREPARING now that payment is confirmed
+            order.order_status = models.Order.OrderStatus.PREPARING
             order.save()
 
             # create a Payment record in our database with the Stripe transaction id
             # this satisfies the transaction_id field on the Payment model
-            models.Payment.objects.create(
-                order=order,
-                method=models.Payment.PaymentMethod.CREDIT_CARD,
-                amount=order.total_price,
-                transaction_id=payment_intent_id
+            models.Payment.objects.get_or_create(
+                transaction_id=payment_intent_id,
+                defaults={
+                    'order': order,
+                    'method': models.Payment.PaymentMethod.CREDIT_CARD,
+                    'amount': order.total_price,
+                    'status': 'succeeded',
+                }
             )
 
+            # Success message fires HERE, after payment confirmed
             messages.success(request, f'Payment successful! Order #{order.id} is confirmed.')
             return redirect('payment_confirmation', order_id=order_id)
+        else:
+            # Payment failed: mark order as cancelled and save transaction
+            order.order_status = models.Order.OrderStatus.CANCELLED
+            order.save()
+            models.Payment.objects.get_or_create(
+                transaction_id=payment_intent_id,
+                defaults={
+                    'order': order,
+                    'method': models.Payment.PaymentMethod.CREDIT_CARD,
+                    'amount': order.total_price,
+                    'status': 'failed',
+                }
+            )
+            messages.error(request, 'Payment was not successful. Your order has been cancelled.')
+            return redirect('order_detail', pk=order_id)
 
     except Exception as e:
         messages.error(request, f'Payment verification failed: {str(e)}')
@@ -1880,3 +2303,902 @@ def payment_confirmation(request, order_id):
         'order': order,
         'payment': payment,
     })
+
+
+# ====================== PRE-ORDER VIEWS ======================
+
+@login_required
+def reservation_preorder_prompt(request, reservation_pk):
+    """
+    Shown after a reservation is confirmed.
+    Asks the customer if they want to pre-order their meal.
+    Accessible any time before the reservation date via reservation detail.
+    Once the customer arrives (reservation status COMPLETED), this is blocked.
+    """
+    reservation = get_object_or_404(models.Reservation, pk=reservation_pk)
+
+    # only the customer who owns this reservation can pre-order
+    if request.user.role == models.User.Role.CUSTOMER:
+        customer = get_object_or_404(models.Customer, user=request.user)
+        if reservation.customer != customer:
+            messages.error(request, 'You can only pre-order for your own reservations.')
+            return redirect('reservation_list')
+
+    # block pre-ordering if the reservation is already completed or cancelled
+    if reservation.status in [
+        models.Reservation.Status.COMPLETED,
+        models.Reservation.Status.CANCELLED
+    ]:
+        messages.error(request, 'Pre-ordering is no longer available for this reservation.')
+        return redirect('reservation_detail', pk=reservation_pk)
+
+    # check if a pre-order already exists for this reservation
+    existing_preorder = models.PreOrder.objects.filter(
+        reservation=reservation
+    ).first()
+
+    return render(request, 'restaurant/reservation_preorder_prompt.html', {
+        'reservation': reservation,
+        'existing_preorder': existing_preorder,
+    })
+
+
+@login_required
+def preorder_menu(request, reservation_pk):
+    """
+    Menu view for adding items to a pre-order.
+    Works like the regular menu but items go into a pre-order session cart
+    keyed separately from the main cart so they do not conflict.
+    On confirm, a PreOrder and PreOrderItems are created linked to the reservation.
+    """
+    reservation = get_object_or_404(models.Reservation, pk=reservation_pk)
+
+    # block if reservation is completed or cancelled
+    if reservation.status in [
+        models.Reservation.Status.COMPLETED,
+        models.Reservation.Status.CANCELLED
+    ]:
+        messages.error(request, 'Pre-ordering is no longer available for this reservation.')
+        return redirect('reservation_detail', pk=reservation_pk)
+
+    menuitems = models.MenuItem.objects.all().select_related('category')
+    categories = models.Category.objects.all()
+
+    # pre-order uses its own session key so it does not interfere with the regular cart
+    preorder_cart = request.session.get(f'preorder_cart_{reservation_pk}', {})
+    cart_items = []
+    cart_total = 0
+    for str_id, item_data in preorder_cart.items():
+        line_total = float(item_data['price']) * item_data['quantity']
+        cart_total += line_total
+        cart_items.append({
+            'item_id': str_id,
+            'name': item_data['name'],
+            'price': item_data['price'],
+            'quantity': item_data['quantity'],
+            'line_total': round(line_total, 2)
+        })
+
+    if request.method == 'POST' and 'confirm_preorder' in request.POST:
+        if not cart_items:
+            messages.error(request, 'Add at least one item before confirming.')
+            return render(request, 'restaurant/preorder_menu.html', {
+                'reservation': reservation,
+                'menuitems': menuitems,
+                'categories': categories,
+                'cart_items': cart_items,
+                'cart_total': round(cart_total, 2),
+            })
+
+        customer = get_object_or_404(models.Customer, user=request.user)
+        special_instruction = request.POST.get('special_instruction', '').strip()
+
+        # create or replace the pre-order for this reservation
+        preorder, created = models.PreOrder.objects.get_or_create(
+            reservation=reservation,
+            defaults={
+                'customer': customer,
+                'restaurant': reservation.restaurant,
+                'special_instruction': special_instruction,
+            }
+        )
+        if not created:
+            # replace existing pre-order items if customer is updating their pre-order
+            preorder.items.all().delete()
+            preorder.special_instruction = special_instruction
+            preorder.status = models.PreOrder.Status.PENDING
+            preorder.save()
+
+        # save pre-order items from the session cart
+        for item_data in cart_items:
+            menu_item = get_object_or_404(models.MenuItem, pk=item_data['item_id'])
+            models.PreOrderItem.objects.create(
+                preorder=preorder,
+                menu_item=menu_item,
+                quantity=item_data['quantity'],
+                unit_price=item_data['price']
+            )
+
+        # clear the pre-order session cart after saving
+        request.session.pop(f'preorder_cart_{reservation_pk}', None)
+        request.session.modified = True
+
+        messages.success(request, 'Pre-order saved! Your items will be ready when you arrive.')
+        return redirect('reservation_detail', pk=reservation_pk)
+
+    return render(request, 'restaurant/preorder_menu.html', {
+        'reservation': reservation,
+        'menuitems': menuitems,
+        'categories': categories,
+        'cart_items': cart_items,
+        'cart_total': round(cart_total, 2),
+    })
+
+
+def preorder_cart_add(request, reservation_pk, item_id):
+    """Add an item to the pre-order session cart for this specific reservation."""
+    item = get_object_or_404(models.MenuItem, pk=item_id)
+    cart_key = f'preorder_cart_{reservation_pk}'
+    cart = request.session.get(cart_key, {})
+    str_id = str(item_id)
+    if str_id in cart:
+        cart[str_id]['quantity'] += 1
+    else:
+        cart[str_id] = {
+            'item_id': item_id,
+            'name': item.name,
+            'price': str(item.price),
+            'quantity': 1
+        }
+    request.session[cart_key] = cart
+    request.session.modified = True
+    return redirect('preorder_menu', reservation_pk=reservation_pk)
+
+
+def preorder_cart_remove(request, reservation_pk, item_id):
+    """Remove an item from the pre-order session cart."""
+    cart_key = f'preorder_cart_{reservation_pk}'
+    cart = request.session.get(cart_key, {})
+    str_id = str(item_id)
+    if str_id in cart:
+        del cart[str_id]
+    request.session[cart_key] = cart
+    request.session.modified = True
+    return redirect('preorder_menu', reservation_pk=reservation_pk)
+
+
+# ====================== SERVER TABLE DETAIL VIEW ======================
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def server_table_detail(request, table_id):
+    """
+    Detailed view for a single table from the server dashboard.
+    Shows current status, active order items, pre-order if available,
+    and all action buttons: add items, activate pre-order, pay now, transfer.
+    Also shows the floor plan grid in read-only mode below the card summary.
+    """
+    table = get_object_or_404(models.Table, id=table_id)
+
+    # get the active order on this table if one exists
+    active_order = models.Order.objects.filter(
+        table=table,
+        order_status__in=[
+            models.Order.OrderStatus.PENDING,
+            models.Order.OrderStatus.PREPARING,
+            models.Order.OrderStatus.READY,
+        ]
+    ).prefetch_related('orderitem_set__menu_item').order_by('-created_at').first()
+
+    # get the active confirmed reservation for this table if one exists
+    active_reservation = models.Reservation.objects.filter(
+        table=table,
+        status__in=[
+            models.Reservation.Status.PENDING,
+            models.Reservation.Status.CONFIRMED
+        ]
+    ).select_related('customer__user').order_by('reservation_datetime').first()
+
+    # get the pre-order linked to the active reservation if it exists and has not been activated yet
+    preorder = None
+    if active_reservation:
+        preorder = models.PreOrder.objects.filter(
+            reservation=active_reservation,
+            status=models.PreOrder.Status.PENDING
+        ).prefetch_related('items__menu_item').first()
+
+    # get all unread transfer requests incoming to this server for this table
+    incoming_transfer = models.TableTransferRequest.objects.filter(
+        table=table,
+        receiving_server=request.user,
+        status=models.TableTransferRequest.Status.PENDING
+    ).first()
+
+    # get the floor plan grid for the restaurant so we can render it read-only
+    layout = None
+    try:
+        layout = models.TableLayout.objects.get(restaurant=table.restaurant)
+    except models.TableLayout.DoesNotExist:
+        pass
+
+    # get all tables for this restaurant to colour-code them on the grid
+    all_tables = models.Table.objects.filter(
+        restaurant=table.restaurant
+    ).values('id', 'label', 'status', 'grid_squares')
+
+    # get unread decline notifications for transfer requests made by this server
+    declined_transfers = models.TableTransferRequest.objects.filter(
+        requesting_server=request.user,
+        table=table,
+        status=models.TableTransferRequest.Status.DECLINED
+    )
+
+    return render(request, 'restaurant/server_table_detail.html', {
+        'table': table,
+        'active_order': active_order,
+        'active_reservation': active_reservation,
+        'preorder': preorder,
+        'incoming_transfer': incoming_transfer,
+        'declined_transfers': declined_transfers,
+        'layout': layout,
+        'all_tables': list(all_tables),
+        'status_choices': models.Table.Status.choices,
+    })
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def server_activate_preorder(request, preorder_id):
+    """
+    Server activates a pre-order once the customer is seated.
+    This creates a real Order and OrderItems from the PreOrder data,
+    sends it to the kitchen as PREPARING, and marks the table as OCCUPIED.
+    """
+    preorder = get_object_or_404(models.PreOrder, id=preorder_id)
+
+    if request.method == 'POST':
+        # create the real order from the pre-order
+        sub_total = sum(
+            item.unit_price * item.quantity
+            for item in preorder.items.all()
+        )
+        from decimal import Decimal as D
+        tax_amount = round(sub_total * D('0.05'), 2)
+        total_price = sub_total + tax_amount
+
+        order = models.Order.objects.create(
+            customer=preorder.customer,
+            restaurant=preorder.restaurant,
+            reservation=preorder.reservation,
+            table=preorder.reservation.table,
+            order_type=models.Order.OrderType.DINE_IN,
+            sub_total=sub_total,
+            tax_amount=tax_amount,
+            total_price=total_price,
+            special_instruction=preorder.special_instruction,
+            payment_status=models.Order.PaymentStatus.UNPAID,
+            order_status=models.Order.OrderStatus.PREPARING,
+            assigned_server=request.user,
+        )
+
+        # create order items from pre-order items
+        for item in preorder.items.all():
+            models.OrderItem.objects.create(
+                order=order,
+                menu_item=item.menu_item,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            )
+
+        # mark the pre-order as activated so it does not show again
+        preorder.status = models.PreOrder.Status.ACTIVATED
+        preorder.save()
+
+        # mark the table as occupied now that the customer is seated
+        table = preorder.reservation.table
+        if table:
+            table.status = models.Table.Status.OCCUPIED
+            table.save()
+
+        # mark the reservation as confirmed now that they are seated
+        preorder.reservation.status = models.Reservation.Status.CONFIRMED
+        preorder.reservation.save()
+
+        messages.success(request, f'Pre-order activated! Order #{order.id} sent to the kitchen.')
+        return redirect('server_table_detail', table_id=table.id)
+
+    return redirect('server_host_view')
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def server_add_to_order(request, table_id):
+    """
+    Server-facing menu view for adding items to the active order on a table.
+    Items selected here are appended to the existing order and a notification
+    is sent to the kitchen. After confirming, the server is redirected back
+    to the table detail view they came from.
+    """
+    table = get_object_or_404(models.Table, id=table_id)
+
+    # get the active order on this table
+    active_order = models.Order.objects.filter(
+        table=table,
+        order_status__in=[
+            models.Order.OrderStatus.PENDING,
+            models.Order.OrderStatus.PREPARING,
+        ]
+    ).order_by('-created_at').first()
+
+    # if no active order exists, create one
+    if not active_order:
+        active_order = models.Order.objects.create(
+            restaurant=table.restaurant,
+            table=table,
+            order_type=models.Order.OrderType.DINE_IN,
+            sub_total=Decimal('0'),
+            tax_amount=Decimal('0'),
+            total_price=Decimal('0'),
+            payment_status=models.Order.PaymentStatus.UNPAID,
+            order_status=models.Order.OrderStatus.PENDING,
+            assigned_server=request.user,
+        )
+
+    menuitems = models.MenuItem.objects.all().select_related('category')
+    categories = models.Category.objects.all()
+
+    # use a table-specific cart key so it does not interfere with customer cart
+    cart_key = f'server_cart_{table_id}'
+    cart = request.session.get(cart_key, {})
+    cart_items = []
+    cart_total = 0
+    for str_id, item_data in cart.items():
+        line_total = float(item_data['price']) * item_data['quantity']
+        cart_total += line_total
+        cart_items.append({
+            'item_id': str_id,
+            'name': item_data['name'],
+            'price': item_data['price'],
+            'quantity': item_data['quantity'],
+            'line_total': round(line_total, 2)
+        })
+
+    if request.method == 'POST' and 'confirm_items' in request.POST:
+        if not cart_items:
+            messages.error(request, 'Add at least one item before confirming.')
+        else:
+            # append new items to the existing order
+            for item_data in cart_items:
+                menu_item = get_object_or_404(models.MenuItem, pk=item_data['item_id'])
+                # if the item already exists on the order, increase quantity
+                existing = models.OrderItem.objects.filter(
+                    order=active_order,
+                    menu_item=menu_item
+                ).first()
+                if existing:
+                    existing.quantity += item_data['quantity']
+                    existing.save()
+                else:
+                    models.OrderItem.objects.create(
+                        order=active_order,
+                        menu_item=menu_item,
+                        quantity=item_data['quantity'],
+                        unit_price=item_data['price']
+                    )
+
+            # recalculate order totals after adding new items
+            all_items = models.OrderItem.objects.filter(order=active_order)
+            new_sub_total = sum(i.unit_price * i.quantity for i in all_items)
+            new_tax = round(new_sub_total * Decimal('0.05'), 2)
+            active_order.sub_total = new_sub_total
+            active_order.tax_amount = new_tax
+            active_order.total_price = new_sub_total + new_tax
+            active_order.order_status = models.Order.OrderStatus.PREPARING
+            active_order.save()
+
+            # clear the server session cart for this table after saving
+            request.session.pop(cart_key, None)
+            request.session.modified = True
+
+            messages.success(request, f'Items added to Order #{active_order.id} and sent to kitchen.')
+            return redirect('server_table_detail', table_id=table_id)
+
+    return render(request, 'restaurant/server_add_to_order.html', {
+        'table': table,
+        'active_order': active_order,
+        'menuitems': menuitems,
+        'categories': categories,
+        'cart_items': cart_items,
+        'cart_total': round(cart_total, 2),
+    })
+
+
+def server_cart_add(request, table_id, item_id):
+    """Add an item to the server-side cart for a specific table."""
+    item = get_object_or_404(models.MenuItem, pk=item_id)
+    cart_key = f'server_cart_{table_id}'
+    cart = request.session.get(cart_key, {})
+    str_id = str(item_id)
+    if str_id in cart:
+        cart[str_id]['quantity'] += 1
+    else:
+        cart[str_id] = {
+            'item_id': item_id,
+            'name': item.name,
+            'price': str(item.price),
+            'quantity': 1
+        }
+    request.session[cart_key] = cart
+    request.session.modified = True
+    return redirect('server_add_to_order', table_id=table_id)
+
+
+def server_cart_remove(request, table_id, item_id):
+    """Remove an item from the server-side cart for a specific table."""
+    cart_key = f'server_cart_{table_id}'
+    cart = request.session.get(cart_key, {})
+    str_id = str(item_id)
+    if str_id in cart:
+        del cart[str_id]
+    request.session[cart_key] = cart
+    request.session.modified = True
+    return redirect('server_add_to_order', table_id=table_id)
+
+
+# ====================== TABLE TRANSFER VIEWS ======================
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def request_table_transfer(request, table_id):
+    """
+    Server requests to transfer a table to another server.
+    Creates a TableTransferRequest and notifies the receiving server
+    via the Notification model so they see a pending request on their dashboard.
+    """
+    table = get_object_or_404(models.Table, id=table_id)
+
+    if request.method == 'POST':
+        receiving_server_id = request.POST.get('receiving_server_id')
+        receiving_server = get_object_or_404(
+            models.User,
+            id=receiving_server_id,
+            role=models.User.Role.SERVER_HOST
+        )
+
+        # block duplicate pending requests for the same table
+        existing = models.TableTransferRequest.objects.filter(
+            table=table,
+            requesting_server=request.user,
+            status=models.TableTransferRequest.Status.PENDING
+        ).first()
+        if existing:
+            messages.warning(request, 'You already have a pending transfer request for this table.')
+            return redirect('server_table_detail', table_id=table_id)
+
+        models.TableTransferRequest.objects.create(
+            table=table,
+            requesting_server=request.user,
+            receiving_server=receiving_server,
+            status=models.TableTransferRequest.Status.PENDING
+        )
+
+        # create a notification for the receiving server so they see the request
+        latest_order = (
+            models.Order.objects.filter(table=table).order_by('-created_at').first()
+            or models.Order.objects.filter(restaurant=table.restaurant).order_by('-created_at').first()
+        )
+        if latest_order:
+            models.Notification.objects.create(
+                table=table,
+                order=latest_order,
+                notification_type=models.Notification.NotificationType.ORDER_READY,
+                message=f'{request.user.get_full_name()} wants to transfer Table {table.label} to you.'
+            )
+
+        messages.success(request, f'Transfer request sent to {receiving_server.get_full_name()}.')
+        return redirect('server_table_detail', table_id=table_id)
+
+    # get all active servers except the current one
+    available_servers = models.User.objects.filter(
+        role=models.User.Role.SERVER_HOST,
+        is_active_staff=True
+    ).exclude(id=request.user.id)
+
+    return render(request, 'restaurant/request_table_transfer.html', {
+        'table': table,
+        'available_servers': available_servers,
+    })
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def respond_table_transfer(request, transfer_id):
+    """
+    Receiving server accepts or declines a table transfer request.
+    On accept: table is reassigned to the receiving server.
+    On decline: table stays with the original server and they get a
+    notification that the request was declined.
+    """
+    transfer = get_object_or_404(models.TableTransferRequest, id=transfer_id)
+
+    # only the receiving server or a manager can respond to this
+    if request.user != transfer.receiving_server and not is_manager_or_owner(request.user):
+        messages.error(request, 'You do not have permission to respond to this transfer request.')
+        return redirect('server_host_view')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'accept':
+            # reassign the table to the receiving server
+            transfer.table.assigned_server = transfer.receiving_server
+            transfer.table.save()
+            transfer.status = models.TableTransferRequest.Status.ACCEPTED
+            transfer.save()
+            messages.success(request, f'You have accepted Table {transfer.table.label}.')
+
+        elif action == 'decline':
+            transfer.status = models.TableTransferRequest.Status.DECLINED
+            transfer.save()
+            # notify the requesting server that their request was declined
+            # using a generic notification message since there is no dedicated transfer notification type
+            latest_order = models.Order.objects.filter(
+                table=transfer.table
+            ).order_by('-created_at').first()
+            if latest_order:
+                models.Notification.objects.create(
+                    table=transfer.table,
+                    order=latest_order,
+                    notification_type=models.Notification.NotificationType.TABLE_ATTENTION,
+                    message=f'{transfer.receiving_server.get_full_name()} declined your transfer request for Table {transfer.table.label}.'
+                )
+            messages.info(request, f'Transfer request for Table {transfer.table.label} declined.')
+
+        return redirect('server_host_view')
+
+    return render(request, 'restaurant/respond_table_transfer.html', {'transfer': transfer})
+
+
+# ====================== GENERATE BILL / SERVER PAY VIEWS ======================
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def generate_bill(request, order_id):
+    """
+    Server-side bill generation view.
+    Shows a full bill preview with all items, subtotal, tax, and total.
+    The server can optionally enter a customer email to look up loyalty points
+    and apply a redemption discount before proceeding to Stripe payment.
+    Once paid via Stripe, the server is taken to the print/close page.
+    """
+    order = get_object_or_404(models.Order, id=order_id)
+    order_items = models.OrderItem.objects.filter(order=order).select_related('menu_item')
+
+    # look up customer by email if provided — used for loyalty points
+    loyalty_customer = None
+    loyalty_discount_applied = Decimal('0')
+
+    if request.method == 'POST' and 'lookup_email' in request.POST:
+        email = request.POST.get('customer_email', '').strip()
+        if email:
+            try:
+                lookup_user = models.User.objects.get(email=email, role=models.User.Role.CUSTOMER)
+                loyalty_customer = models.Customer.objects.get(user=lookup_user)
+                request.session[f'bill_loyalty_customer_{order_id}'] = loyalty_customer.pk
+            except (models.User.DoesNotExist, models.Customer.DoesNotExist):
+                messages.warning(request, 'No customer found with that email.')
+
+    elif request.method == 'POST' and 'apply_redemption' in request.POST:
+        loyalty_customer_pk = request.session.get(f'bill_loyalty_customer_{order_id}')
+        if loyalty_customer_pk:
+            loyalty_customer = get_object_or_404(models.Customer, pk=loyalty_customer_pk)
+            redeem = request.POST.get('redeem_points')
+            if redeem == 'yes':
+                if loyalty_customer.loyalty_points >= 2000:
+                    loyalty_discount_applied = Decimal('25')
+                    loyalty_customer.loyalty_points -= 2000
+                    order.points_redeemed = 2000
+                elif loyalty_customer.loyalty_points >= 1000:
+                    loyalty_discount_applied = Decimal('10')
+                    loyalty_customer.loyalty_points -= 1000
+                    order.points_redeemed = 1000
+                loyalty_customer.save()
+
+                # recalculate totals with the discount applied
+                taxable = order.sub_total - loyalty_discount_applied
+                order.loyalty_discount = loyalty_discount_applied
+                order.tax_amount = round(taxable * Decimal('0.05'), 2)
+                order.total_price = round(taxable + order.tax_amount, 2)
+                order.customer = loyalty_customer
+                order.save()
+
+                messages.success(request, f'Loyalty discount of ${loyalty_discount_applied} applied.')
+                return redirect('generate_bill', order_id=order_id)
+
+    else:
+        # check if a loyalty customer was previously looked up in this session
+        loyalty_customer_pk = request.session.get(f'bill_loyalty_customer_{order_id}')
+        if loyalty_customer_pk:
+            loyalty_customer = models.Customer.objects.filter(pk=loyalty_customer_pk).first()
+
+    return render(request, 'restaurant/generate_bill.html', {
+        'order': order,
+        'order_items': order_items,
+        'loyalty_customer': loyalty_customer,
+        'stripe_publishable_key': settings.STRIPE_PUBLISHABLE_KEY,
+        'table': order.table,
+    })
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def bill_payment_success(request, order_id):
+    """
+    Called after Stripe confirms payment for a server-generated bill.
+    Marks the order as paid, awards loyalty points to the customer if linked,
+    and redirects to the print/close page.
+    """
+    order = get_object_or_404(models.Order, id=order_id)
+    payment_intent_id = request.GET.get('payment_intent')
+
+    if not payment_intent_id:
+        messages.error(request, 'Payment confirmation failed.')
+        return redirect('generate_bill', order_id=order_id)
+
+    try:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+
+        if intent.status == 'succeeded':
+            order.payment_status = models.Order.PaymentStatus.PAID
+            order.order_status = models.Order.OrderStatus.COMPLETED
+
+            # award loyalty points to the linked customer based on subtotal
+            if order.customer and order.points_earned == 0:
+                points = int(order.sub_total) * 10
+                order.points_earned = points
+                order.customer.loyalty_points += points
+                order.customer.save()
+
+            order.save()
+
+            # save the payment record
+            models.Payment.objects.get_or_create(
+                transaction_id=payment_intent_id,
+                defaults={
+                    'order': order,
+                    'method': models.Payment.PaymentMethod.CREDIT_CARD,
+                    'amount': order.total_price,
+                    'status': 'succeeded',
+                }
+            )
+
+            # clear the loyalty session data for this order
+            request.session.pop(f'bill_loyalty_customer_{order_id}', None)
+
+            return redirect('bill_close_table', order_id=order_id)
+
+    except Exception as e:
+        messages.error(request, f'Payment verification failed: {str(e)}')
+
+    return redirect('generate_bill', order_id=order_id)
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def bill_close_table(request, order_id):
+    """
+    Final page after a successful bill payment.
+    Shows a receipt-style summary with option to print.
+    Server clicks Close Table which changes table status from OCCUPIED to NEEDS_CLEANING.
+    """
+    order = get_object_or_404(models.Order, id=order_id)
+    order_items = models.OrderItem.objects.filter(order=order).select_related('menu_item')
+    payment = models.Payment.objects.filter(order=order).last()
+
+    if request.method == 'POST' and 'close_table' in request.POST:
+        if order.table:
+            order.table.status = models.Table.Status.NEEDS_CLEANING
+            order.table.save()
+            messages.success(request, f'Table {order.table.label} marked as Needs Cleaning.')
+        return redirect('server_host_view')
+
+    return render(request, 'restaurant/bill_close_table.html', {
+        'order': order,
+        'order_items': order_items,
+        'payment': payment,
+    })
+
+
+# ====================== MANAGER NOTES VIEWS ======================
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def manager_note_list(request):
+    """List all active notes created by this manager for their restaurant."""
+    from django.utils import timezone as tz
+    if request.user.role == models.User.Role.OWNER:
+        notes = models.ManagerNote.objects.filter(
+            expires_at__gt=tz.now()
+        ).order_by('-created_at')
+    else:
+        restaurant = models.Restaurant.objects.filter(user=request.user).first()
+        notes = models.ManagerNote.objects.filter(
+            restaurant=restaurant,
+            expires_at__gt=tz.now()
+        ).order_by('-created_at')
+    return render(request, 'restaurant/manager_note_list.html', {'notes': notes})
+
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def manager_note_create(request):
+    """Manager creates a note targeted at a specific role or all staff."""
+    from django.utils import timezone as tz
+    import datetime
+
+    if request.user.role == models.User.Role.MANAGER:
+        restaurant = models.Restaurant.objects.filter(user=request.user).first()
+    else:
+        # owners can pick which restaurant the note applies to
+        restaurant_id = request.POST.get('restaurant_id') or request.GET.get('restaurant_id')
+        restaurant = get_object_or_404(models.Restaurant, pk=restaurant_id) if restaurant_id else models.Restaurant.objects.filter(is_active=True).first()
+        if not restaurant:
+            messages.error(request, 'No active restaurant found.')
+            return redirect('owner_view')
+
+    if request.method == 'POST':
+        message = request.POST.get('message', '').strip()
+        target_role = int(request.POST.get('target_role', 0))
+
+        if not message:
+            messages.error(request, 'Message cannot be empty.')
+        else:
+            models.ManagerNote.objects.create(
+                restaurant=restaurant,
+                created_by=request.user,
+                message=message,
+                target_role=target_role,
+                # note expires 24 hours from now
+                expires_at=tz.now() + datetime.timedelta(hours=24)
+            )
+            messages.success(request, 'Note created. It will be visible for 24 hours.')
+            return redirect('manager_view')
+
+    restaurants = models.Restaurant.objects.all() if request.user.role == models.User.Role.OWNER else None
+
+    # show all active notes so manager can edit or delete from the same page
+    if request.user.role == models.User.Role.OWNER:
+        active_notes = models.ManagerNote.objects.filter(
+            expires_at__gt=timezone.now()
+        ).order_by('-created_at')
+    else:
+        active_notes = models.ManagerNote.objects.filter(
+            restaurant=restaurant,
+            expires_at__gt=timezone.now()
+        ).order_by('-created_at')
+
+    return render(request, 'restaurant/manager_note_form.html', {
+        'target_choices': models.ManagerNote.TARGET_CHOICES,
+        'restaurant': restaurant,
+        'restaurants': restaurants,
+        'active_notes': active_notes,
+    })
+
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def manager_note_edit(request, note_id):
+    """Manager edits an existing note."""
+    note = get_object_or_404(models.ManagerNote, id=note_id)
+
+    if request.method == 'POST':
+        message = request.POST.get('message', '').strip()
+        target_role = int(request.POST.get('target_role', 0))
+        if not message:
+            messages.error(request, 'Message cannot be empty.')
+        else:
+            note.message = message
+            note.target_role = target_role
+            note.save()
+            messages.success(request, 'Note updated.')
+            return redirect('manager_view')
+
+    return render(request, 'restaurant/manager_note_form.html', {
+        'note': note,
+        'target_choices': models.ManagerNote.TARGET_CHOICES,
+        'restaurant': note.restaurant,
+    })
+
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def manager_note_delete(request, note_id):
+    """Manager deletes a note before its 24-hour expiry."""
+    note = get_object_or_404(models.ManagerNote, id=note_id)
+    if request.method == 'POST':
+        note.delete()
+        messages.success(request, 'Note deleted.')
+        return redirect('manager_view')
+    return render(request, 'restaurant/confirm_delete.html', {
+        'object_name': 'Manager Note',
+        'object_display': note.message[:60],
+        'cancel_url': reverse('manager_view'),
+        'delete_url': request.path
+    })
+
+
+# ====================== MENU ITEM AVAILABILITY TOGGLE ======================
+
+@login_required
+@user_passes_test(is_manager_or_owner)
+def toggle_menu_item_availability(request, restaurant_pk, menu_item_pk):
+    """
+    Manager or owner marks a menu item as available or unavailable
+    for a specific restaurant. The item shows as greyed out in the menu
+    with a Temporarily Unavailable label when is_available is False.
+    """
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+    menu_item = get_object_or_404(models.MenuItem, pk=menu_item_pk)
+    restaurant_menu_item, created = models.RestaurantMenuItem.objects.get_or_create(
+        restaurant=restaurant,
+        menu_item=menu_item,
+        defaults={'is_available': True}
+    )
+    if request.method == 'POST':
+        restaurant_menu_item.is_available = not restaurant_menu_item.is_available
+        restaurant_menu_item.save() 
+        status = 'available' if restaurant_menu_item.is_available else 'unavailable'
+        messages.success(request, f'{restaurant_menu_item.menu_item.name} marked as {status}.')
+        return redirect('menu_item_list')
+    return redirect('menu_item_list')
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def toggle_host_mode(request):
+    """
+    Toggles the server between Server mode and Host mode for the current session.
+    Host mode shows all tables but blocks order-taking actions.
+    Server mode shows only assigned tables with full order management.
+    """
+    if request.method == 'POST':
+        current = request.session.get('host_mode', False)
+        request.session['host_mode'] = not current
+    return redirect('server_host_view')
+
+
+@login_required
+@user_passes_test(is_server_or_manager)
+def request_table_attention(request, table_id):
+    """
+    Host sends a notification to the assigned server that a table needs attention.
+    The notification appears on the assigned server's dashboard.
+    Only available in host mode since servers manage their own tables directly.
+    """
+    table = get_object_or_404(models.Table, id=table_id)
+
+    if request.method == 'POST':
+        # only send the notification if there is a server assigned to this table
+        if table.assigned_server:
+            # find the latest order on this table to link the notification to
+            latest_order = models.Order.objects.filter(
+                table=table
+            ).order_by('-created_at').first()
+
+            if latest_order:
+                models.Notification.objects.create(
+                    table=table,
+                    order=latest_order,
+                    notification_type=models.Notification.NotificationType.TABLE_ATTENTION,
+                    message=f'Table {table.label} needs your attention. Requested by host {request.user.get_full_name() or request.user.username}.'
+                )
+                messages.success(request, f'Notification sent to {table.assigned_server.get_full_name()}.')
+            else:
+                messages.warning(request, f'Table {table.label} has no orders yet. Assign a server first so they can be notified.')
+        else:
+            messages.warning(request, 'No server assigned to this table.')
+
+        return redirect('server_table_detail', table_id=table_id)
+
+    return redirect('server_host_view')

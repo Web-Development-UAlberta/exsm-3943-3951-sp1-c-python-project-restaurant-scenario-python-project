@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Pre-Order Menu | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== PRE-ORDER MENU ====== #}
+{# customer browses the menu and adds items to their pre-order cart #}
+{# uses a separate session cart keyed to the reservation so it does not touch the main cart #}
+<div class="menu-page">
+
+    {# ====== LEFT: CATEGORY NAV ====== #}
+    <aside class="menu-categories">
+        <h3>Categories</h3>
+        <ul>
+            <li><a href="#all">All</a></li>
+            {% for category in categories %}
+                <li><a href="#cat-{{ category.pk }}">{{ category.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    {# ====== CENTER: MENU ITEMS ====== #}
+    <section class="menu-items" id="all">
+        <div style="margin-bottom:1rem; padding:0.75rem 1rem; background:var(--cream); border-radius:var(--radius-sm); border-left:3px solid var(--sage-green);">
+            <strong>Pre-ordering for:</strong> Reservation #{{ reservation.id }} on
+            {{ reservation.reservation_datetime|date:"M d, Y" }} at {{ reservation.reservation_datetime|time:"g:i A" }}
+        </div>
+        {% for category in categories %}
+            <div class="menu-category-section" id="cat-{{ category.pk }}">
+                <div class="menu-category-header">
+                    <span>{{ category.name }}</span>
+                </div>
+                {% for item in menuitems %}
+                    {% if item.category == category %}
+                    <div class="menu-item-card">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="menu-item-image">
+                        {% else %}
+                            <div class="menu-item-image-placeholder"></div>
+                        {% endif %}
+                        <div class="menu-item-info">
+                            <div class="menu-item-top">
+                                <h3 class="menu-item-title">{{ item.name }}</h3>
+                                <span class="menu-item-price">${{ item.price }}</span>
+                            </div>
+                            <p class="menu-item-desc">{{ item.description }}</p>
+                            <a href="{% url 'preorder_cart_add' reservation.pk item.pk %}" class="btn btn-sm cart-add-btn">
+                                + Add to Pre-Order
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </section>
+
+    {# ====== RIGHT: PRE-ORDER CART ====== #}
+    <aside class="cart-summary">
+        <h3>Your Pre-Order</h3>
+        {% if cart_items %}
+            <ul class="cart-item-list">
+                {% for item in cart_items %}
+                <li class="cart-item">
+                    <div class="cart-item-name">{{ item.name }}</div>
+                    <div class="cart-item-row">
+                        <span class="cart-item-total">${{ item.line_total }}</span>
+                        <div class="cart-item-controls">
+                            <a href="{% url 'preorder_cart_remove' reservation.pk item.item_id %}" class="cart-qty-btn cart-delete" title="Remove">🗑</a>
+                            <span class="cart-qty-display">x{{ item.quantity }}</span>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="cart-total">
+                <span>Subtotal</span>
+                <strong>${{ cart_total }}</strong>
+            </div>
+            {# confirm button submits the pre-order and creates PreOrder + PreOrderItems in the DB #}
+            <form method="POST">
+                {% csrf_token %}
+                <textarea name="special_instruction" placeholder="Any dietary notes or special requests" class="form-input" rows="2" style="margin:0.75rem 0;"></textarea>
+                <button type="submit" name="confirm_preorder" class="btn" style="width:100%; margin-top:0.5rem;">
+                    Confirm Pre-Order
+                </button>
+            </form>
+        {% else %}
+            <p class="cart-empty">No items added yet.</p>
+        {% endif %}
+        <a href="{% url 'reservation_preorder_prompt' reservation.pk %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+            Cancel
+        </a>
+    </aside>
+</div>
+
+{% endblock %}

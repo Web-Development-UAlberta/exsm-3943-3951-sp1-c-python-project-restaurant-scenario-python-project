@@ -93,7 +93,7 @@
                         <td>{{ item.menu_item__name }}</td>
                         <td>{{ item.menu_item__category__name|default:"Uncategorized" }}</td>
                         <td>{{ item.times_ordered }}</td>
-                        <td>${{ item.total_revenue }}</td>
+                        <td>${{ item.total_revenue|floatformat:2 }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

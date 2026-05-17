@@ -11,10 +11,16 @@
 
     <div class="dashboard-section-header">
         <h2>Restaurants</h2>
-        {# only owners can create new restaurants #}
-        {% if request.user.is_authenticated and request.user.role == 6 %}
-            <a href="{% url 'restaurant_create' %}" class="btn btn-sm">+ Add New Restaurant</a>
-        {% endif %}
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            {# only owners can create new restaurants #}
+            {% if request.user.is_authenticated and request.user.role == 6 %}
+                <a href="{% url 'restaurant_create' %}" class="btn btn-sm">+ Add New Restaurant</a>
+            {% endif %}
+            {# back button only shown to authenticated staff #}
+            {% if request.user.is_authenticated and request.user.role != 5 %}
+                <a href="{% url 'owner_view' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+            {% endif %}
+        </div>
     </div>
 
     {% if restaurants %}

@@ -71,8 +71,10 @@
                             <td>{{ reservation.party_size }}</td>
                             <td>{{ reservation.get_status_display }}</td>
                             <td>
-                                <a href="{% url 'reservation_detail' reservation.pk %}">View</a>
-                                <a href="{% url 'reservation_cancel' reservation.pk %}">Cancel</a>
+                                <div style="display:flex; gap:0.75rem; align-items:center;">
+                                    <a href="{% url 'reservation_detail' reservation.pk %}">View</a>
+                                    <a href="{% url 'reservation_cancel' reservation.pk %}" class="btn btn-sm btn-danger">Cancel</a>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

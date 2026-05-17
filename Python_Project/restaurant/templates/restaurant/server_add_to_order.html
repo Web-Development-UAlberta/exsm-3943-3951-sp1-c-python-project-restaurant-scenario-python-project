@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Items to Table {{ table.label }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== SERVER ADD TO ORDER ====== #}
+{# server browses the menu and adds items to the active order on this table #}
+{# uses a server-specific session cart keyed to the table so it does not conflict with the customer cart #}
+<div class="menu-page">
+
+    {# ====== LEFT: CATEGORY NAV ====== #}
+    <aside class="menu-categories">
+        <h3>Categories</h3>
+        <ul>
+            <li><a href="#all">All</a></li>
+            {% for category in categories %}
+                <li><a href="#cat-{{ category.pk }}">{{ category.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    {# ====== CENTER: MENU ITEMS ====== #}
+    <section class="menu-items" id="all">
+        <div style="margin-bottom:1rem; padding:0.75rem 1rem; background:var(--cream); border-radius:var(--radius-sm); border-left:3px solid var(--sage-green);">
+            <strong>Adding items to:</strong> Table {{ table.label }}
+            {% if active_order %}
+                — Order #{{ active_order.id }}
+            {% else %}
+                — New order will be created
+            {% endif %}
+        </div>
+        {% for category in categories %}
+            <div class="menu-category-section" id="cat-{{ category.pk }}">
+                <div class="menu-category-header">
+                    <span>{{ category.name }}</span>
+                </div>
+                {% for item in menuitems %}
+                    {% if item.category == category %}
+                    <div class="menu-item-card">
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="menu-item-image">
+                        {% else %}
+                            <div class="menu-item-image-placeholder"></div>
+                        {% endif %}
+                        <div class="menu-item-info">
+                            <div class="menu-item-top">
+                                <h3 class="menu-item-title">{{ item.name }}</h3>
+                                <span class="menu-item-price">${{ item.price }}</span>
+                            </div>
+                            <p class="menu-item-desc">{{ item.description }}</p>
+                            <a href="{% url 'server_cart_add' table.id item.pk %}" class="btn btn-sm cart-add-btn">
+                                + Add
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </section>
+
+    {# ====== RIGHT: SERVER CART ====== #}
+    <aside class="cart-summary">
+        <h3>Current Cart</h3>
+        {% if cart_items %}
+            <ul class="cart-item-list">
+                {% for item in cart_items %}
+                <li class="cart-item">
+                    <div class="cart-item-name">{{ item.name }}</div>
+                    <div class="cart-item-row">
+                        <span class="cart-item-total">${{ item.line_total }}</span>
+                        <div class="cart-item-controls">
+                            <a href="{% url 'server_cart_remove' table.id item.item_id %}" class="cart-qty-btn cart-delete" title="Remove">🗑</a>
+                            <span class="cart-qty-display">x{{ item.quantity }}</span>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="cart-total">
+                <span>Adding</span>
+                <strong>${{ cart_total }}</strong>
+            </div>
+            {# confirm sends these items to the existing order and redirects back to table detail #}
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" name="confirm_items" class="btn" style="width:100%; margin-top:1rem;">
+                    Send to Kitchen
+                </button>
+            </form>
+        {% else %}
+            <p class="cart-empty">No items added yet.</p>
+        {% endif %}
+        <a href="{% url 'server_table_detail' table.id %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+            Cancel
+        </a>
+    </aside>
+</div>
+
+{% endblock %}

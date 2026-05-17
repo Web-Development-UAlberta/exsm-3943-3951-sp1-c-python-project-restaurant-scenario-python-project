@@ -15,39 +15,39 @@
     </head>
     <body>
 
-    {# ====== HEADER & NAV ====== #}
-    <header>
-        <img src="{% static 'restaurant/Images/logo.png' %}" alt="Urban Spark Logo" width="120">
-        <h1>Urban Spark</h1>
-        <nav>
-            <ul>
-                {# Customer-facing links: only show to guests and logged in customers #}
-                {% if not user.is_authenticated or user.role == 5 %}
-                    <li><a href="{% url 'index' %}">Home</a></li>
-                    <li><a href="{% url 'menu_item_list' %}">Menu</a></li>
-                    <li><a href="{% url 'reservation_create' %}">Book a Table</a></li>
-                    <li><a href="{% url 'menu_item_list' %}">Place an Order</a></li>
-                {% endif %}
-                {# Customer account links — only for logged in customers #}
-                {% if user.is_authenticated and user.role == 5 %}
-                    <li><a href="{% url 'customer_dashboard' %}">My Account</a></li>
-                    <li><a href="{% url 'order_list' %}">My Orders</a></li>
-                    <li><a href="{% url 'reservation_list' %}">My Reservations</a></li>
-                {% endif %}
-                {# Staff dashboard link — only for logged in staff #}
-                {% if user.is_authenticated and user.role != 5 %}
-                    <li><a href="{% url 'staff_index' %}">Dashboard</a></li>
-                {% endif %}
-                {# Toggle between logout and login depending on auth state #}
-                {% if user.is_authenticated %}
-                    <li class="logout-button"><a href="{% url 'user_logout' %}">Logout</a></li>
-                {% else %}
-                    <li class="logout-button"><a href="{% url 'customer_login' %}">Login</a></li>
-                    <li><a href="{% url 'staff_login' %}">Staff View</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
+        {# ====== HEADER AND NAV ====== #}
+        <header>
+            <img src="{% static 'restaurant/Images/logo.png' %}" alt="Urban Spark Logo" width="120">
+            <h1>Urban Spark</h1>
+            <nav>
+                <ul>
+                    {# customer facing links: only show to guests and logged in customers #}
+                    {% if not user.is_authenticated or user.role == 5 %}
+                        <li><a href="{% url 'index' %}">Home</a></li>
+                        <li><a href="{% url 'menu_item_list' %}">Menu</a></li>
+                        <li><a href="{% url 'reservation_create' %}">Book a Table</a></li>
+                        <li><a href="{% url 'menu_item_list' %}">Place an Order</a></li>
+                    {% endif %}
+                    {# customer account links, only for logged in customers #}
+                    {% if user.is_authenticated and user.role == 5 %}
+                        <li><a href="{% url 'customer_dashboard' %}">My Account</a></li>
+                        <li><a href="{% url 'order_list' %}">My Orders</a></li>
+                        <li><a href="{% url 'reservation_list' %}">My Reservations</a></li>
+                    {% endif %}
+                    {# staff dashboard link, only for logged in staff #}
+                    {% if user.is_authenticated and user.role != 5 %}
+                        <li><a href="{% url 'staff_index' %}">Dashboard</a></li>
+                    {% endif %}
+                    {# toggle between logout and login depending on auth state #}
+                    {% if user.is_authenticated %}
+                        <li class="logout-button"><a href="{% url 'user_logout' %}">Logout</a></li>
+                    {% else %}
+                        <li class="logout-button"><a href="{% url 'customer_login' %}">Login</a></li>
+                        <li><a href="{% url 'staff_login' %}">Staff View</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </header>
 
         {# ====== FLASH MESSAGES ====== #}
         {# Django messages framework: success, error, warning shown here #}
@@ -59,25 +59,38 @@
         </div>
         {% endif %}
 
+        {# ====== MANAGER NOTES BAR ====== #}
+        {# shows active notes from managers targeted at the logged-in user's role #}
+        {# notes are injected by the manager_notes context processor in context_processors.py #}
+        {# notes are scoped to the user's restaurant and auto-expire after 24 hours #}
+        {# customers never see manager notes since they are internal staff communications #}
+        {% if user.is_authenticated and user.role != 5 %}
+            {% for note in active_manager_notes %}
+            <div class="manager-note-bar">
+                <p>📌 <strong>Note from Management:</strong> {{ note.message }}</p>
+            </div>
+            {% endfor %}
+        {% endif %}
+
         {# ====== MAIN CONTENT BLOCK ====== #}
-        {# Each template fills this block with its own content #}
+        {# each template fills this block with its own content #}
         <main>
             {% block content %}
             {% endblock %}
         </main>
 
         {# ====== FOOTER ====== #}
-        {# Footer is sticky, will stays at the bottom even on short pages via flexbox on body in CSS #}
+        {# footer is sticky, stays at the bottom even on short pages via flexbox on body in CSS #}
         <footer>
             <p>&copy; 2026 Urban Spark. All rights reserved.</p>
-            {# Last updated date is only visible to authenticated staff — not relevant to customers #}
+            {# last updated date is only visible to authenticated staff, not relevant to customers #}
             {% if user.is_authenticated and user.role != 5 %}
                 <p>Last Updated: <time datetime="2026-05-01">May 01, 2026</time></p>
             {% endif %}
         </footer>
 
         {# ====== SCROLL POSITION SCRIPT ====== #}
-        {# Saves scroll position before cart actions so the page returns to the same spot after redirect #}
+        {# saves scroll position before cart actions so the page returns to the same spot after redirect #}
         <script>
             // if a scroll position was saved from a previous cart action, restore it and clear it
             if (sessionStorage.getItem('scroll')) {
@@ -93,7 +106,7 @@
         </script>
 
         {# ====== CATEGORY HIGHLIGHT SCRIPT ====== #}
-        {# Highlights the active category in the sidebar as the user scrolls through the menu #}
+        {# highlights the active category in the sidebar as the user scrolls through the menu #}
         <script>
             // when the user scrolls, check which category section is on screen and highlight it in the sidebar
             window.addEventListener('scroll', function() {
@@ -117,8 +130,8 @@
         </script>
 
         {# ====== CATEGORY CLICK HIGHLIGHT SCRIPT ====== #}
-        {# Handles the case where the page does not need to scroll to reach a category #}
-        {# Without this, clicking Sides or Desserts on a short page would never trigger the scroll event #}
+        {# handles the case where the page does not need to scroll to reach a category #}
+        {# without this, clicking Sides or Desserts on a short page would never trigger the scroll event #}
         <script>
             // when a category link is clicked, immediately mark it as active without waiting for a scroll event
             document.querySelectorAll('.menu-categories ul li a').forEach(function(link) {

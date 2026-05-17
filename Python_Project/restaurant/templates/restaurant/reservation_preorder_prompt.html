@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Pre-Order | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== PRE-ORDER PROMPT ====== #}
+{# shown after reservation confirmation and accessible from reservation detail #}
+{# customer can add items they want ready when they arrive #}
+<div class="auth-box">
+    <h2>Pre-Order Your Meal</h2>
+    <p style="color:var(--sage-green); font-size:0.9rem; margin-bottom:1.5rem;">
+        Reservation #{{ reservation.id }} at {{ reservation.restaurant.name }} on
+        {{ reservation.reservation_datetime|date:"M d, Y" }} at {{ reservation.reservation_datetime|time:"g:i A" }}
+        for {{ reservation.party_size }} people.
+    </p>
+
+    {% if existing_preorder %}
+    {# customer has already pre-ordered, show their current pre-order items #}
+    <div class="order-status-info" style="margin-bottom:1.5rem;">
+        <p><strong>Your current pre-order:</strong></p>
+        {% for item in existing_preorder.items.all %}
+            <p>{{ item.quantity }}x {{ item.menu_item.name }} — ${{ item.unit_price }}</p>
+        {% endfor %}
+        {% if existing_preorder.special_instruction %}
+            <p style="margin-top:0.5rem;"><strong>Note:</strong> {{ existing_preorder.special_instruction }}</p>
+        {% endif %}
+    </div>
+    <a href="{% url 'preorder_menu' reservation.pk %}" class="auth-button" style="display:block; text-align:center; text-decoration:none; margin-bottom:0.75rem;">
+        Update Pre-Order
+    </a>
+    {% else %}
+    {# no pre-order yet, prompt customer to start one #}
+    <p style="margin-bottom:1.5rem;">
+        Want your food ready when you arrive? Add your meal now and we will have it prepared at your arrival time.
+    </p>
+    <a href="{% url 'preorder_menu' reservation.pk %}" class="auth-button" style="display:block; text-align:center; text-decoration:none; margin-bottom:0.75rem;">
+        Yes, Pre-Order My Meal
+    </a>
+    {% endif %}
+
+    <a href="{% url 'reservation_detail' reservation.pk %}" style="display:block; text-align:center; font-size:0.9rem;">
+        Skip for Now
+    </a>
+</div>
+
+{% endblock %}

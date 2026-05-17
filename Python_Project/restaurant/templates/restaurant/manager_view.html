@@ -4,6 +4,11 @@
 
 {% block content %}
 
+<p>DEBUG notes: {{ active_manager_notes|length }}</p>
+{% for note in active_manager_notes %}
+    <p>{{ note.message }} | expires: {{ note.expires_at }} | now: {% now "Y-m-d H:i" %}</p>
+{% endfor %}
+
 {# ====== MANAGER DASHBOARD ====== #}
 {# central hub for managers to access all management features #}
 <div class="dashboard-section">
@@ -14,10 +19,8 @@
 
     {# quick links to all manager accessible sections #}
     <section class="quick-links">
-        
         <h3>Manage</h3>
         <ul>
-            
             <li><a href="{% url 'staff_list' %}">Staff</a></li>
             <li><a href="{% url 'customer_list' %}">Customers</a></li>
             <li><a href="{% url 'staff_invite_list' %}">Staff Invites</a></li>
@@ -27,27 +30,22 @@
             <li><a href="{% url 'category_list' %}">Categories</a></li>
             <li><a href="{% url 'tag_list' %}">Tags</a></li>
             <li><a href="{% url 'reporting_view' %}">Reports</a></li>
+            <li><a href="{% url 'manager_note_create' %}">Post a Note</a></li>
         </ul>
     </section>
 
-    {# inventory is scoped per restaurant, show a link for each active location #}
-    {# restaurants context is passed from the manager_view in views.py #}
+    {# per-restaurant sections: each restaurant gets its own card with inventory, tables, and floor plan #}
     {% if restaurants %}
-    <section class="quick-links">
-        <h3>Inventory</h3>
-        <ul>
-            {% for restaurant in restaurants %}
-                <li><a href="{% url 'inventory_list' restaurant.pk %}">{{ restaurant.name }}</a></li>
-            {% endfor %}
-        </ul>
-        <h3 class="tables-floor-plans">Tables & Floor Plans</h3>
-        <ul>
-            {% for restaurant in restaurants %}
-                <li><a href="{% url 'table_list' restaurant.pk %}">Tables - {{ restaurant.name }}</a></li>
-                <li><a href="{% url 'table_layout_edit' restaurant.pk %}">Floor Plan - {{ restaurant.name }}</a></li>
-            {% endfor %}
-        </ul>
-    </section>
+        {% for restaurant in restaurants %}
+        <section class="quick-links" style="margin-top:1.5rem;">
+            <h3>{{ restaurant.name }}</h3>
+            <ul>
+                <li><a href="{% url 'inventory_list' restaurant.pk %}">Inventory</a></li>
+                <li><a href="{% url 'table_list' restaurant.pk %}">Tables</a></li>
+                <li><a href="{% url 'table_layout_edit' restaurant.pk %}">Floor Plan</a></li>
+            </ul>
+        </section>
+        {% endfor %}
     {% endif %}
 
 </div>

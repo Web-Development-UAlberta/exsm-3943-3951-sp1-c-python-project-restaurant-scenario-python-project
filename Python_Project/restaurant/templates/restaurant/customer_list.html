@@ -4,9 +4,13 @@
 
 {% block content %}
 
+{# ====== CUSTOMER LIST ====== #}
+{# manager/owner view showing all registered customers with loyalty points #}
 <div class="dashboard-section">
     <div class="dashboard-section-header">
         <h2>All Customers</h2>
+        {# back button goes to owner or manager dashboard depending on role #}
+        <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
     </div>
 
     {% if customers %}
@@ -27,9 +31,8 @@
                     <td>{{ customer.user.email }}</td>
                     <td>{{ customer.phone_number }}</td>
                     <td>{{ customer.loyalty_points }} pts</td>
-                    <td>
+                    <td class="table-actions">
                         <a href="{% url 'customer_detail' customer.pk %}">View</a>
-                        &nbsp;|&nbsp;
                         <a href="{% url 'customer_delete' customer.pk %}" class="btn btn-sm btn-danger">Delete</a>
                     </td>
                 </tr>

@@ -5,14 +5,15 @@
 {% block content %}
 
 {# ====== INVENTORY LIST ====== #}
-{# manager only view showing all ingredients for this restaurant with stock levels #}
+{# manager/owner view showing all ingredients for this restaurant with stock levels #}
 <div class="dashboard-section">
 
     <div class="dashboard-section-header">
         <h2>Inventory: {{ restaurant.name }}</h2>
-        <div style="display:flex; gap:0.75rem;">
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
             <a href="{% url 'inventory_create' restaurant.pk %}" class="btn btn-sm">+ Add Ingredient</a>
-            <a href="{% url 'restaurant_detail' restaurant.pk %}" class="btn btn-sm btn-secondary">Back to Restaurant</a>
+            {# back button goes to owner or manager dashboard, not restaurant detail #}
+            <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
         </div>
     </div>
 
@@ -57,7 +58,7 @@
                             <span class="badge-active">OK</span>
                         {% endif %}
                     </td>
-                    <td style="display:flex; gap:0.5rem; align-items:center;">
+                    <td class="table-actions">
                         <a href="{% url 'inventory_edit' item.pk %}">Edit</a>
                         <a href="{% url 'inventory_confirm_delete' item.pk %}" class="btn btn-sm btn-danger">Delete</a>
                     </td>
@@ -66,7 +67,7 @@
             </tbody>
         </table>
     {% else %}
-        <p class="dashboard-empty">No ingredients found.</p>
+        <p class="dashboard-empty">No ingredients found. Add your first ingredient to start tracking inventory.</p>
     {% endif %}
 
 </div>

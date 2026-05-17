@@ -4,10 +4,16 @@
 
 {% block content %}
 
+{# ====== STAFF INVITE LIST ====== #}
+{# manager/owner view showing all pending and used staff invites #}
 <div class="dashboard-section">
     <div class="dashboard-section-header">
         <h2>Staff Invites</h2>
-        <a href="{% url 'staff_invite_create' %}" class="btn btn-sm">+ Add New Invite</a>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="{% url 'staff_invite_create' %}" class="btn btn-sm">+ Add New Invite</a>
+            {# back button goes to owner or manager dashboard depending on role #}
+            <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+        </div>
     </div>
 
     {% if invites %}
