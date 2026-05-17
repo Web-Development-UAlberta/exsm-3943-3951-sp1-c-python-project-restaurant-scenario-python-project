@@ -1,0 +1,119 @@
+{# Read only floor plan view for reservation booking modal #}
+
+<div class="floor-plan-legend" >
+    <span class="legend-item status-1 status">Available</span>
+    <span class="legend-item status-3 status">Reserved</span>
+</div>
+
+<div class="floor-plan-container">
+    
+
+    <div class="floor-plan-grid" id="floor-plan-grid">
+        {# walls #}
+        {# top wall left to entrance #}
+        <div class="floor-element wall"
+            style="left: 0; 
+            top: 0; 
+            width:calc(6 * var(--cell-size));
+            height: var(--cell-size);">
+        </div>
+
+        {# top wall entrance to right #}
+        <div class="floor-element wall"
+            style="left: calc(9 * var(--cell-size)); 
+            top: 0; 
+            width:calc(7 * var(--cell-size));
+            height: var(--cell-size);">
+        </div>
+
+        {# bottom wall left to center  #}
+        <div class="floor-element wall"
+        style="left: 0; 
+            top: calc(10 * var(--cell-size)); 
+            width:calc(6 * var(--cell-size));
+            height: var(--cell-size);">
+        </div>
+
+        {# bottom wall center to right  #}
+        <div class="floor-element wall"
+            style="left: calc(11 * var(--cell-size)); 
+            top: calc(10 * var(--cell-size)); 
+            width:calc(16 * var(--cell-size));
+            height: var(--cell-size);">
+        </div>
+
+        {# left wall #}
+        <div class="floor-element wall"
+            style="left: 0; 
+            top: 0; 
+            width: var(--cell-size);
+            height: calc(13 * var(--cell-size));">
+        </div>
+
+        {# right wall #}
+        <div class="floor-element wall"
+            style="left: calc(15 * var(--cell-size)); 
+            top: 0; 
+            width: var(--cell-size);
+            height: calc(13 * var(--cell-size));">
+        </div>
+
+        {# immovable  entrance, bar, kitchen, restrooms #}
+        <div class="floor-element entrance"
+            style="left: calc(6 * var(--cell-size));
+            top: calc(0 * var(--cell-size)); 
+            width: calc(3 * var(--cell-size)); 
+            height: calc(1 * var(--cell-size));">
+            ENTRANCE
+        </div>
+
+        <div class="floor-element bar"
+            style="left: calc(9 * var(--cell-size));
+            top: calc(2 * var(--cell-size)); 
+            width: calc(2 * var(--cell-size)); 
+            height: calc(5 * var(--cell-size));">
+            BAR
+        </div>
+
+        <div class="floor-element kitchen"
+            style="left: calc(0 * var(--cell-size));
+            top: calc(12 * var(--cell-size)); 
+            width: calc(6 * var(--cell-size)); 
+            height: calc(1 * var(--cell-size));">
+            🍳 KITCHEN
+        </div>
+
+        <div class="floor-element restroom"
+            style="left: calc(10 * var(--cell-size));
+            top: calc(12 * var(--cell-size)); 
+            width: calc(6 * var(--cell-size)); 
+            height:  calc(1 * var(--cell-size));">
+            🚻 RESTROOMS
+        </div>
+
+        {# table format #}
+        {% if grid_data %}
+            {% for table in grid_data %}
+            <div class="floor-plan-table-readonly floor-plan-table status-{{ table.status }}"
+                data-table-id="{{ table.table_id }}"
+                data-label="{{ table.label }}"
+                data-seats="{{ table.seats }}"
+                data-status="{{ table.status }}"
+                data-x="{{ table.x }}"
+                data-y="{{ table.y }}"
+                data-w="{{ table.w }}"
+                data-h="{{ table.h }}"
+                style="
+                    left: calc({{ table.x }} * var(--cell-size));
+                    top: calc({{ table.y }} * var(--cell-size));
+                    width: calc({{table.w}} * var(--cell-size));
+                    height: calc({{table.h}} * var(--cell-size));">
+                <span class="table-label">{{ table.label }}</span>
+                <span class="table-seats">{{ table.seats }} seats</span>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>No floor plan saved yet</p>
+        {% endif %}
+    </div>
+</div>

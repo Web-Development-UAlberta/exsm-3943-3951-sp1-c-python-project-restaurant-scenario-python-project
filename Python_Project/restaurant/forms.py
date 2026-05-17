@@ -170,7 +170,7 @@ class ReservationForm(forms.ModelForm):
     """
     class Meta:
         model = models.Reservation
-        fields = ['restaurant', 'table', 'reservation_datetime', 'party_size',
+        fields = ['restaurant','reservation_datetime', 'table', 'party_size',
                   'guest_name', 'guest_email', 'guest_phone_number']
         labels = {
             'reservation_datetime': 'Date and Time',

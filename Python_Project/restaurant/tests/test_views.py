@@ -1989,6 +1989,92 @@ def test_layout_save_rejects_get_request(client, restaurant, manager_user):
     assert response.status_code == 405
 
 
+# ====================== TABLE LAYOUT VIEW TESTS ======================
+
+@pytest.mark.django_db
+def test_table_layout_view_accessible_without_loing(client, restaurant):
+    """Read only floor plan view is publicly accessible"""
+    response = client.get(reverse('table_layout_view', args=[restaurant.pk]))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_tabe_layout_view_handles_missing_datetime(client, restaurant):
+    """View handles missing datetime parameter"""
+    response = client.get(reverse('table_layout_view', args=[restaurant.pk]))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_tabe_layout_view_handles_no_saved_layout(client, restaurant):
+    """View handles restaurant with no saved floor plan"""
+    response = client.get(reverse('table_layout_view', args=[restaurant.pk]))
+    assert response.status_code == 200
+    
+@pytest.mark.django_db
+def test_tabe_layout_view_marks_reserved_tables(client, restaurant, table):
+    """Tables with conflicting reservations are marked as status 3 (Reserved)"""
+    # create a layout so grid_exists
+    TableLayout.objects.create(
+        restaurant=restaurant,
+        grid_data=[{
+            'table_id': table.id,
+            'label': table.label,
+            'seats': table.seats,
+            'status': table.status,
+            'x': 2, 'y': 2, 'w': 1, 'h': 1 
+        }],
+        uploaded_by=None
+    )   
+    
+    # create conflicting reservaation
+    reservation_time = timezone.now().replace(
+        hour=18, minute=0, second=0, microsecond=0
+    ) + timezone.timedelta(days=1)
+    
+    Reservation.objects.create(
+        restaurant=restaurant,
+        table=table,
+        reservation_datetime=reservation_time,
+        party_size=2,
+        status=Reservation.Status.CONFIRMED,
+        deposit_amount=10,
+        guest_name="Test Guest",
+        guest_email="guest@test.com",
+        guest_phone_number="4035551234",
+    )
+    
+    datetime_str = reservation_time.strftime('%Y-%m-%dT%H:%M')
+    response = client.get(
+        reverse('table_layout_view',args=[restaurant.pk]),
+        {'datetime':datetime_str}
+    )
+    
+    assert response.status_code == 200
+    assert response.context['grid_data'][0]['status'] == 3
+    
+@pytest.mark.django_db
+def test_table_layout_view_marks_available_tables(client, restaurant, table):
+    """Tables without conflicts are marked as status 1 (Available)"""
+    TableLayout.objects.create(
+        restaurant=restaurant,
+        grid_data=[{
+            'table_id': table.id,
+            'label': table.label,
+            'seats': table.seats,
+            'status': table.status,
+            'x': 2, 'y': 2, 'w': 1, 'h': 1 
+        }],
+        uploaded_by=None
+    )
+    
+    datetime_str = '2099-01-01T12:00'
+    response = client.get(
+        reverse('table_layout_view', args=[restaurant.pk]),
+        {'datetime': datetime_str}
+    )
+    
+    assert response.status_code == 200
+    assert response.context['grid_data'][0]['status'] == 1
+    
 # ====================== NOTIFICATION VIEWS ======================
 
 @pytest.mark.django_db

@@ -22,25 +22,109 @@
 
         {# render each field individually so non-field errors don't get rendered twice #}
         {% for field in form %}
-            <p>
-                {{ field.label_tag }}
-                {{ field }}
-                {# show field level errors below each field #}
-                {% if field.errors %}
-                    {% for error in field.errors %}
-                        <span style="color:#8B2A1A; font-size:0.85rem;">{{ error }}</span>
-                    {% endfor %}
-                {% endif %}
-            </p>
+            {% if field.name == 'table' %}
+                <p>
+                    <label for="id_table">
+                        Table
+                        <a href="#" id="view-floor-plan-link" style="display:none;">(View Floor Plan)</a>
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                        {% for error in field.errors %}
+                            <span>{{error}}</span>
+                        {% endfor %}
+                    {% endif %}
+                </p>
+            {% else %}
+                <p>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {# show field level errors below each field #}
+                    {% if field.errors %}
+                        {% for error in field.errors %}
+                            <span style="color:#8B2A1A; font-size:0.85rem;">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </p>
+            {% endif %}
         {% endfor %}
 
         <button type="submit" class="auth-button">Confirm Reservation</button>
     </form>
+
+    {# Floor Plan Modal #}
+    <div id="floor-plan-modal">
+        <div id="floor-plan-modal-backdrop"></div>
+        <div id="floor-plan-modal-content">
+            <div id="floor-plan-modal-header">
+                <h3 id="floor-plan-modal-title">Floor Plan</h3>
+                <button id="floor-plan-modal-close" class="btn btn-secondary btn-sm">Close</button>
+            </div>
+            <div id="floor-plan-modal-body">
+                {# floor plan load here #}
+            </div>
+        </div>
+    </div>
 
     {# back link returns to reservations list #}
     <a href="{% url 'reservation_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
         Back to Reservations
     </a>
 </div>
+
+<script>
+    const restaurantSelect = document.getElementById('id_restaurant');
+    const viewFloorPlanLink = document.getElementById('view-floor-plan-link');
+    const modal = document.getElementById('floor-plan-modal');
+    const modalBody = document.getElementById('floor-plan-modal-body');
+    const modalTitle = document.getElementById('floor-plan-modal-title');
+    const modalClose = document.getElementById('floor-plan-modal-close');
+    const datetimeInput = document.getElementById('id_reservation_datetime');
+
+    function checkShowFloorPlanLink() {
+        if (restaurantSelect.value && datetimeInput.value) {
+            viewFloorPlanLink.style.display = 'inline';
+        } else {
+            viewFloorPlanLink.style.display = 'none';
+        }
+    }
+
+    restaurantSelect.addEventListener('change', checkShowFloorPlanLink);
+    datetimeInput.addEventListener('change', checkShowFloorPlanLink);
+
+    // open modal and fetch floor plan
+    viewFloorPlanLink.addEventListener('click', function(e){
+        e.preventDefault();
+        const restaurantPk = restaurantSelect.value;
+        const restaurantName = restaurantSelect.options[restaurantSelect.selectedIndex].text;
+        const datetime = encodeURIComponent(datetimeInput.value);
+
+        modalTitle.textContent = restaurantName + '- Floor plan';
+        modalBody.innerHTML = '<p>Loading...</p>';
+        modal.style.display = 'flex';
+
+        fetch(`/restaurant/${restaurantPk}/layout/view/?datetime=${datetime}`)
+            .then(response => response.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+            })
+            .catch(err => {
+                modalBody.innerHTML = '<p>Unable to load floor plan.</p>';
+                console.error('Floor plan load failed:', err);
+            });
+    });
+
+    // close modal
+    modalClose.addEventListener('click', function(){
+        modal.style.display = 'none';
+        modalBody.innerHTML = '';
+    });
+
+    // close modal by clicking backdrop
+    document.getElementById('floor-plan-modal-backdrop').addEventListener('click', function(){
+        modal.style.display = 'none';
+        modalBody.innerHTML = '';
+    });
+</script>
 
 {% endblock %}
