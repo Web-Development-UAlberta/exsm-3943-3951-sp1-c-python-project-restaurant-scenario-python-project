@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="reporting-page">
+
+    {# ====== PAGE HEADER ====== #}
+    <div class="dashboard-section-header" style="margin-bottom: 1.5rem;">
+        <h2>Reports: {{ restaurant.name }}</h2>
+
+        {# owners can switch between restaurant locations #}
+        {% if request.user.role == 6 %}
+        <form method="GET">
+            <select name="restaurant_id" onchange="this.form.submit()" style="padding:0.4rem 0.75rem; border-radius:6px; border:1px solid #ccc; font-family: var(--font-body);">
+                {% for r in restaurants %}
+                    <option value="{{ r.pk }}" {% if r.pk == restaurant.pk %}selected{% endif %}>
+                        {{ r.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    {# ====== REPORT 1: MENU ITEM POPULARITY ====== #}
+    <div class="dashboard-section" style="margin-bottom: 2rem;">
+        <div class="dashboard-section-header">
+            <h3>Menu Item Popularity Ranking</h3>
+        </div>
+
+        {# ====== FILTER AND SORT FORM ====== #}
+        {# all filters submit via GET so the URL stays shareable and bookmarkable #}
+        <form method="GET" class="reporting-filters">
+            {# preserve restaurant selection for owners when filtering #}
+            {% if request.user.role == 6 %}
+                <input type="hidden" name="restaurant_id" value="{{ restaurant.pk }}">
+            {% endif %}
+
+            <div class="filter-group">
+                <label for="category">Category</label>
+                <select name="category" id="category">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.pk }}" {% if selected_category == category.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="date_from">From</label>
+                <input type="date" name="date_from" id="date_from" value="{{ date_from|default:'' }}">
+            </div>
+
+            <div class="filter-group">
+                <label for="date_to">To</label>
+                <input type="date" name="date_to" id="date_to" value="{{ date_to|default:'' }}">
+            </div>
+
+            <div class="filter-group">
+                <label for="sort">Sort By</label>
+                <select name="sort" id="sort">
+                    <option value="times_ordered" {% if sort_by == 'times_ordered' %}selected{% endif %}>Times Ordered</option>
+                    <option value="revenue" {% if sort_by == 'revenue' %}selected{% endif %}>Total Revenue</option>
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Item Name</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-sm">Apply</button>
+
+            {# clear all filters: resets back to default view #}
+            <a href="{% url 'reporting_view' %}{% if request.user.role == 6 %}?restaurant_id={{ restaurant.pk }}{% endif %}" class="btn btn-sm btn-secondary">Clear</a>
+        </form>
+
+        {% if popularity %}
+            <table class="orders-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Times Ordered</th>
+                        <th>Total Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in popularity %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ item.menu_item__name }}</td>
+                        <td>{{ item.menu_item__category__name|default:"Uncategorized" }}</td>
+                        <td>{{ item.times_ordered }}</td>
+                        <td>${{ item.total_revenue|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="margin-top: 1rem;">No orders found for the selected filters.</p>
+        {% endif %}
+    </div>
+
+    {# ====== REPORT 2: CURRENT INVENTORY STATUS ====== #}
+    <div class="dashboard-section">
+        <div class="dashboard-section-header">
+            <h3>Current Inventory Status</h3>
+            <a href="{% url 'inventory_list' restaurant.pk %}" class="btn btn-sm btn-secondary">Manage Inventory</a>
+        </div>
+
+        {# show low stock alert banner if any items are below reorder level #}
+        {% if low_stock %}
+            <div class="low-stock-alert" style="margin-bottom: 1rem;">
+                <p><strong>Low Stock Alert:</strong> {{ low_stock.count }} ingredient(s) at or below reorder level.</p>
+            </div>
+        {% endif %}
+
+        {% if inventory_items %}
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th>Current Level</th>
+                        <th>Unit</th>
+                        <th>Reorder Level</th>
+                        <th>Last Updated</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory_items %}
+                    <tr>
+                        <td>{{ item.ingredient_name }}</td>
+                        <td>{{ item.current_level }}</td>
+                        <td>{{ item.unit }}</td>
+                        <td>{{ item.reorder_level }}</td>
+                        <td>{{ item.last_updated|date:"M d, Y" }}</td>
+                        <td>
+                            {% if item.current_level <= item.reorder_level %}
+                                <span class="badge-inactive">Low Stock</span>
+                            {% else %}
+                                <span class="badge-active">OK</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No inventory items found for this restaurant.</p>
+        {% endif %}
+    </div>
+
+    {# back link goes to the right dashboard depending on role #}
+    <div style="margin-top: 1.5rem;">
+        {% if request.user.role == 6 %}
+            <a href="{% url 'owner_view' %}">Back to Owner Dashboard</a>
+        {% else %}
+            <a href="{% url 'manager_view' %}">Back to Manager Dashboard</a>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

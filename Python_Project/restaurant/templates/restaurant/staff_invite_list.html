@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Invites | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== STAFF INVITE LIST ====== #}
+{# manager/owner view showing all pending and used staff invites #}
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Staff Invites</h2>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="{% url 'staff_invite_create' %}" class="btn btn-sm">+ Add New Invite</a>
+            {# back button goes to owner or manager dashboard depending on role #}
+            <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    {% if invites %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invite in invites %}
+                <tr>
+                    <td>{{ invite.email }}</td>
+                    <td>{{ invite.get_role_display }}</td>
+                    <td>
+                        {% if invite.is_used %}
+                            <span class="badge-inactive">Used</span>
+                        {% else %}
+                            <span class="badge-active">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ invite.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        {% if not invite.is_used %}
+                            {# Only unused invites can be revoked #}
+                            <a href="{% url 'staff_invite_delete' invite.pk %}" class="btn btn-sm btn-danger">Revoke</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No invites found.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

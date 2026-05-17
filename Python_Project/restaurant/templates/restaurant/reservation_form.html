@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Book a Table | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== RESERVATION FORM ====== #}
+{# available to both guests and logged in customers #}
+{# guest fields like name, email, and phone are shown in the form when not logged in #}
+<div class="auth-box">
+    <h2>Book a Table</h2>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+
+        {# render non-field errors as styled messages instead of default bullet list #}
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <p class="auth-message error">{{ error }}</p>
+            {% endfor %}
+        {% endif %}
+
+        {# render each field individually so non-field errors don't get rendered twice #}
+        {% for field in form %}
+            <p>
+                {{ field.label_tag }}
+                {{ field }}
+                {# show field level errors below each field #}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                        <span style="color:#8B2A1A; font-size:0.85rem;">{{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+            </p>
+        {% endfor %}
+
+        <button type="submit" class="auth-button">Confirm Reservation</button>
+    </form>
+
+    {# back link returns to reservations list #}
+    <a href="{% url 'reservation_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Back to Reservations
+    </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Bill for Table {{ table.label }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== GENERATE BILL ====== #}
+{# server-side bill view, shown when server clicks Generate Bill on table detail #}
+{# server can look up customer email to apply loyalty points before charging #}
+<div class="review-page">
+
+    {# ====== LEFT: LOYALTY LOOKUP + PAYMENT ====== #}
+    <section class="review-form-section">
+        <h2>Bill for Table {{ table.label }}</h2>
+
+        {# ====== LOYALTY POINTS LOOKUP ====== #}
+        <div class="review-field-group">
+            <h3>Customer Loyalty Points (Optional)</h3>
+            <p style="font-size:0.85rem; color:#888; margin-bottom:0.75rem;">
+                Enter the customer's email to look up their account and apply or earn points.
+            </p>
+            <form method="POST" class="auth-form" style="margin-bottom:0;">
+                {% csrf_token %}
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="email" name="customer_email" placeholder="customer@email.com"
+                           value="{% if loyalty_customer %}{{ loyalty_customer.user.email }}{% endif %}"
+                           class="form-input" style="flex:1;">
+                    <button type="submit" name="lookup_email" class="btn btn-sm btn-secondary">Look Up</button>
+                </div>
+            </form>
+
+            {# show loyalty account details if a customer was found #}
+            {% if loyalty_customer %}
+            <div class="order-status-info" style="margin-top:0.75rem;">
+                <p><strong>{{ loyalty_customer.user.first_name }} {{ loyalty_customer.user.last_name }}</strong></p>
+                <p>Balance: <strong>{{ loyalty_customer.loyalty_points }} pts</strong></p>
+                {% if loyalty_customer.loyalty_points >= 1000 %}
+                    <p style="color:var(--burnt-orange);">
+                        Eligible for
+                        {% if loyalty_customer.loyalty_points >= 2000 %}$25 off (2000 pts){% else %}$10 off (1000 pts){% endif %}
+                    </p>
+                    <form method="POST" style="margin-top:0.5rem;">
+                        {% csrf_token %}
+                        <label style="font-size:0.85rem;">
+                            <input type="radio" name="redeem_points" value="yes"> Apply redemption discount
+                        </label>
+                        <label style="font-size:0.85rem; display:block; margin-top:0.25rem;">
+                            <input type="radio" name="redeem_points" value="no" checked> Earn points only (no discount)
+                        </label>
+                        <button type="submit" name="apply_redemption" class="btn btn-sm" style="margin-top:0.5rem;">Apply</button>
+                    </form>
+                {% else %}
+                    <p style="font-size:0.85rem; color:#888;">Points will be awarded after payment.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ====== STRIPE PAYMENT ====== #}
+        <div class="review-field-group">
+            <h3>Payment Method</h3>
+            <p style="font-size:0.85rem; color:#888; margin-bottom:1rem;">
+                We accept Visa and Mastercard. Card details are handled securely by Stripe.
+            </p>
+            <div id="card-element" style="padding:0.75rem; border:1px solid var(--border-mid); border-radius:var(--radius-sm); background:var(--cream);"></div>
+            <div id="card-errors" style="color:#8B2A1A; font-size:0.85rem; margin-top:0.5rem;"></div>
+        </div>
+
+        <button id="pay-button" class="auth-button" style="width:100%; margin-top:1rem;">
+            Pay ${{ order.total_price }}
+        </button>
+    </section>
+
+    {# ====== RIGHT: BILL SUMMARY ====== #}
+    <aside class="review-summary">
+        <h3>Bill Summary</h3>
+        <p style="font-size:0.8rem; color:#888; margin-bottom:0.75rem;">
+            {{ table.restaurant.name }} — Table {{ table.label }}
+        </p>
+
+        <ul class="review-item-list">
+            {% for item in order_items %}
+            <li class="review-item">
+                <div class="review-item-info">
+                    <span class="review-item-name">{{ item.menu_item.name }}</span>
+                    <span class="review-item-qty">x{{ item.quantity }}</span>
+                </div>
+                <span class="review-item-total">${{ item.unit_price }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="review-totals">
+            <div class="review-total-row">
+                <span>Subtotal</span>
+                <span>${{ order.sub_total }}</span>
+            </div>
+            {% if order.loyalty_discount > 0 %}
+            <div class="review-total-row">
+                <span>Loyalty Discount</span>
+                <span style="color:var(--burnt-orange);">-${{ order.loyalty_discount }}</span>
+            </div>
+            {% endif %}
+            {% if order.tax_amount %}
+            <div class="review-total-row">
+                <span>Tax (5% GST)</span>
+                <span>${{ order.tax_amount }}</span>
+            </div>
+            {% endif %}
+            <div class="review-total-row review-total-final">
+                <strong>Total</strong>
+                <strong>${{ order.total_price }}</strong>
+            </div>
+        </div>
+    </aside>
+
+</div>
+
+{# ====== STRIPE JS ====== #}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    var stripe = Stripe('{{ stripe_publishable_key }}');
+    var elements = stripe.elements();
+
+    var cardElement = elements.create('card', {
+        style: {
+            base: { fontFamily: 'Lora, serif', fontSize: '16px', color: '#2C2A22' }
+        }
+    });
+    cardElement.mount('#card-element');
+
+    cardElement.on('change', function(event) {
+        document.getElementById('card-errors').textContent = event.error ? event.error.message : '';
+    });
+
+    document.getElementById('pay-button').addEventListener('click', async function() {
+        var button = document.getElementById('pay-button');
+        button.disabled = true;
+        button.textContent = 'Processing...';
+
+        var response = await fetch('{% url "create_payment_intent" order.id %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({})
+        });
+
+        var data = await response.json();
+
+        if (data.error) {
+            document.getElementById('card-errors').textContent = data.error;
+            button.disabled = false;
+            button.textContent = 'Pay ${{ order.total_price }}';
+            return;
+        }
+
+        var result = await stripe.confirmCardPayment(data.clientSecret, {
+            payment_method: { card: cardElement }
+        });
+
+        if (result.error) {
+            document.getElementById('card-errors').textContent = result.error.message;
+            button.disabled = false;
+            button.textContent = 'Pay ${{ order.total_price }}';
+        } else if (result.paymentIntent.status === 'succeeded') {
+            window.location.href = '{% url "bill_payment_success" order.id %}?payment_intent=' + result.paymentIntent.id;
+        }
+    });
+</script>
+
+{% endblock %}

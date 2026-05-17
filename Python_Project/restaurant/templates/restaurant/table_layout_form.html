@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Floor - {{restaurant.name}}
+{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>{{restaurant.name}} - Floor Plan</h2>
+        <a href="{% url 'table_create' restaurant.pk %}" class="btn btn-sm">+ Add Table</a>
+    </div>
+
+    <div class="floor-plan-controls">
+        <div class="floor-plan-legend">
+            <span class="legend-item status-1 status">Available</span>
+            <span class="legend-item status-2 status">Occupied</span>
+            <span class="legend-item status-3 status">Reserved</span>
+            <span class="legend-item status-4 status">Needs Cleaning</span>
+        </div>
+        <div class="floor-plan-buttons">
+            <button id="toggle-edit-btn" class="btn btn-secondary">Edit Layout</button>
+            <button id="save-btn" class="save-btn" style="display:none;">Save Layout</button>
+        </div>
+    </div>
+
+
+        <div class="floor-plan-workspace">
+
+            <div class="table-palette" id="table-palette" style="display:none;">
+
+                <h4>Tables</h4>
+                    {% for table in tables %}
+                    <div class="palette-table"
+                        draggable="true"
+                        data-table-id="{{ table.id }}"
+                        data-label="{{ table.label}}"
+                        data-seats="{{ table.seats }}"
+                        data-status="{{ table.status }}">
+                        <span>{{ table.label }}</span>
+                        <span>{{ table.seats }}</span>
+                    </div>
+                    {% endfor %}
+            </div>
+
+                {# Floor Grid #}
+                <div class="floor-plan-container">
+
+                    <div class="floor-plan-grid" id="floor-plan-grid">
+                        {# walls #}
+                        {# top wall left to entrance #}
+                        <div class="floor-element wall"
+                            style="left: 0; 
+                            top: 0; 
+                            width:calc(6 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# top wall entrance to right #}
+                        <div class="floor-element wall"
+                        style="left: calc(9 * var(--cell-size)); 
+                            top: 0; 
+                            width:calc(7 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# bottom wall left to center  #}
+                        <div class="floor-element wall"
+                        style="left: 0; 
+                            top: calc(10 * var(--cell-size)); 
+                            width:calc(6 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# bottom wall center to right  #}
+                        <div class="floor-element wall"
+                            style="left: calc(11 * var(--cell-size)); 
+                            top: calc(10 * var(--cell-size)); 
+                            width:calc(16 * var(--cell-size));
+                            height: var(--cell-size);">
+                        </div>
+
+                        {# left wall #}
+                        <div class="floor-element wall"
+                            style="left: 0; 
+                            top: 0; 
+                            width: var(--cell-size);
+                            height: calc(13 * var(--cell-size));">
+                        </div>
+
+                        {# right wall #}
+                        <div class="floor-element wall"
+                            style="left: calc(15 * var(--cell-size)); 
+                            top: 0; 
+                            width: var(--cell-size);
+                            height: calc(13 * var(--cell-size));">
+                        </div>
+
+                        {# immovable  entrance, bar, kitchen, restrooms #}
+                        <div class="floor-element entrance"
+                            style="left: calc(6 * var(--cell-size));
+                            top: calc(0 * var(--cell-size)); 
+                            width: calc(3 * var(--cell-size)); 
+                            height: calc(1 * var(--cell-size));">
+                            ENTRANCE
+                        </div>
+
+                        <div class="floor-element bar"
+                            style="left: calc(9 * var(--cell-size));
+                            top: calc(2 * var(--cell-size)); 
+                            width: calc(2 * var(--cell-size)); 
+                            height: calc(5 * var(--cell-size));">
+                            BAR
+                        </div>
+
+                        <div class="floor-element kitchen"
+                            style="left: calc(0 * var(--cell-size));
+                            top: calc(12 * var(--cell-size)); 
+                            width: calc(6 * var(--cell-size)); 
+                            height: calc(1 * var(--cell-size));">
+                            🍳 KITCHEN
+                        </div>
+
+                        <div class="floor-element restroom"
+                            style="left: calc(10 * var(--cell-size));
+                            top: calc(12 * var(--cell-size)); 
+                            width: calc(6 * var(--cell-size)); 
+                            height:  calc(1 * var(--cell-size));">
+                            🚻 RESTROOMS
+                        </div>
+
+
+
+                        {# table format #}
+                        {% for table in grid_data %}
+                        <div class="floor-plan-table status-{{ table.status }}"
+                            data-table-id="{{ table.table_id }}"
+                            data-label="{{ table.label }}"
+                            data-seats="{{ table.seats }}"
+                            data-status="{{ table.status }}"
+                            data-x="{{ table.x }}"
+                            data-y="{{ table.y }}"
+                            data-w="{{ table.w }}"
+                            data-h="{{ table.h }}"
+                            style="
+                                left: calc({{ table.x }} * var(--cell-size));
+                                top: calc({{ table.y }} * var(--cell-size));
+                                width: calc({{table.w}} * var(--cell-size));
+                                height: calc({{table.h}} * var(--cell-size));">
+                            <span class="table-label">{{ table.label }}</span>
+                            <span class="table-seats">{{ table.seats }} seats</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+
+                {# Status Modal shows when clicking a table #}
+            <div class="status-modal" id="status-modal" style="display:none;">
+                <div class="status-modal-content">
+                    <h4 id="modal-table-label">Update Status</h4>
+                    <div class="status-options">
+                        {% for value, label in status_choices %}
+                        <button class="btn status-btn status-{{ value }}" data-status="{{ value }}">
+                            {{ label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <button class="btn btn-secondary" id="modal-close">Cancel</button>
+                </div>
+            </div>
+        </div>
+</div>
+
+    {# JavaScript #}
+    <script>
+        const SAVE_URL = "{% url 'table_layout_save' restaurant.pk %}";
+        const STATUS_URL = "/restaurant/table/";
+        const CSRF_TOKEN = "{{ csrf_token }}";
+        const CELL_SIZE = 50;
+
+        // valid dining zones (tables can only be placed in these areas)
+        const DINING_ZONE = [
+        {minX: 1, maxX: 11, minY: 1, maxY: 10 }, // main dining area left of bar
+        {minX: 11, maxX: 15, minY: 1, maxY: 9}, // right of bar area
+        ];
+        
+        function isInDiningArea(x, y, w, h) {
+            return DINING_ZONE.some(zone =>
+            x >= zone.minX && 
+            x + w <= zone.maxX && 
+            y>= zone.minY && 
+            y + h <= zone.maxY
+            );
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+        let isEditMode = false;
+        let currentTableEl = null; // table element currently selected in modal
+        let draggedTableID = null; // table being dragged from palette
+        const palette = document.getElementById('table-palette');
+
+        document.getElementById('toggle-edit-btn').addEventListener('click', function() {
+            isEditMode = !isEditMode;
+            
+            const saveBtn = document.getElementById('save-btn');
+            const tables = document.querySelectorAll('.floor-plan-table');
+
+            if (isEditMode) {
+                this.textContent = 'Cancel';
+                this.classList.replace('btn-secondary', 'btn-danger');
+                palette.style.display = 'block';
+                saveBtn.style.display = 'inline-block';
+                tables.forEach(t => t.setAttribute('draggable', true));
+            } else {
+                this.textContent = 'Edit Layout';
+                this.classList.replace('btn-danger', 'btn-secondary');
+                palette.style.display = 'none';
+                saveBtn.style.display = 'none';
+                tables.forEach(t => t.removeAttribute('draggable'));
+            }
+        });
+
+        // Drag from Palette
+        document.querySelectorAll('.palette-table').forEach(function(el) {
+            el.addEventListener('dragstart', function(e) {
+                draggedTableID = this.dataset.tableId;
+                e.dataTransfer.setData('source', 'palette');
+                e.dataTransfer.setData('tableId', draggedTableID);
+                e.dataTransfer.setData('label', this.dataset.label);
+                e.dataTransfer.setData('seats', this.dataset.seats);
+                e.dataTransfer.setData('status', this.dataset.status);
+            });
+            el.addEventListener('dragend', function(e) {
+                if (e.dataTransfer.dropEffect === 'none') {
+                    const tableId = this.dataset.tabelId;
+                    const onGrid = grid.querySelector(`][data-table-id=${tableId}"]`);
+                    if (!onGrid) {
+                        this.classList.remove('palette-placed');
+                    }
+                }
+            });
+        });
+
+        // Drag Placed Tables //
+        document.querySelectorAll('.floor-plan-table').forEach(function(el) { 
+            el.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('source', 'grid');
+                e.dataTransfer.setData('tableId', this.dataset.tableId);
+            });
+        });
+
+        // Drop on grid 
+        const grid = document.getElementById('floor-plan-grid');
+
+        grid.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        grid.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const source = e.dataTransfer.getData('source');
+            const tableId = e.dataTransfer.getData('tableId');
+
+            // which grid cell was dropped on
+            const rec = grid.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rec.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rec.top) / CELL_SIZE);
+
+            if (source === 'palette') {
+                // places new table from palette onto grid
+                const label = e.dataTransfer.getData('label');
+                const seats = parseInt(e.dataTransfer.getData('seats'));
+                const status = e.dataTransfer.getData('status');
+
+                let w = 1, h = 1;
+                if (seats <=4) { w=1; h = 1; }
+                else if (seats <=6 ) { w=2, h=1; }
+                else { w = 2; h = 2; }
+
+                // check dining zone first
+                if (!isInDiningArea(x, y, w, h)) {
+                    alert('Tables can only be placed in the dining area.')
+                }
+
+                // table overlap checks
+                if (hasCollision(x,y,w,h,null)) {
+                    alert('A table already occupies that space.  Select a different posistion');
+                    return;
+                }
+
+                // checks if table exists
+                const existing = grid.querySelector(`[data-table-id="${tableId}"]`);
+                if (existing) existing.remove();
+
+                // create new table element
+                const tableEl = createTableElement(tableId, label, seats, status, x, y, w, h);
+                grid.appendChild(tableEl);
+                attachTableListeners(tableEl);
+
+                // grey out palette card if table is place on grid
+                const paletteCard = palette.querySelector(`[data-table-id="${tableId}"]`);
+                if (paletteCard) paletteCard.classList.add('palette-placed');
+
+            } else if (source === 'grid') {
+                // reposition existing table
+                const tableEl = grid.querySelector(`[data-table-id="${tableId}"]`);
+                if (tableEl) {
+                    const w = parseInt(tableEl.dataset.w);
+                    const h = parseInt(tableEl.dataset.h);
+
+                    const oldX = parseInt(tableEl.dataset.x);
+                    const oldY = parseInt(tableEl.dataset.y);
+
+                    // check dining zone first
+                    if (!isInDiningArea(x, y, w, h)) {
+                    alert('Tables can only be placed in the dining area.');
+                    tableEl.style.left = `calc(${oldX} * var(--cell-size))`;
+                    tableEl.style.top = `calc(${oldY} * var(--cell-size))`;
+                    return;
+                }
+
+                    // check for overlapping tables
+                    if (hasCollision(x,y, w, h, tableId)) {
+                        alert('A table already occupies that space.  Select a different position.');
+                        tableEl.style.left = `calc(${oldX} * var(--cell-size))`;
+                        tableEl.style.top = `calc(${oldY} * var(--cell-size))`;
+                        return;
+                    }
+                    tableEl.dataset.x = x;
+                    tableEl.dataset.y = y;
+                    tableEl.style.left = `calc(${x} * var(--cell-size))`;
+                    tableEl.style.top = `calc(${y} * var(--cell-size))`;
+                }
+            }
+        });
+
+        // Drop on Palette (remove from grid)
+        palette.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        palette.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const source = e.dataTransfer.getData('source');
+            const tableId = e.dataTransfer.getData('tableId');
+
+            if (source === 'grid') {
+                const tableEl = grid.querySelector(`[data-table-id="${tableId}"]`);
+                if (tableEl) tableEl.remove();
+
+                const paletteCard = palette.querySelector(`[data-table-id="${tableId}"]`);
+                if (paletteCard) paletteCard.classList.remove('palette-placed');
+            }
+        });
+
+        grid.addEventListener('click', function(e) {
+            if(isEditMode) return;
+            const tableEl = e.target.closest('.floor-plan-table');
+            if (tableEl) openStatusModal(tableEl);
+        });
+
+
+        // Create Table Element 
+        function createTableElement(tableId, label, seats, status, x, y, w, h) {
+            const div = document.createElement('div');
+            div.className = `floor-plan-table status-${status}`;
+            div.dataset.tableId = tableId;
+            div.dataset.label = label;
+            div.dataset.seats = seats;
+            div.dataset.status = status;
+            div.dataset.x = x;
+            div.dataset.y = y;
+            div.dataset.w = w;
+            div.dataset.h = h;
+            div.style.left = `calc(${x} * var(--cell-size))`;
+            div.style.top = `calc(${y} * var(--cell-size))`;
+            div.style.width = `calc(${w} * var(--cell-size))`;
+            div.style.height = `calc(${h} * var(--cell-size))`;
+            div.innerHTML = `<span class="table-label">${label}</span><span class="table-seats">${seats} seats</span>`;
+            if (isEditMode) div.setAttribute('draggable', 'true');
+            return div;
+        }
+
+        // no overlapping tables rule 
+        function hasCollision(x, y, w, h, excludeTableId) {
+            const existingTables = grid.querySelectorAll('.floor-plan-table');
+            
+
+            for (const table of existingTables) {
+                // exclude the table you are currently trying to move from the for loop
+                if (table.dataset.tableId === String(excludeTableId)) continue;
+
+                const tx = parseInt(table.dataset.x);
+                const ty = parseInt(table.dataset.y);
+                const tw = parseInt(table.dataset.w);
+                const th = parseInt(table.dataset.h);
+
+                // skips elements that don't have valid positions (walls, entrance, kitchen, etc.)
+                if (isNaN(tx) || isNaN(ty) || isNaN(tw) || isNaN(th)) continue;
+
+                const xOverlap = x < tx + tw && x + w > tx;
+                const yOverlap = y < ty + th && y + h > ty;
+
+                if (xOverlap && yOverlap) return true;
+            }
+
+            // hardcode immovables (walls, entrance, bar kitchen)
+            const immovables = [
+            {x: 9, y:2, w:2, h:5}, // bar
+            ];
+
+            for (const el of immovables) {
+                const xOverlap = x < el.x + el.w && x + w > el.x;
+                const yOverlap = y < el.y + el.h && y + h > el.y;
+                if (xOverlap && yOverlap) return true;
+            }
+            return false;
+        }
+
+        // Add listeners to table 
+        function attachTableListeners(el) {
+            el.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('source', 'grid');
+                e.dataTransfer.setData('tableId', this.dataset.tableId);
+            });
+            el.addEventListener('click', function(e) {
+                if (!isEditMode) openStatusModal(this);
+            });
+        }
+
+        // attach listeners to existing grid tables when page loads 
+        document.querySelectorAll('.floor-plan-table').forEach(attachTableListeners);
+
+        // grey out palette cards for tables already on the grid on page load 
+        document.querySelectorAll('.floor-plan-table').forEach(function(tableEl) {
+            const paletteCard = palette.querySelector(`[data-table-id="${tableEl.dataset.tableId}"]`);
+            if (paletteCard) paletteCard.classList.add('palette-placed');
+        });
+
+        // Status modal
+        function openStatusModal(tableEl) {
+            currentTableEl = tableEl;
+            document.getElementById('modal-table-label').textContent = tableEl.dataset.label;
+            document.getElementById('status-modal').style.display = 'flex';
+        }
+
+        document.getElementById('modal-close').addEventListener('click', function() {
+            document.getElementById('status-modal').style.display = 'none';
+            currentTableEl = null;
+        });
+
+        document.querySelectorAll('.status-btn').forEach(function(btn) {
+            btn.addEventListener('click', function () {
+                if (!currentTableEl) return;
+                const newStatus = this.dataset.status;
+                const tableId = currentTableEl.dataset.tableId;
+
+                // update status via fetch
+                fetch(`/table/${tableId}/update_status/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': CSRF_TOKEN,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `status=${newStatus}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        //colour update
+                        currentTableEl.className = `floor-plan-table status-${newStatus}`;
+                        currentTableEl.dataset.status = newStatus;
+                        currentTableEl.innerHTML = `
+                        <span class="table-label">${currentTableEl.dataset.label}</span>
+                        <span class="table-seats">${currentTableEl.dataset.seats} seats</span>`;
+                        document.getElementById('status-modal').style.display = 'none';
+                        currentTableEl = null
+                    }
+                })
+                .catch(err => console.error('Status update failed:', err));
+            });
+        });
+
+        // Save Layout 
+        document.getElementById('save-btn').addEventListener('click', function() {
+            const tables = document.querySelectorAll('.floor-plan-table');
+            const tablesData = [];
+
+            tables.forEach(function(t) {
+                tablesData.push({
+                    table_id: parseInt(t.dataset.tableId),
+                    x: parseInt(t.dataset.x),
+                    y: parseInt(t.dataset.y),
+                });
+            });
+
+            fetch(SAVE_URL, {
+                method:'POST',
+                headers: {
+                    'X-CSRFToken': CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ tables: tablesData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('toggle-edit-btn').click();
+                    alert('Layout saved successfully!');
+                } else {
+                    alert ('Error saving layout: ' + data.error);
+                }
+            })
+            .catch(err => console.error('Save failed:', err));
+        });
+    });
+    </script>
+
+{% endblock %}

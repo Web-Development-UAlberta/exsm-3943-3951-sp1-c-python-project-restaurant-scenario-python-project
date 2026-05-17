@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Owner Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== OWNER DASHBOARD ====== #}
+{# central hub for owners to access all management features across all locations #}
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Owner Dashboard</h2>
+    </div>
+    <p style="margin-bottom:1.5rem;">Welcome, {{ request.user.first_name }}!</p>
+
+    {# quick links to all owner accessible sections #}
+    <section class="quick-links">
+        <h3>Manage</h3>
+        <ul>
+            <li><a href="{% url 'restaurant_list' %}">Restaurants</a></li>
+            <li><a href="{% url 'staff_list' %}">Staff</a></li>
+            <li><a href="{% url 'staff_invite_list' %}">Staff Invites</a></li>
+            <li><a href="{% url 'customer_list' %}">Customers</a></li>
+            <li><a href="{% url 'order_list' %}">Orders</a></li>
+            <li><a href="{% url 'reservation_list' %}">Reservations</a></li>
+            <li><a href="{% url 'menu_item_list' %}">Menu Items</a></li>
+            <li><a href="{% url 'category_list' %}">Categories</a></li>
+            <li><a href="{% url 'tag_list' %}">Tags</a></li>
+            <li><a href="{% url 'reporting_view' %}">Reports</a></li>
+            <li><a href="{% url 'manager_note_create' %}">Post a Note</a></li>
+        </ul>
+    </section>
+
+    {# per-restaurant sections: each restaurant gets its own card with inventory, tables, and floor plan #}
+    {# restaurants context is passed from owner_view in views.py #}
+    {% if restaurants %}
+        {% for restaurant in restaurants %}
+        <section class="quick-links" style="margin-top:1.5rem;">
+            <h3>{{ restaurant.name }}</h3>
+            <ul>
+                <li><a href="{% url 'inventory_list' restaurant.pk %}">Inventory</a></li>
+                <li><a href="{% url 'table_list' restaurant.pk %}">Tables</a></li>
+                <li><a href="{% url 'table_layout_edit' restaurant.pk %}">Floor Plan</a></li>
+            </ul>
+        </section>
+        {% endfor %}
+    {% endif %}
+
+</div>
+
+{% endblock %}

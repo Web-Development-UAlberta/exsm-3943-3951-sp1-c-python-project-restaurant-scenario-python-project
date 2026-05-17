@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if customer_form %}Edit Profile{% else %}Sign Up{% endif %} | Urban Spark{% endblock %}
+
+{% block content %}
+
+    {# Will be using the names in the css file for editing #}
+    <div class="auth-box">
+        <h2>{% if customer_form %}Edit Profile{% else %}Sign Up{% endif %}</h2>
+
+        <form method="POST" class="auth-form">
+            {% csrf_token %}
+            {% if customer_form %}
+                {# render fields individually so we can apply consistent label and error styling #}
+                {% for field in customer_form %}
+                <div class="form-field-group">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        {% for error in field.errors %}
+                            <p class="form-error">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="auth-button">Save Changes</button>
+                {# back_url is role-aware — customers go to their dashboard, managers/owners go to customer detail #}
+                <a href="{{ back_url|default:'/customer/dashboard/' }}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+                    Back to My Account
+                </a>
+            {% else %}
+                {{ form.as_p }}
+                <button type="submit" class="auth-button">Sign Up</button>
+            {% endif %}
+        </form>
+
+        {% if not customer_form %}
+            <p class="auth-redirect">Already have an account? <a href="{% url 'customer_login' %}">Login</a></p>
+        {% endif %}
+    </div>
+
+{% endblock %}

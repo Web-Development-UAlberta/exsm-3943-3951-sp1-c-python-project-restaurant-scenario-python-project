@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Categories | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== CATEGORY LIST ====== #}
+{# manager and owner only view for managing menu categories #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>Categories</h2>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="{% url 'category_create' %}" class="btn btn-sm">+ Add New Category</a>
+            {# back button goes to owner or manager dashboard depending on role #}
+            {% if back_url %}
+                <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if categories %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td>{{ category.name }}</td>
+                    <td>{{ category.created_at|date:"M d, Y" }}</td>
+                    <td class="table-actions">
+                        <a href="{% url 'category_detail' category.pk %}">View</a>
+                        <a href="{% url 'category_edit' category.pk %}">Edit</a>
+                        <a href="{% url 'category_confirm_delete' category.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No categories found.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

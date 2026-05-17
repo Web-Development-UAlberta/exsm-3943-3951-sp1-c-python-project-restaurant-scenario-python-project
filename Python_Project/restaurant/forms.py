@@ -1,0 +1,348 @@
+from django import forms
+from restaurant import models
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import get_user_model
+from django.forms import modelformset_factory
+
+User = get_user_model() # this will return me the 'user' model that we have configured in our database
+
+class RestaurantForm(forms.ModelForm):
+    """
+    Restaurant create/edit form.
+    Owner enters a plain text address instead of raw lat/lng.
+    Geocoding happens in the view when the form is saved.
+    """
+    address = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'e.g. 300 Centre St, Calgary, AB',
+            'class': 'form-input'
+        }),
+        help_text='Enter the full street address. Coordinates will be set automatically.'
+    )
+
+    class Meta:
+        model = models.Restaurant
+        fields = ['name', 'address', 'phone_number', 'opening_time', 'closing_time']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-input'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'opening_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
+            'closing_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
+        }
+        
+
+class CustomerSignUpForm(UserCreationForm):
+    phone_number = forms.CharField(max_length=10)
+    address = forms.CharField(widget=forms.Textarea)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email', 'password1', 'password2', 'phone_number', 'address']
+        # ^ Using the inbuilt fields from AbstractUser class along with my manually set up fields
+
+
+class CustomerEditForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=100)
+    last_name = forms.CharField(max_length=100)
+    email = forms.EmailField()
+    password1 = forms.CharField(
+        label='New Password',
+        widget=forms.PasswordInput,
+        required=False  # not required so customer can update other fields without changing password
+    )
+    password2 = forms.CharField(
+        label='Confirm New Password',
+        widget=forms.PasswordInput,
+        required=False
+    )
+
+    class Meta:
+        model = models.Customer
+        fields = ['phone_number', 'address']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+
+        # only validate passwords if the customer is trying to change them
+        if password1 or password2:
+            if password1 != password2:
+                raise forms.ValidationError('Passwords do not match.')
+        return cleaned_data
+
+
+class StaffSignUpForm(UserCreationForm):
+    phone_number = forms.CharField(max_length=10)
+    address = forms.CharField(widget=forms.Textarea)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email', 'password1', 'password2', 'phone_number', 'address']
+        # ^ Using the inbuilt fields from AbstractUser class along with my manually set up fields
+
+class AddStaffForm(forms.ModelForm):
+    class Meta:
+        model = models.StaffInvite
+        fields = ['email', 'role']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'staff@urbanspark.com'}),
+            'role': forms.Select(attrs={'class': 'form-input'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # exclude Customer from staff invite roles — customers register through normal signup
+        self.fields['role'].choices = [
+            (value, label) for value, label in models.User.Role.choices
+            if value != models.User.Role.CUSTOMER
+        ]
+        
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = models.Category
+        fields = ['name']
+
+class TableForm(forms.ModelForm):
+    class Meta:
+        model = models.Table
+        fields = ['label', 'seats']
+        
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = models.Tag
+        fields = ['name']
+        
+class MenuItemForm(forms.ModelForm):
+    class Meta:
+        model = models.MenuItem
+        fields = ['category', 'name', 'description', 'price', 'image']
+
+
+class OrderForm(forms.ModelForm):
+    POINTS_CHOICES = [
+        (False, 'Do not use loyalty points'),
+        (True, 'Use loyalty points for a discount'),
+    ]
+
+    redeem_points = forms.ChoiceField(
+        choices=POINTS_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-input', 'id': 'id_redeem_points'}),
+        required=False,
+        label='Loyalty Points'
+    )
+
+    class Meta:
+        model = models.Order
+        fields = ['order_type', 'delivery_address', 'special_instruction']
+        widgets = {
+            'delivery_address': forms.TextInput(attrs={
+                'placeholder': 'Required for delivery orders only',
+                'class': 'review-input'
+            }),
+            'special_instruction': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Any special requests or dietary notes',
+                'class': 'review-input'
+            }),
+        }
+
+    # redefining the inbuild clean() method
+    def clean(self):
+        cleaned_data = super().clean()
+        order_type = cleaned_data.get('order_type')
+        delivery_address = cleaned_data.get('delivery_address')
+
+        # delivery address is required if order type is delivery
+        if order_type == models.Order.OrderType.DELIVERY and not delivery_address:
+            raise forms.ValidationError('Delivery address is required for delivery orders.')
+
+        return cleaned_data
+    
+
+
+class ReservationForm(forms.ModelForm):
+    """
+    Reservation form.
+    Guest fields (name, email, phone) are hidden when a logged-in customer is passed via `user`.
+    Party of 2 can book a table of 4 — table must seat at least as many as party size.
+    """
+    class Meta:
+        model = models.Reservation
+        fields = ['restaurant', 'table', 'reservation_datetime', 'party_size',
+                  'guest_name', 'guest_email', 'guest_phone_number']
+        labels = {
+            'reservation_datetime': 'Date and Time',
+        }
+        widgets = {
+            'reservation_datetime': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'review-input'
+            }),
+            'party_size': forms.NumberInput(attrs={
+                'class': 'review-input',
+                'min': 1,
+                'max': 20
+            }),
+            'guest_name': forms.TextInput(attrs={
+                'placeholder': 'Required if not logged in',
+                'class': 'review-input'
+            }),
+            'guest_email': forms.EmailInput(attrs={
+                'placeholder': 'Required if not logged in',
+                'class': 'review-input'
+            }),
+            'guest_phone_number': forms.TextInput(attrs={
+                'placeholder': 'Required if not logged in',
+                'class': 'review-input'
+            }),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+        # If logged in customer, hide guest fields, they're not required
+        if user and user.is_authenticated and user.role == models.User.Role.CUSTOMER:
+            self.fields['guest_name'].required = False
+            self.fields['guest_name'].widget = forms.HiddenInput()
+            self.fields['guest_email'].required = False
+            self.fields['guest_email'].widget = forms.HiddenInput()
+            self.fields['guest_phone_number'].required = False
+            self.fields['guest_phone_number'].widget = forms.HiddenInput()
+        else:
+            # Guests must provide contact info
+            self.fields['guest_name'].required = True
+            self.fields['guest_email'].required = True
+            self.fields['guest_phone_number'].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        reservation_datetime = cleaned_data.get('reservation_datetime')
+        party_size = cleaned_data.get('party_size')
+        table = cleaned_data.get('table')
+        restaurant = cleaned_data.get('restaurant')
+
+        from django.utils import timezone
+        if reservation_datetime and reservation_datetime < timezone.now():
+            raise forms.ValidationError('Reservation time cannot be in the past.')
+
+        if party_size and party_size > 20:
+            raise forms.ValidationError('Maximum party size is 20. For larger groups please contact us directly.')
+
+        # Table must seat at least as many as party size (but can seat more, better use table than waste)
+        if table and party_size and table.seats < party_size:
+            raise forms.ValidationError(
+                f'This table only seats {table.seats} people. Please select a larger table or reduce party size.'
+            )
+        
+        # check that the reservation time falls within the restaurant opening and closing hours
+        if reservation_datetime and restaurant:
+            reservation_time = reservation_datetime.time()
+            if reservation_time < restaurant.opening_time or reservation_time >= restaurant.closing_time:
+                raise forms.ValidationError(
+                    f'Reservations must be between {restaurant.opening_time.strftime("%I:%M %p")} and {restaurant.closing_time.strftime("%I:%M %p")}.'
+                )
+
+        return cleaned_data
+
+
+class InventoryForm(forms.ModelForm):
+    class Meta:
+        model = models.Inventory
+        fields = ['ingredient_name', 'current_level', 'unit', 'reorder_level']
+        widgets = {
+            'ingredient_name': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g. Beef Patties'
+            }),
+            'current_level': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'e.g. 50.00'
+            }),
+            'unit': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g. kg, litres, units'
+            }),
+            'reorder_level': forms.NumberInput(attrs={
+                'class': 'form-input',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': 'e.g. 10.00'
+            }),
+        }
+        labels = {
+            'ingredient_name': 'Ingredient Name',
+            'current_level': 'Current Stock Level',
+            'unit': 'Unit of Measurement',
+            'reorder_level': 'Reorder At (Low Stock Threshold)',
+        }
+class TablePositionForm(forms.ModelForm):
+    
+    # x and y fields defined outside Meta class as they're not actually fields in the Table model
+    x = forms.IntegerField(
+        min_value=0,
+        max_value=15,
+        widget=forms.NumberInput(attrs={'placeholder': 'Column (0-14)'})
+    )
+    y = forms.IntegerField(
+        min_value=0,
+        max_value=12,
+        widget=forms.NumberInput(attrs={'placeholder': 'Row (0-12)'})
+    )
+    
+    class Meta:
+        models = models.Table
+        fields = ['label', 'seats']
+        widget = {
+            # readonly allows owner to see which table they're positiong but can't change table's name or capacity in layout editor
+            'label': forms.TextInput(attrs={'readonly': 'readonly'}), 
+            'seats': forms.NumberInput(attrs={'readonly': 'readonly'})
+        }
+        
+TableLayoutFormSet = modelformset_factory(
+    models.Table,
+    form=TablePositionForm,
+    extra=0 # won't allow any extra blank forms, only shows forms for tables that actually exist.
+)
+
+
+class StaffEditForm(forms.ModelForm):
+    first_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-input'})
+    )
+    last_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-input'})
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-input'})
+    )
+    phone_number = forms.CharField(
+        max_length=20, required=False,
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. 4031234567'})
+    )
+    shift_start = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
+        label='Shift Start'
+    )
+    shift_end = forms.TimeField(
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-input'}),
+        label='Shift End'
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'shift_start', 'shift_end', 'is_active_staff']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Style the is_active_staff checkbox — rendered as toggle in template
+        self.fields['is_active_staff'].label = 'Staff Active'
+        self.fields['is_active_staff'].help_text = 'Uncheck to deactivate this staff member.'

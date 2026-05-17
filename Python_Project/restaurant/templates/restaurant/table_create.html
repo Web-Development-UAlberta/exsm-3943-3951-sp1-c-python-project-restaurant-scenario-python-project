@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit Table{% else %}Add New Table{% endif %} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== TABLE CREATE OR EDIT FORM ====== #}
+{# same template is used for both creating and editing a table #}
+{# form.instance.pk is None when creating and has a value when editing #}
+<div class="auth-box">
+    <h2>{% if form.instance.pk %}Edit Table{% else %}Add New Table{% endif %}</h2>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-button">Save</button>
+    </form>
+
+    {# cancel takes the user back to the table list for the correct restaurant #}
+    {# accesses the restaurant pk through the table's restaurant relationship #}
+    {% if form.instance.pk %}
+        <a href="{% url 'table_list' restaurant_pk=form.instance.restaurant.pk %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+            Cancel
+        </a>
+    {% endif %}
+</div>
+
+{% endblock %}

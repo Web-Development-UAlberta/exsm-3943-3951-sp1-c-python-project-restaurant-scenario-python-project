@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Restaurants | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== RESTAURANT LIST ====== #}
+{# shows all restaurants in the system, publicly accessible #}
+{# only owners can see the option to add a new restaurant #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>Restaurants</h2>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            {# only owners can create new restaurants #}
+            {% if request.user.is_authenticated and request.user.role == 6 %}
+                <a href="{% url 'restaurant_create' %}" class="btn btn-sm">+ Add New Restaurant</a>
+            {% endif %}
+            {# back button only shown to authenticated staff #}
+            {% if request.user.is_authenticated and request.user.role != 5 %}
+                <a href="{% url 'owner_view' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if restaurants %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for restaurant in restaurants %}
+                <tr>
+                    <td>{{ restaurant.name }}</td>
+                    <td>{{ restaurant.address }}</td>
+                    <td>
+                        {# show active or inactive badge based on is_active field #}
+                        {% if restaurant.is_active %}
+                            <span class="badge-active">Active</span>
+                        {% else %}
+                            <span class="badge-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'restaurant_detail' restaurant.pk %}">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No restaurants found.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

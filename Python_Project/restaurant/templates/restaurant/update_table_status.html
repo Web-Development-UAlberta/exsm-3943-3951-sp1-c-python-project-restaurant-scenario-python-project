@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Table {{ table.label }} Status | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="auth-box">
+    <h2>Update Table {{ table.label }}</h2>
+
+    <div class="order-status-info">
+        <p><strong>Current Status:</strong> {{ table.get_status_display }}</p>
+        <p><strong>Restaurant:</strong> {{ table.restaurant.name }}</p>
+        <p><strong>Seats:</strong> {{ table.seats }}</p>
+    </div>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <p>
+            <label for="status">New Status</label>
+            <select name="status" id="status">
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if value == table.status %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+        <button type="submit" class="auth-button">Update Status</button>
+    </form>
+
+    <a href="{% url 'server_host_view' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Back to Server / Host Dashboard
+    </a>
+</div>
+
+{% endblock %}

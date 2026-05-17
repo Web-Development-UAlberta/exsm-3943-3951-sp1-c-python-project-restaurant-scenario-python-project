@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Server to Order #{{ order.id }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== ASSIGN SERVER TO ORDER FORM ====== #}
+{# allows a manager or server to assign a server to a specific dine in order #}
+<div class="auth-box">
+    <h2>Assign Server to Order #{{ order.id }}</h2>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <p>
+            {# dropdown shows all available servers pulled from the view #}
+            <label for="server_id">Select Server</label>
+            <select name="server_id" id="server_id">
+                {% for server in servers %}
+                    <option value="{{ server.id }}">{{ server.get_full_name|default:server.username }}</option>
+                {% endfor %}
+            </select>
+        </p>
+        <button type="submit" class="auth-button">Assign</button>
+    </form>
+
+    {# cancel takes the user back to the order list without saving #}
+    <a href="{% url 'order_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

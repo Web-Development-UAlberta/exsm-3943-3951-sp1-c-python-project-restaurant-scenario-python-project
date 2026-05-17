@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Login | Urban Spark{% endblock %}
+
+{% block content %}
+
+    <div class="auth-box"> {# Will be using the names in the css file for editing #}
+        <h2>Login</h2>
+
+        <form method="POST" class="auth-form">
+            {% csrf_token %}
+            <p>
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+            </p>
+            <p>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </p>
+            <button type="submit" class="auth-button">Login</button>
+        </form>
+
+        <p class="auth-redirect">Don't have an account? <a href="{% url 'customer_signup' %}">Sign Up</a></p>
+
+        {# if a staff member tried to log in here, auto redirect them to the staff login page after 3 seconds #}
+        {% if redirect_to_staff %}
+        <script>
+            // wait 3 seconds then send them to the staff login page
+            setTimeout(function() {
+                window.location.href = "{% url 'staff_login' %}";
+            }, 3000);
+        </script>
+        {% endif %}
+
+    </div>
+
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Driver to Order #{{ order.id }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== ASSIGN DRIVER FORM ====== #}
+{# manager selects a driver from the list of active delivery drivers #}
+<div class="auth-box">
+    <h2>Assign Driver to Order #{{ order.id }}</h2>
+
+    {# show current order status so manager knows what state the order is in #}
+    <div class="order-status-info">
+        <p><strong>Current Status:</strong> {{ order.get_order_status_display }}</p>
+    </div>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <p>
+            {# dropdown shows all active delivery drivers pulled from the view #}
+            <label for="driver_id">Select Driver</label>
+            <select name="driver_id" id="driver_id" required>
+                {% for driver in available_drivers %}
+                    <option value="{{ driver.id }}">
+                        {{ driver.get_full_name|default:driver.username }} ({{ driver.get_role_display }})
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+        <button type="submit" class="auth-button">Assign Driver</button>
+    </form>
+
+    <a href="{% url 'order_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

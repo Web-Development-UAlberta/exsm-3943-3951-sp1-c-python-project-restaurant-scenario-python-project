@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Your Order | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="review-page">
+
+    {# ====== LEFT: ORDER FORM ====== #}
+    <section class="review-form-section">
+        <h2>Review Your Order</h2>
+
+        <form method="POST" class="review-form" id="review-form">
+            {% csrf_token %}
+
+            {# ====== ORDER TYPE ====== #}
+            <div class="review-field-group">
+                <h3>Order Type</h3>
+                {{ form.order_type }}
+                {% if form.order_type.errors %}
+                    {% for error in form.order_type.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {# ====== DELIVERY ADDRESS: shown/hidden by JS based on order type ====== #}
+            <div class="review-field-group" id="delivery-fields" style="display:none;">
+                <h3>Delivery Address</h3>
+                {{ form.delivery_address }}
+            </div>
+
+            {# ====== GUEST FIELDS: only shown to non-logged-in users ====== #}
+            {% if not user.is_authenticated %}
+            <div class="review-field-group">
+                <h3>Your Details</h3>
+                <input type="text" name="guest_name" placeholder="Full Name" class="form-input" required>
+                <input type="text" name="guest_phone" placeholder="Phone Number" class="form-input" style="margin-top:0.5rem;" required>
+            </div>
+            {% endif %}
+
+            {# ====== LOYALTY POINTS: only shown to logged in customers with enough points ====== #}
+            {% if user.is_authenticated and user.role == 5 and customer %}
+            <div class="review-field-group">
+                <h3>Loyalty Points</h3>
+                <p class="loyalty-balance">
+                    Your balance: <strong>{{ customer.loyalty_points }} pts</strong>
+                    {% if customer.loyalty_points >= 2000 %}
+                        — Eligible for <strong>$25 off</strong>
+                    {% elif customer.loyalty_points >= 1000 %}
+                        — Eligible for <strong>$10 off</strong>
+                    {% else %}
+                        — Need {{ 1000|add:"-"|add:customer.loyalty_points }} more points to redeem
+                    {% endif %}
+                </p>
+                {# redeem_points dropdown — JS listens to this to update the total preview #}
+                {{ form.redeem_points }}
+            </div>
+            {% endif %}
+
+            {# ====== SPECIAL INSTRUCTIONS ====== #}
+            <div class="review-field-group">
+                <h3>Special Instructions</h3>
+                {{ form.special_instruction }}
+            </div>
+
+            {# ====== NON-FIELD ERRORS ====== #}
+            {% if form.non_field_errors %}
+            <div class="review-field-group">
+                {% for error in form.non_field_errors %}
+                    <p class="form-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        </form>
+    </section>
+
+    {# ====== RIGHT: ORDER SUMMARY ====== #}
+    <aside class="review-summary">
+        <h3>Order Summary</h3>
+
+        <ul class="review-item-list">
+            {% for item in cart_items %}
+            <li class="review-item">
+                <div class="review-item-info">
+                    <span class="review-item-name">{{ item.name }}</span>
+                    <span class="review-item-qty">x{{ item.quantity }}</span>
+                </div>
+                <span class="review-item-total">${{ item.line_total }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="review-totals">
+            <div class="review-total-row">
+                <span>Subtotal</span>
+                <span id="subtotal-display">${{ sub_total }}</span>
+            </div>
+            {# loyalty discount row — shown by JS when points are selected #}
+            <div class="review-total-row" id="loyalty-discount-row" style="display:none;">
+                <span>Loyalty Discount</span>
+                <span id="loyalty-discount-display" style="color:var(--burnt-orange);">-$0.00</span>
+            </div>
+            {# delivery fee row — shown by JS when delivery order type is selected #}
+            <div class="review-total-row" id="delivery-fee-row" style="display:none;">
+                <span>Delivery Fee</span>
+                <span id="delivery-fee-display">$10.00</span>
+            </div>
+            {# tax row — always visible, calculated by JS #}
+            <div class="review-total-row">
+                <span>Tax ({{ tax_rate }}% GST)</span>
+                <span id="tax-display">$0.00</span>
+            </div>
+            <div class="review-total-row review-total-final">
+                <strong>Total</strong>
+                <strong id="total-display">${{ sub_total }}</strong>
+            </div>
+        </div>
+
+        {# submits the review-form above — takes customer to payment page #}
+        <button type="submit" form="review-form" class="btn" style="width:100%; margin-top:1rem; text-align:center;">
+            Confirm Order &amp; Pay
+        </button>
+
+        <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.85rem;">
+            Back to Menu
+        </a>
+    </aside>
+
+</div>
+
+{# ====== JS: delivery toggle, loyalty discount preview, tax calculation ====== #}
+<script>
+    var subTotal = {{ sub_total }};
+    var taxRate = {{ tax_rate }} / 100;  // e.g. 5 -> 0.05
+    var loyaltyDiscountAmount = {{ loyalty_discount_preview }};  // $10 or $25 based on points balance
+
+    function updateSummary() {
+        // get the currently selected order type value
+        var orderType = document.querySelector('[name="order_type"]').value;
+
+        // check if loyalty points are being redeemed
+        var redeemEl = document.getElementById('id_redeem_points');
+        var redeemPoints = redeemEl ? redeemEl.value : 'False';
+
+        var deliveryFee = 0;
+        var loyaltyDiscount = 0;
+
+        // show delivery address field and fee only for delivery orders
+        if (orderType == 3) {
+            deliveryFee = 10;
+            document.getElementById('delivery-fields').style.display = 'block';
+            document.getElementById('delivery-fee-row').style.display = 'flex';
+            document.getElementById('delivery-fee-display').textContent = '$10.00';
+        } else {
+            deliveryFee = 0;
+            document.getElementById('delivery-fields').style.display = 'none';
+            document.getElementById('delivery-fee-row').style.display = 'none';
+        }
+
+        // show loyalty discount row and update amount when points are selected
+        if (redeemPoints === 'True') {
+            loyaltyDiscount = loyaltyDiscountAmount;
+            if (loyaltyDiscount > 0) {
+                document.getElementById('loyalty-discount-row').style.display = 'flex';
+                document.getElementById('loyalty-discount-display').textContent = '-$' + loyaltyDiscount.toFixed(2);
+            }
+        } else {
+            loyaltyDiscount = 0;
+            document.getElementById('loyalty-discount-row').style.display = 'none';
+        }
+
+        // calculate tax on (subtotal - loyalty discount + delivery fee)
+        var taxable = subTotal - loyaltyDiscount + deliveryFee;
+        if (taxable < 0) taxable = 0;
+        var tax = taxable * taxRate;
+        var total = taxable + tax;
+
+        document.getElementById('tax-display').textContent = '$' + tax.toFixed(2);
+        document.getElementById('total-display').textContent = '$' + total.toFixed(2);
+    }
+
+    // run on page load and whenever order type or loyalty points selection changes
+    document.querySelector('[name="order_type"]').addEventListener('change', updateSummary);
+
+    var redeemEl = document.getElementById('id_redeem_points');
+    if (redeemEl) {
+        redeemEl.addEventListener('change', updateSummary);
+    }
+
+    updateSummary();
+</script>
+
+{% endblock %}

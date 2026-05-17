@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservation #{{ reservation.id }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== RESERVATION DETAIL ====== #}
+{# shows full reservation info with cancel option if reservation is still active #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>Reservation #{{ reservation.id }}</h2>
+        <a href="{% url 'reservation_list' %}" class="btn btn-sm btn-secondary">Back to Reservations</a>
+    </div>
+
+    {# ====== RESERVATION INFO ====== #}
+    <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.5rem;">
+        <p><strong>Date and Time:</strong> {{ reservation.reservation_datetime|date:"M d, Y h:i A" }}</p>
+        <p><strong>Party Size:</strong> {{ reservation.party_size }}</p>
+        <p><strong>Status:</strong> <span class="badge-active">{{ reservation.get_status_display }}</span></p>
+        <p><strong>Deposit:</strong> ${{ reservation.deposit_amount }}</p>
+        {# only show cancellation fee row if a fee was applied #}
+        {% if reservation.cancellation_fee_applied %}
+            <p><strong>Cancellation Fee:</strong> <span class="badge-inactive">$10.00 applied</span></p>
+        {% endif %}
+        {# show table label if a table has been assigned to this reservation #}
+        {% if reservation.table %}
+            <p><strong>Table:</strong> {{ reservation.table.label }}</p>
+        {% endif %}
+        {% if reservation.restaurant %}
+            <p><strong>Restaurant:</strong> {{ reservation.restaurant.name }}</p>
+        {% endif %}
+    </div>
+
+    {# cancel button only shown if reservation is still pending or confirmed #}
+    {# pre-order button shown for pending or confirmed reservations that have not yet been completed #}
+    <div style="display:flex; gap:1rem;">
+        {% if user.is_authenticated and user.role == 5 %}
+            {% if reservation.status == 1 or reservation.status == 2 %}
+                <a href="{% url 'reservation_preorder_prompt' reservation.pk %}" class="btn btn-secondary">Pre-Order Meal</a>
+            {% endif %}
+        {% endif %}
+        {% if reservation.status == 1 or reservation.status == 2 %}
+            <a href="{% url 'reservation_cancel' reservation.pk %}" class="btn btn-danger">Cancel Reservation</a>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

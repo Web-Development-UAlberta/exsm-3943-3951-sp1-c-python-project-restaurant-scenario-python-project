@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Table {{ table.label }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== TABLE DETAIL ====== #}
+{# shows individual table info including assigned server and current status #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>Table {{ table.label }} — {{ table.restaurant }}</h2>
+        <div style="display:flex; gap:0.75rem;">
+            {# edit and delete only visible to managers and owners #}
+            {% if request.user.role == 1 or request.user.role == 6 %}
+                <a href="{% url 'table_edit' table.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+                <a href="{% url 'table_confirm_delete' table.pk %}" class="btn btn-sm btn-danger">Delete</a>
+            {% endif %}
+            {# back link uses the restaurant pk from the table to return to the correct table list #}
+            <a href="{% url 'table_list' restaurant_pk=table.restaurant.pk %}" class="btn btn-sm btn-secondary">Back</a>
+        </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <p><strong>Seats:</strong> {{ table.seats }}</p>
+        <p>
+            <strong>Assigned Server:</strong>
+            {# show assigned server name or unassigned if none #}
+            {% if table.assigned_server %}{{ table.assigned_server }}{% else %}Unassigned{% endif %}
+        </p>
+        <p>
+            <strong>Status:</strong>
+            {# display human readable status instead of raw integer #}
+            <span class="badge-active">{{ table.get_status_display }}</span>
+        </p>
+    </div>
+
+</div>
+
+{% endblock %}

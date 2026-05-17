@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Order #{{ order.id }} Status | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="auth-box">
+    <h2>Update Order #{{ order.id }}</h2>
+
+    <div class="order-status-info">
+        <p><strong>Current Status:</strong> {{ order.get_order_status_display }}</p>
+        <p><strong>Order Type:</strong> {{ order.get_order_type_display }}</p>
+    </div>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <p>
+            <label for="status">New Status</label>
+            <select name="status" id="status">
+                {% for value, label in status_choices %}
+                    {# only show statuses at or ahead of current — managers see all options #}
+                    {% if value >= order.order_status or request.user.role == 1 or request.user.role == 6 %}
+                        <option value="{{ value }}" {% if value == order.order_status %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </p>
+        <button type="submit" class="auth-button">Update Status</button>
+    </form>
+
+    <a href="{% url 'kitchen_view' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Back to Kitchen
+    </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit Menu Item{% else %}Add New Menu Item{% endif %} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== MENU ITEM CREATE OR EDIT FORM ====== #}
+{# same template is used for both creating and editing a menu item #}
+{# enctype multipart is required for image file uploads #}
+<div class="auth-box">
+    <h2>{% if form.instance.pk %}Edit Menu Item{% else %}Add New Menu Item{% endif %}</h2>
+
+    <form method="POST" enctype="multipart/form-data" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="auth-button">Save</button>
+    </form>
+
+    {# cancel takes the user back to the menu item list without saving #}
+    <a href="{% url 'menu_item_list' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

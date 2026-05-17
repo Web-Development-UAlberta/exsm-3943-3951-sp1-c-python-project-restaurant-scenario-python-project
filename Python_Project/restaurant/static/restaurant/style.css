@@ -1,0 +1,2435 @@
+
+/* ====================== Basic Colours we will be Using ====================== */
+
+:root {
+    --sage-green:   #6B7F5E; /* (background / nav) */
+    --sage-light:   #8A9E7A; /* (hover states) */
+    --sage-dark:    #4A5A40; /* (footer / deep accents) */
+    --burnt-orange: #C0522A; /* (primary CTA / headings) */
+    --gold:         #D4952B; /* (highlights / badges) */
+    --sky-blue:     #7EB5CC; /* (info / links) */
+    --cream:        #F5F0E8; /* (page background) */
+    --dark-text:    #2C2A22; /* (body text) */
+    --light-text:   #F5F0E8; /* (text on dark backgrounds) */
+    --white:        #FFFFFF;
+    --border-light: rgba(44, 42, 34, 0.15);
+    --border-mid:   rgba(44, 42, 34, 0.25);
+    --radius-sm:    6px;
+    --radius-md:    10px;
+    --radius-lg:    16px;
+    --shadow-sm:    0 2px 8px rgba(44, 42, 34, 0.10);
+    --shadow-md:    0 4px 16px rgba(44, 42, 34, 0.15);
+    --font-heading: 'Oswald', sans-serif;
+    --font-body:    'Lora', serif;
+}
+
+
+/* ====================== Reset & Base ====================== */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--cream);
+    color: var(--dark-text);
+    line-height: 1.7;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+a {
+    color: var(--burnt-orange);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--sage-dark);
+}
+
+ul {
+    list-style: none;
+}
+
+
+/* ====================== Headings ====================== */
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--dark-text);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+}
+
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.4rem; }
+h4 { font-size: 1.2rem; }
+
+p {
+    margin-bottom: 1rem;
+}
+
+p:last-child {
+    margin-bottom: 0;
+}
+
+
+/* ====================== Header & Nav Bar ====================== */
+
+header {
+    background-color: var(--sage-green);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: wrap;
+}
+
+header img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 50%;
+}
+
+header h1 {
+    font-family: var(--font-heading);
+    color: var(--light-text);
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0;
+    flex: 1;
+}
+
+header nav {
+    margin-left: auto;
+}
+
+header nav ul {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+header nav ul li a {
+    color: var(--light-text);
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+header nav ul li a:hover {
+    background-color: var(--sage-dark);
+    color: var(--gold);
+}
+
+/* logout / login button to stand out in the nav */
+header nav ul li.logout-button a {
+    background-color: var(--burnt-orange);
+    color: var(--light-text);
+    padding: 0.4rem 1rem;
+}
+
+header nav ul li.logout-button a:hover {
+    background-color: #9e3f1a;
+    color: var(--light-text);
+}
+
+
+/* ====================== Main Content Area ====================== */
+
+main {
+    flex: 1;
+    width: 100%;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+/* ====================== Menu Item List ====================== */
+
+.menu-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 750px;
+    margin: 0 auto;
+}
+
+.menu-item-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.menu-item-image {
+    width: 140px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.menu-item-info {
+    flex: 1;
+}
+
+.menu-item-price {
+    color: var(--burnt-orange);
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* ====================== Menu Item Detail ====================== */
+
+.menu-item-detail {
+    max-width: 700px;
+    margin: 0 auto;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.menu-item-detail-image {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+}
+
+.menu-item-detail-info {
+    padding: 1.5rem;
+}
+
+.menu-item-detail-actions {
+    display:flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    align-items: center;
+}
+
+.menu-item-category a {
+    font-size: 0.85rem;
+    color: var(--sage-green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--font-heading);
+}
+
+/* ====================== Footer ====================== */
+
+footer {
+    background-color: var(--sage-dark);
+    color: var(--light-text);
+    text-align: center;
+    padding: 1.2rem 2rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    opacity: 0.95;
+}
+
+footer p {
+    margin-bottom: 0.25rem;
+    color: var(--light-text);
+}
+
+footer p:last-child {
+    margin-bottom: 0;
+}
+
+
+/* ====================== Buttons ====================== */
+
+button,
+.btn,
+input[type="submit"] {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    display: inline-block;
+}
+
+/* primary: burnt orange */
+button,
+.btn,
+input[type="submit"] {
+    background-color: var(--burnt-orange);
+    color: var(--light-text);
+}
+
+button:hover,
+.btn:hover,
+input[type="submit"]:hover {
+    background-color: #9e3f1a;
+}
+
+button:active,
+.btn:active,
+input[type="submit"]:active {
+    transform: scale(0.98);
+}
+
+/* secondary: sage green */
+.btn-secondary {
+    background-color: var(--sage-green);
+    color: var(--light-text);
+}
+
+.btn-secondary:hover {
+    background-color: var(--sage-dark);
+    color: var(--light-text);
+}
+
+/* danger: for delete actions */
+.btn-danger {
+    background-color: #8B2A1A;
+    color: var(--light-text);
+}
+
+.btn-danger:hover {
+    background-color: #6e1f12;
+    color: var(--light-text);
+}
+
+/* small variant */
+.btn-sm {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.9rem;
+}
+
+
+/* ====================== Menu Page Layout ====================== */
+
+.menu-page {
+    display: grid;
+    grid-template-columns: 200px 1fr 270px;
+    gap: 2rem;
+    align-items: start;
+    width: 100%;
+    padding: 0;
+}
+
+/* ====================== Category Sidebar ====================== */
+
+.menu-categories {
+    position: sticky;
+    top: 100px;
+    background-color: var(--white);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 1rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--burnt-orange);
+}
+
+.menu-categories h3 {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--sage-green);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--burnt-orange);
+}
+
+.menu-categories ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.menu-categories ul li a {
+    display: block;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--dark-text);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.menu-categories ul li a:hover {
+    background-color: var(--cream);
+    color: var(--burnt-orange);
+    border-left: 3px solid var(--burnt-orange);
+}
+
+.menu-categories ul li a.active {
+    color: var(--burnt-orange);
+    font-weight: 600;
+    border-left: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    background-color: transparent;
+}
+
+/* ====================== Menu Items Center ====================== */
+
+.menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.menu-category-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scroll-margin-top: 100px;
+}
+
+
+.menu-category-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.menu-category-header span {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--dark-text);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    white-space: nowrap;
+}
+
+.menu-category-header::after {
+    content: '';
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: linear-gradient(to right, var(--burnt-orange), transparent);
+    border-radius: 2px;
+}
+
+/* ====================== Menu Item Card ====================== */
+
+.menu-item-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem 1.25rem;
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.menu-item-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.menu-item-image {
+    width: 110px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.menu-item-image-placeholder {
+    width: 110px;
+    height: 80px;
+    border-radius: var(--radius-sm);
+    background-color: var(--cream);
+    border: 1px dashed var(--border-mid);
+    flex-shrink: 0;
+}
+
+.menu-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.menu-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.menu-item-title a {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    color: var(--dark-text);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.menu-item-title a:hover {
+    color: var(--burnt-orange);
+}
+
+.menu-item-price {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--burnt-orange);
+    white-space: nowrap;
+}
+
+.menu-item-desc {
+    font-size: 0.88rem;
+    color: #666;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.cart-add-btn {
+    align-self: flex-start;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.9rem;
+}
+
+/* ====================== Cart Summary Sidebar ====================== */
+
+.cart-summary {
+    position: sticky;
+    top: 100px;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.cart-summary h3 {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--sage-green);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--burnt-orange);
+}
+
+.cart-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.cart-item {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.cart-item-name {
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    color: var(--dark-text);
+}
+
+.cart-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cart-item-total {
+    color: var(--burnt-orange);
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+}
+
+.cart-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.qty-form {
+    margin: 0;
+    padding: 0;
+}
+
+.cart-qty-btn {
+    background-color: var(--sage-green);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-sm);
+    width: 26px;
+    height: 26px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    text-decoration: none;
+    line-height: 1;
+    font-family: var(--font-heading);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.cart-qty-btn:hover {
+    background-color: var(--sage-dark);
+    color: var(--white);
+}
+
+.cart-delete {
+    background-color: #8B2A1A;
+}
+
+.cart-delete:hover {
+    background-color: #6e1f12;
+}
+
+.cart-qty-display {
+    font-size: 0.9rem;
+    min-width: 18px;
+    text-align: center;
+    font-family: var(--font-heading);
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 2px solid var(--border-mid);
+    font-size: 0.9rem;
+}
+
+.cart-checkout-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.cart-empty {
+    color: var(--sage-green);
+    font-style: italic;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 1rem 0;
+}
+
+
+/* ====================== Messages ====================== */
+
+.messages {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 300px;
+    text-align: center;
+}
+
+.message {
+    padding: 0.75rem 1.2rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-md);
+    animation: fadeout 0.5s ease 3s forwards;
+}
+
+.message.success {
+    background-color: var(--sage-dark);
+    color: var(--white);
+}
+
+.message.error {
+    background-color: #8B2A1A;
+    color: var(--white);
+}
+
+.message.warning {
+    background-color: var(--gold);
+    color: var(--dark-text);
+}
+
+@keyframes fadeout {
+    from { opacity: 1; }
+    to   { opacity: 0; pointer-events: none; }
+}
+
+
+/* ====================== Customer Table Styling ====================== */
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.orders-table th {
+    background-color: var(--sage-green);
+    color: var(--white);
+    padding: 0.6rem 1rem;
+    text-align: left;
+    font-family: var(--font-heading);
+    letter-spacing: 1px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.orders-table td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--dark-text);
+}
+
+.orders-table tbody tr:hover {
+    background-color: var(--cream);
+}
+
+/* ====================== Table Layout Floor Plan ====================== */
+
+
+
+.floor-plan-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.floor-plan-legend {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex: 1;
+    justify-content: center;
+}
+
+.floor-plan-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.status {
+    padding: .5rem;
+    border-radius: var(--radius-md);
+    color: var(--white);
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 0.6rem 1.4rem;
+}
+
+.floor-plan-workspace {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.table-palette {
+    min-width: 150px;
+    max-width: 180px;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.palette-table {
+    background-color: var(--sage-green);
+    color: var(--white);
+    border: var(--radius-sm);
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+}
+
+.palette-table:hover {
+    background-color: var(--sage-dark);
+}
+
+.palette-placed {
+    opacity: 0.4;
+    cursor: grab;
+}
+
+.floor-element {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+
+.wall {
+    background-color: #c4c1c1;
+    z-index: 10;
+}
+
+.entrance {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
+.bar {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
+.kitchen {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    z-index: 10;
+}
+
+.restroom {
+    background-color: #8B7355;
+    color: var(--white);
+    font-size: 0.8rem;
+    z-index: 10;
+}
+
+.floor-plan-elements {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    columns: var(--dark-text);
+}
+
+.outside-element {
+    opacity: 0.7;
+}
+
+.status-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.status-modal-content {
+    background-color: var(--white);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 250px;
+}
+
+.status-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.floor-plan-seciton {
+    margin-top: 2rem;
+}
+
+.floor-plan-container {
+    display: flex;
+    justify-content: center;
+    flex: 1;
+    overflow: auto;
+}
+
+.floor-plan-grid {
+    --cell-size: 50px; 
+    position: relative;
+    width: calc(16 * var(--cell-size));
+    height: calc(13 * var(--cell-size));
+    background-color: var(--white);
+    border: 2px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.2) 1px, transparent 1px);
+    background-size: var(--cell-size) var(--cell-size);
+}
+
+
+.floor-plan-table {
+    position: absolute;
+    border: 2px solid var(--white);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-heading);
+    font-size: 0.65rem;
+    color: var(--white);
+    text-align: center;
+    padding: 2px;
+    cursor: grab;
+}
+
+.floor-plan-table:active {
+    cursor: grabbing;
+}
+
+.table-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table-seats {
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+
+
+/* Status matching colours Table.Status integer choices */
+.status-1 { background-color: var(--sage-green);}       /* AVAILABLE */
+.status-2 { background-color: var(--burnt-orange);}     /* OCCUPIED */
+.status-3 { background-color: var(--gold);}     /* RESERVED */
+.status-4 { background-color: #7B4F9E;}     /* NEEDS CLEANING */
+
+
+/* ====================== Review Order Page ====================== */
+
+.review-page {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2rem;
+    align-items: start;
+}
+
+.review-form-section h2 {
+    margin-bottom: 1.5rem;
+}
+
+.review-field-group {
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.review-field-group h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.review-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background-color: var(--cream);
+}
+
+.loyalty-balance {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: var(--dark-text);
+}
+
+/* ====================== Review Summary Sidebar ====================== */
+
+.review-summary {
+    position: sticky;
+    top: 100px;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.review-summary h3 {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--sage-green);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--burnt-orange);
+}
+
+.review-item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.review-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.88rem;
+}
+
+.review-item-info {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.review-item-name {
+    color: var(--dark-text);
+    font-weight: 500;
+}
+
+.review-item-qty {
+    color: var(--sage-green);
+    font-size: 0.8rem;
+}
+
+.review-item-total {
+    color: var(--burnt-orange);
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+}
+
+.review-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-top: 0.75rem;
+}
+
+.review-total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.review-total-final {
+    border-top: 2px solid var(--border-mid);
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    font-size: 1rem;
+}
+
+/* ====================== Auth Forms (Login, Signup, Reservation) ====================== */
+
+.auth-box {
+    max-width: 500px;
+    margin: 2rem auto;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.auth-box h2 {
+    margin-bottom: 1.5rem;
+    color: var(--dark-text);
+    font-size: 1.6rem;
+}
+
+.auth-form p {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+}
+
+.auth-form label {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+    margin-bottom: 0.35rem;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form textarea,
+.auth-form select {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background-color: var(--cream);
+    color: var(--dark-text);
+    transition: border-color 0.2s ease;
+}
+
+.auth-form input:focus,
+.auth-form textarea:focus,
+.auth-form select:focus {
+    outline: none;
+    border-color: var(--burnt-orange);
+}
+
+.auth-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* help text shown below password fields by Django */
+.auth-form ul {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 0.25rem;
+    padding-left: 1rem;
+    list-style: disc;
+}
+
+.auth-button {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.7rem;
+    font-size: 1rem;
+    background-color: var(--burnt-orange);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.auth-button:hover {
+    background-color: #9e3f1a;
+}
+
+.auth-redirect {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--dark-text);
+}
+
+.auth-message {
+    padding: 0.6rem 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.auth-message.success {
+    background-color: var(--sage-green);
+    color: var(--white);
+}
+
+.auth-message.error {
+    background-color: #8B2A1A;
+    color: var(--white);
+}
+
+.auth-message.warning {
+    background-color: var(--gold);
+    color: var(--dark-text);
+}
+
+
+/* ====================== Home Page ====================== */
+
+.start-box {
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+}
+
+.start-box h2 {
+    font-size: 2rem;
+    color: var(--burnt-orange);
+    margin-bottom: 0.75rem;
+}
+
+.start-box p {
+    font-size: 1.05rem;
+    color: var(--dark-text);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.quick-links {
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.5rem 2rem;
+    box-shadow: var(--shadow-sm);
+    margin-top: 1.5rem;
+}
+
+.quick-links h3 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--burnt-orange);
+}
+
+.quick-links ul {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.quick-links ul li a {
+    display: inline-block;
+    padding: 0.6rem 1.4rem;
+    background-color: var(--burnt-orange);
+    color: var(--white);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: background-color 0.2s ease;
+}
+
+.quick-links ul li a:hover {
+    background-color: var(--sage-dark);
+    color: var(--white);
+}
+
+.tables-floor-plans {
+    margin-top: 1.5rem;
+}
+
+
+/* ====================== Customer Dashboard ====================== */
+
+.customer-dashboard {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.dashboard-sidebar {
+    position: sticky;
+    top: 100px;
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border-left: 4px solid var(--burnt-orange);
+}
+
+.dashboard-welcome h2 {
+    font-size: 1.1rem;
+    color: var(--dark-text);
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-member-since {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.dashboard-nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.dashboard-nav ul li a {
+    display: block;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--dark-text);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.dashboard-nav ul li a:hover {
+    background-color: var(--cream);
+    color: var(--burnt-orange);
+    border-left: 3px solid var(--burnt-orange);
+}
+
+.dashboard-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ====================== Loyalty Points Box ====================== */
+
+.dashboard-loyalty-box {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    background: linear-gradient(135deg, var(--sage-green), var(--sage-dark));
+    border-radius: var(--radius-md);
+    padding: 1.5rem 2rem;
+    color: var(--white);
+    box-shadow: var(--shadow-md);
+}
+
+.loyalty-points-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(255,255,255,0.15);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.5rem;
+    min-width: 100px;
+    text-align: center;
+}
+
+.loyalty-points-number {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+}
+
+.loyalty-points-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0.25rem;
+    opacity: 0.85;
+}
+
+.loyalty-points-info h3 {
+    color: var(--white);
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+}
+
+.loyalty-points-info p {
+    font-size: 0.88rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+    color: var(--white);
+}
+
+.loyalty-eligible {
+    color: var(--gold) !important;
+    opacity: 1 !important;
+}
+
+.loyalty-rate {
+    font-size: 0.8rem !important;
+    opacity: 0.7 !important;
+}
+
+/* ====================== Dashboard Sections ====================== */
+
+.dashboard-section {
+    background-color: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.dashboard-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--burnt-orange);
+}
+
+.dashboard-section-header h3 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+    margin-bottom: 0;
+}
+
+.dashboard-empty {
+    font-size: 0.9rem;
+    color: #888;
+    font-style: italic;
+    padding: 0.5rem 0;
+}
+
+
+/* ====================== Reporting Page ====================== */
+
+.reporting-page {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.reporting-filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    background-color: var(--cream);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+    margin-bottom: 0.5rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-group label {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+}
+
+.filter-group select,
+.filter-group input[type="date"] {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    background-color: var(--white);
+    color: var(--dark-text);
+}
+
+/* ====================== Low Stock Alert ====================== */
+
+.low-stock-alert {
+    background-color: #fff3cd;
+    border: 1px solid var(--gold);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    color: var(--dark-text);
+}
+
+/* ====================== Menu Item Tags ====================== */
+
+.menu-item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.menu-item-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--white);
+    background-color: var(--sage-green);
+    white-space: nowrap;
+}
+
+.tag-vegan        { background-color: var(--sage-green); }
+.tag-gluten-free  { background-color: var(--sky-blue); color: var(--dark-text); }
+.tag-spicy        { background-color: #C0392B; }
+.tag-popular      { background-color: var(--gold); color: var(--dark-text); }
+.tag-contains-nuts { background-color: #8B5E3C; }
+
+
+/* green activate button used on restaurant detail toggle #}*/
+.btn-activate {
+    background-color: var(--sage-green);
+    color: var(--white);
+}
+
+.btn-activate:hover {
+    background-color: var(--sage-dark);
+    color: var(--white);
+}
+
+/* ====================== MODERN REFRESH ====================== */
+
+/* 1. stronger header shadow and bottom border to lift it off the page */
+header {
+    box-shadow: 0 2px 12px rgba(44, 42, 34, 0.25);
+    border-bottom: 3px solid var(--sage-dark);
+}
+
+/* 2. page background gets a very subtle texture feel via a slightly warmer cream */
+body {
+    background-color: #EDE8DC;
+}
+
+/* 3. main content gets more breathing room and a max width to stop it stretching on wide screens */
+main {
+    max-width: 1300px;
+    margin: 2.5rem auto;
+    padding: 0 2rem;
+}
+
+/* 4. cards get stronger shadows and a warmer white so they pop off the background */
+.dashboard-section,
+.auth-box,
+.review-field-group,
+.review-summary,
+.cart-summary,
+.menu-categories,
+.menu-item-card,
+.menu-item-detail,
+.start-box,
+.quick-links {
+    background-color: #FDFAF5;
+    box-shadow: 0 4px 20px rgba(44, 42, 34, 0.10), 0 1px 4px rgba(44, 42, 34, 0.06);
+    border-color: rgba(44, 42, 34, 0.10);
+}
+
+/* 5. dashboard section header h2 gets proper sizing */
+.dashboard-section-header h2 {
+    font-size: 1.4rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+/* 6. table rows get alternating background and stronger hover */
+.orders-table tbody tr:nth-child(even) {
+    background-color: rgba(245, 240, 232, 0.5);
+}
+
+.orders-table tbody tr:hover {
+    background-color: rgba(192, 82, 42, 0.06);
+}
+
+.orders-table td {
+    padding: 0.75rem 1rem;
+}
+
+.orders-table th {
+    padding: 0.75rem 1rem;
+    background-color: var(--sage-dark);
+}
+
+/* 7. homepage hero — make it actually feel like a restaurant landing page */
+.start-box {
+    padding: 4rem 2rem;
+    background: linear-gradient(135deg, #FDFAF5 60%, #EAE4D5 100%);
+    border-left: 5px solid var(--burnt-orange);
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+}
+
+.start-box h2 {
+    font-size: 2.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+}
+
+.start-box p {
+    font-size: 1.1rem;
+    color: #555;
+    line-height: 1.8;
+}
+
+/* 8. quick links grid instead of button row — much more modern */
+.quick-links ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.quick-links ul li a {
+    display: block;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    background-color: #FDFAF5;
+    color: var(--dark-text);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-md);
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.quick-links ul li a:hover {
+    background-color: var(--burnt-orange);
+    color: var(--white);
+    border-color: var(--burnt-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(192, 82, 42, 0.25);
+}
+
+/* 9. auth box gets more padding and a warmer feel */
+.auth-box {
+    padding: 2.5rem;
+    border-radius: var(--radius-lg);
+    border-top: 4px solid var(--burnt-orange);
+}
+
+/* 10. badge styles for status indicators */
+.badge-active {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: rgba(74, 90, 64, 0.12);
+    color: var(--sage-dark);
+    border: 1px solid rgba(74, 90, 64, 0.3);
+}
+
+.badge-inactive {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background-color: rgba(139, 42, 26, 0.10);
+    color: #8B2A1A;
+    border: 1px solid rgba(139, 42, 26, 0.25);
+}
+
+/* 11. menu item card left accent on hover */
+.menu-item-card {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.menu-item-card:hover {
+    border-left: 3px solid var(--burnt-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(44, 42, 34, 0.12);
+}
+
+/* 12. footer gets a richer feel */
+footer {
+    background: linear-gradient(135deg, var(--sage-dark), #2E3B26);
+    padding: 1.5rem 2rem;
+    opacity: 1;
+    border-top: 3px solid var(--burnt-orange);
+}
+
+/* 13. dashboard section padding increase */
+.dashboard-section {
+    padding: 1.75rem;
+    border-radius: var(--radius-lg);
+}
+
+/* 14. reporting page section spacing */
+.reporting-page .dashboard-section {
+    margin-bottom: 1.5rem;
+}
+
+/* 15. order status info block */
+.order-status-info {
+    background-color: var(--cream);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    border-left: 3px solid var(--sage-green);
+    font-size: 0.9rem;
+}
+
+
+/* ====================== FULL WIDTH LAYOUT FIX ====================== */
+/* Previously main had max-width capping at 1300px but sections inside were
+   also capped. This removes inner caps and lets the page use full width. */
+
+main {
+    max-width: 1400px;
+    width: 100%;
+    padding: 0 1.5rem;
+}
+
+.dashboard-section,
+.reporting-page,
+.menu-page {
+    width: 100%;
+}
+
+/* ====================== FORM FIELD STYLES ====================== */
+/* Used by forms.py .form-input class and inventory/staff/restaurant forms */
+
+.form-input,
+input.form-input,
+select.form-input,
+textarea.form-input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background-color: var(--cream);
+    color: var(--dark-text);
+    transition: border-color 0.2s ease;
+    display: block;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--burnt-orange);
+    box-shadow: 0 0 0 2px rgba(192, 82, 42, 0.15);
+}
+
+.form-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1.1rem;
+}
+
+.form-label {
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sage-green);
+}
+
+.required-star {
+    color: var(--burnt-orange);
+    margin-left: 2px;
+}
+
+.form-help-text {
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 0.15rem;
+    margin-bottom: 0;
+}
+
+.form-error {
+    font-size: 0.82rem;
+    color: #8B2A1A;
+    margin-top: 0.15rem;
+    margin-bottom: 0;
+}
+
+
+/* ====================== TOGGLE SWITCH (is_active_staff) ====================== */
+
+.form-toggle-group {
+    margin-bottom: 1.1rem;
+}
+
+.form-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: var(--cream);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    border-radius: 26px;
+    transition: 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--sage-green);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(22px);
+}
+
+
+/* ====================== ORDER TOTALS BOX ====================== */
+
+.order-totals-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--cream);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--burnt-orange);
+    font-size: 0.92rem;
+}
+
+.order-totals-box p {
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+}
+
+
+/* ====================== TABLE ACTIONS CELL ====================== */
+/* Prevents wrapping in the last column of orders/staff tables */
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+
+/* ====================== NOTIFICATION BAR ====================== */
+/* Shown at the top of server/host view when an order is ready */
+
+.notification-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    animation: slideIn 0.3s ease;
+}
+
+.notification-ready {
+    background-color: #FFF3CD;
+    border: 1px solid var(--gold);
+    border-left: 4px solid var(--gold);
+    color: var(--dark-text);
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.notification-attention {
+    background-color: #EEF4FF;
+    border: 1px solid var(--sky-blue);
+    border-left: 4px solid var(--sky-blue);
+    color: var(--dark-text);
+}
+
+/* ====================== SERVER TABLE GRID ====================== */
+/* Card-based layout for server/host dashboard */
+
+.server-table-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.server-table-card {
+    background-color: #FDFAF5;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.server-table-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Highlighted card when there's a ready order notification */
+.server-table-card--ready {
+    border-left: 4px solid var(--gold);
+    background-color: #FFFDF0;
+}
+
+.server-table-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.server-table-label {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--dark-text);
+}
+
+.server-table-seats {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.server-table-meta {
+    font-size: 0.88rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+.server-table-order {
+    background-color: var(--cream);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.server-table-order p {
+    margin-bottom: 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.server-table-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.server-table-actions .btn-sm {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+}
+
+
+/* ====================== RESPONSIVE: MOBILE FIRST ====================== */
+
+/* Tablet: 768px and below */
+@media (max-width: 768px) {
+
+    /* Header: stack logo + nav */
+    header {
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+    }
+
+    header img {
+        width: 50px;
+        height: 50px;
+    }
+
+    header h1 {
+        font-size: 1.3rem;
+    }
+
+    header nav ul {
+        gap: 0.25rem;
+    }
+
+    header nav ul li a {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+    }
+
+    /* Main content — remove horizontal padding */
+    main {
+        padding: 0 0.75rem;
+        margin: 1.5rem auto;
+    }
+
+    /* Menu page: stack to single column */
+    .menu-page {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .menu-categories {
+        position: static;
+    }
+
+    .menu-categories ul {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .menu-categories ul li a {
+        padding: 0.35rem 0.75rem;
+        border: 1px solid var(--border-mid);
+        border-left: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+    }
+
+    .cart-summary {
+        position: static;
+        order: -1; /* show cart at top on mobile */
+    }
+
+    /* Customer dashboard: stack sidebar */
+    .customer-dashboard {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .dashboard-sidebar {
+        position: static;
+    }
+
+    .dashboard-nav ul {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .dashboard-nav ul li a {
+        padding: 0.4rem 0.85rem;
+        border: 1px solid var(--border-mid);
+        border-left: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+    }
+
+    /* Review page: stack layout */
+    .review-page {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .review-summary {
+        position: static;
+        order: -1;
+    }
+
+    /* Auth box: full width with smaller padding */
+    .auth-box {
+        margin: 1rem auto;
+        padding: 1.25rem;
+        max-width: 100%;
+    }
+
+    /* Orders table: allow horizontal scroll */
+    .orders-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+
+    .orders-table th,
+    .orders-table td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.82rem;
+    }
+
+    /* Table actions: wrap on mobile */
+    .table-actions {
+        flex-wrap: wrap;
+    }
+
+    /* Server table grid: single column */
+    .server-table-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Quick links: 2-column on mobile */
+    .quick-links ul {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Dashboard section header: stack on small screens */
+    .dashboard-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    /* Loyalty box: stack */
+    .dashboard-loyalty-box {
+        flex-direction: column;
+        text-align: center;
+        padding: 1.25rem;
+        gap: 1rem;
+    }
+
+    /* Floor plan: allow horizontal scroll */
+    .floor-plan-container {
+        overflow-x: auto;
+    }
+
+    /* Reporting filters: stack */
+    .reporting-filters {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-group select,
+    .filter-group input[type="date"] {
+        width: 100%;
+    }
+
+    /* Start box */
+    .start-box {
+        padding: 2rem 1rem;
+    }
+
+    .start-box h2 {
+        font-size: 1.8rem;
+    }
+}
+
+/* Small phones: 480px and below */
+@media (max-width: 480px) {
+
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.4rem; }
+    h3 { font-size: 1.1rem; }
+
+    header h1 {
+        font-size: 1.1rem;
+    }
+
+    .btn, button, input[type="submit"] {
+        font-size: 0.82rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .auth-button {
+        font-size: 0.9rem;
+    }
+
+    .quick-links ul {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-item-card {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .menu-item-image {
+        width: 100%;
+        height: 160px;
+    }
+
+    .menu-item-image-placeholder {
+        width: 100%;
+        height: 80px;
+    }
+
+    .loyalty-points-number {
+        font-size: 2rem;
+    }
+
+    /* cart at bottom on very small screens */
+    .cart-summary {
+        order: 0;
+    }
+}
+
+
+/* ====================== KITCHEN ORDER CARDS ====================== */
+/* Card layout for kitchen staff and server views, replacing the table list */
+
+.kitchen-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.kitchen-order-card {
+    background-color: #FDFAF5;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-left: 4px solid var(--border-mid);
+}
+
+/* pending orders get a gold left border */
+.kitchen-card--pending {
+    border-left-color: var(--gold);
+}
+
+/* preparing orders get a burnt orange left border */
+.kitchen-card--preparing {
+    border-left-color: var(--burnt-orange);
+}
+
+.kitchen-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kitchen-order-id {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--dark-text);
+    margin-right: 0.5rem;
+}
+
+.kitchen-type-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+/* colour coding for order type badges */
+.kitchen-type-1 { background-color: rgba(74, 90, 64, 0.15); color: var(--sage-dark); }   /* dine in */
+.kitchen-type-2 { background-color: rgba(212, 149, 43, 0.15); color: #7a5a00; }           /* take out */
+.kitchen-type-3 { background-color: rgba(192, 82, 42, 0.15); color: var(--burnt-orange); } /* delivery */
+
+.kitchen-card-time {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.kitchen-items {
+    border-top: 1px dashed var(--border-mid);
+    border-bottom: 1px dashed var(--border-mid);
+    padding: 0.6rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.kitchen-item-row {
+    font-size: 0.9rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+/* special instructions shown in red so allergy notes stand out */
+.kitchen-special-note {
+    font-size: 0.85rem;
+    color: #C0392B;
+    font-weight: 500;
+    margin-bottom: 0;
+    padding: 0.4rem 0.6rem;
+    background-color: rgba(192, 57, 43, 0.06);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid #C0392B;
+}
+
+.kitchen-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.kitchen-card-status {
+    font-size: 0.82rem;
+    color: var(--dark-text);
+    margin-bottom: 0;
+}
+
+.kitchen-action-btn {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.8rem;
+    white-space: nowrap;
+}
+
+/* ====================== MANAGER NOTES BAR ====================== */
+/* Appears at the top of targeted dashboards */
+
+.manager-note-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    background-color: #FFF8E6;
+    border: 1px solid var(--gold);
+    border-left: 4px solid var(--gold);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--dark-text);
+}
+
+.manager-note-bar p {
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.manager-note-bar .note-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* ====================== MENU ITEM UNAVAILABLE ====================== */
+/* Greyed-out style for items marked unavailable by manager/owner */
+
+.menu-item-card--unavailable {
+    opacity: 0.55;
+}
+
+.menu-item-card--unavailable .menu-item-title a,
+.menu-item-card--unavailable .cart-add-btn {
+    pointer-events: none;
+}
+
+.menu-item-card--unavailable .menu-item-title a {
+    color: #aaa;
+}
+
+.menu-item-card--unavailable .menu-item-price {
+    color: #aaa;
+}
+
+.menu-item-unavailable-label {
+    display: inline-block;
+    margin-top: 0.35rem;
+    font-family: var(--font-heading);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #8B2A1A;
+    background-color: rgba(139, 42, 26, 0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(139, 42, 26, 0.2);
+}
+
+/* responsive: kitchen cards stack to single column on mobile */
+@media (max-width: 768px) {
+    .kitchen-card-grid {
+        grid-template-columns: 1fr;
+    }
+}

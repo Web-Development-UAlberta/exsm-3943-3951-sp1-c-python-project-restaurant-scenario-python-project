@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Tables | Urban Spark Downtown
+{% endblock %}
+ 
+{% block content %}
+
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Table Management</h2>
+        <a href="{% url 'table_create' restaurant_pk=restaurant.pk  %}" class="btn btn-sm">Add New Table</a>
+    </div>
+
+    {% if tables %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Label</th>
+                    <th>Seat #</th>
+                    <th>Current Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>    
+                {% for table in tables %}
+                <tr>
+                    <td>{{table.label}}</td>
+                    <td>{{table.seats}}</td>
+                    <td>{{table.get_status_display}}</td>
+                    <td><a href="{% url 'table_detail' table.pk %}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No tables yet.</p>
+    {% endif %}
+</div>
+    
+
+
+{% endblock %}

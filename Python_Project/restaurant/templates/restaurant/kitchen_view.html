@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Kitchen Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-section">
+
+    {# ====== HEADER ====== #}
+    <div class="dashboard-section-header">
+        <h2>Kitchen Dashboard</h2>
+        <a href="{% url 'staff_index' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <p style="margin-bottom:1rem;">
+        Welcome, {{ request.user.get_full_name|default:request.user.username }}
+    </p>
+
+    {# ====== KITCHEN ORDER CARDS ====== #}
+    {# each order is shown as a card with full item detail and a single next-action button #}
+    {# kitchen staff and servers see cards, managers see the standard table view below #}
+    {% if request.user.role == 3 or request.user.role == 2 %}
+        {# CARD VIEW for kitchen staff and servers #}
+        {% if orders %}
+            <div class="kitchen-card-grid">
+                {% for order in orders %}
+                <div class="kitchen-order-card {% if order.order_status == 2 %}kitchen-card--preparing{% else %}kitchen-card--pending{% endif %}">
+
+                    {# ====== CARD HEADER ====== #}
+                    <div class="kitchen-card-header">
+                        <div>
+                            <span class="kitchen-order-id">#{{ order.id }}</span>
+                            {# order type badge #}
+                            <span class="kitchen-type-badge kitchen-type-{{ order.order_type }}">
+                                {{ order.get_order_type_display|upper }}
+                            </span>
+                        </div>
+                        <span class="kitchen-card-time">{{ order.created_at|timesince }} ago</span>
+                    </div>
+
+                    {# ====== ITEM LIST ====== #}
+                    <div class="kitchen-items">
+                        {% for item in order.orderitem_set.all %}
+                        <p class="kitchen-item-row">
+                            <span>{{ item.quantity }}x {{ item.menu_item.name }}</span>
+                        </p>
+                        {% endfor %}
+                    </div>
+
+                    {# ====== SPECIAL INSTRUCTIONS ====== #}
+                    {# shown in red so kitchen staff cannot miss allergy notes #}
+                    {% if order.special_instruction %}
+                    <p class="kitchen-special-note">
+                        Special Instructions: {{ order.special_instruction }}
+                    </p>
+                    {% endif %}
+
+                    {# ====== STATUS + ACTION ====== #}
+                    <div class="kitchen-card-footer">
+                        <p class="kitchen-card-status">
+                            Current Status: <strong>{{ order.get_order_status_display|upper }}</strong>
+                        </p>
+                        <a href="{% url 'update_order_status' order.id %}" class="btn btn-sm kitchen-action-btn">
+                            {# show next logical action based on current status #}
+                            {% if order.order_status == 1 %}Start PREPARING
+                            {% elif order.order_status == 2 %}Mark READY
+                            {% else %}Update Status
+                            {% endif %}
+                        </a>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="dashboard-empty">No active orders at the moment.</p>
+        {% endif %}
+
+    {% else %}
+        {# TABLE VIEW for managers and owners #}
+        {% if orders %}
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Type / Customer</th>
+                        <th>Current Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td><strong>#{{ order.id }}</strong></td>
+                        <td>
+                            {% if order.order_type == 1 %}
+                                Dine In
+                                {% if order.customer %}— {{ order.customer.user.get_full_name|default:"Guest" }}{% endif %}
+                            {% else %}
+                                {{ order.get_order_type_display }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-active">{{ order.get_order_status_display }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'update_order_status' order.id %}" class="btn btn-sm">
+                                Update Status
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="dashboard-empty">No active orders at the moment.</p>
+        {% endif %}
+    {% endif %}
+
+</div>
+
+{% endblock %}

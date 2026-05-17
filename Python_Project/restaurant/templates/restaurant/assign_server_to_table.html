@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Server to Table {{ table.label }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== ASSIGN SERVER FORM ====== #}
+{# server or manager selects a server to assign to this specific table #}
+<div class="auth-box">
+    <h2>Assign Server to Table {{ table.label }}</h2>
+
+    {# show current table status so the user knows what state the table is in #}
+    <div class="order-status-info">
+        <p><strong>Current Status:</strong> {{ table.get_status_display }}</p>
+    </div>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <p>
+            {# dropdown shows all active servers pulled from the view #}
+            <label for="server_id">Select Server</label>
+            <select name="server_id" id="server_id" required>
+                {% for server in servers %}
+                    <option value="{{ server.id }}">
+                        {{ server.get_full_name|default:server.username }} ({{ server.get_role_display }})
+                    </option>
+                {% endfor %}
+            </select>
+        </p>
+        <button type="submit" class="auth-button">Assign Server</button>
+    </form>
+
+    <a href="{% url 'server_host_view' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

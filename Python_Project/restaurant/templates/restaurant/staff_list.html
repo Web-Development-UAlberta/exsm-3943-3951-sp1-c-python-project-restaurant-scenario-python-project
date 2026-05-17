@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Management | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== STAFF LIST ====== #}
+{# manager/owner view showing all staff members with shift info and status #}
+{# owners can filter by restaurant location using the dropdown at the top #}
+<div class="dashboard-section">
+    <div class="dashboard-section-header">
+        <h2>Staff Management</h2>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            {# links to the staff invite page where manager adds email and role to pre-approve a staff member #}
+            <a href="{% url 'staff_invite_create' %}" class="btn btn-sm">+ Add Staff Invite</a>
+            {# back button goes to owner or manager dashboard depending on role #}
+            <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    {# ====== LOCATION FILTER ====== #}
+    {# filter staff by restaurant location, useful for owners managing multiple locations #}
+    {% if restaurants %}
+    <form method="GET" style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+        <label style="font-family:var(--font-heading); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; color:var(--sage-green);">
+            Filter by Location
+        </label>
+        <select name="restaurant_id" class="form-input" style="max-width:260px;">
+            <option value="">All Locations</option>
+            {% for restaurant in restaurants %}
+                <option value="{{ restaurant.pk }}"
+                    {% if selected_restaurant_id == restaurant.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ restaurant.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+        {% if selected_restaurant_id %}
+            <a href="{% url 'staff_list' %}" class="btn btn-sm" style="background:var(--cream); color:var(--dark-text); border:1px solid var(--border-mid);">
+                Clear
+            </a>
+        {% endif %}
+    </form>
+    {% endif %}
+
+    <p style="margin-bottom:1rem;"><strong>Total Staff:</strong> {{ total_staff }}</p>
+
+    {% if staff_members %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Location</th>
+                    <th>Phone</th>
+                    <th>Shift</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in staff_members %}
+                <tr>
+                    <td>{{ member.get_full_name|default:member.username }}</td>
+                    <td>{{ member.get_role_display }}</td>
+                    <td>
+                        {# for servers, location is the restaurant of their assigned table #}
+                        {# for managers, location is the restaurant they are linked to #}
+                        {% if member.role == 1 %}
+                            {# manager: find their restaurant via the FK on Restaurant model #}
+                            {% with member.restaurant_set.first as mgr_restaurant %}
+                                {% if mgr_restaurant %}
+                                    {{ mgr_restaurant.name }}
+                                {% else %}
+                                    <span style="color:#aaa;">Not assigned</span>
+                                {% endif %}
+                            {% endwith %}
+                        {% elif member.role == 2 %}
+                            {# server: find restaurant via their assigned table #}
+                            {% with member.assigned_tables.first as assigned_table %}
+                                {% if assigned_table %}
+                                    {{ assigned_table.restaurant.name }}
+                                {% else %}
+                                    <span style="color:#aaa;">Not assigned</span>
+                                {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            {# for other roles, show all restaurants or Not assigned #}
+                            <span style="color:#aaa;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ member.phone_number|default:"Not set" }}</td>
+                    <td>
+                        {# show shift times if set, otherwise show a clean not set message #}
+                        {% if member.shift_start and member.shift_end %}
+                            {{ member.shift_start|time:"H:i" }} - {{ member.shift_end|time:"H:i" }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if member.is_active_staff %}
+                            <span class="badge-active">Active</span>
+                        {% else %}
+                            <span class="badge-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td><a href="{% url 'staff_detail' member.pk %}">View</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No staff members found{% if selected_restaurant_id %} for this location{% endif %}.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

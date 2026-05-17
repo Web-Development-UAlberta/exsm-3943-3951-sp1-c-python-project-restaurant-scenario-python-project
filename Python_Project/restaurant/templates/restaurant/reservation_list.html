@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservations | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== RESERVATION LIST ====== #}
+{# customers see their own reservations, staff see all reservations #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>Reservations</h2>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="{% url 'reservation_create' %}" class="btn btn-sm">+ Make a Reservation</a>
+            {# back button — goes to dashboard based on role #}
+            {% if back_url %}
+                <a href="{{ back_url }}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if reservations %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    {# customer name column — only shown to staff since customers only see their own #}
+                    {% if user.is_authenticated and user.role != 5 %}
+                        <th>Customer</th>
+                    {% endif %}
+                    <th>Restaurant</th>
+                    <th>Table</th>
+                    <th>Date and Time</th>
+                    <th>Party Size</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                <tr>
+                    <td>#{{ reservation.id }}</td>
+                    {# show customer name for staff view #}
+                    {% if user.is_authenticated and user.role != 5 %}
+                        <td>
+                            {% if reservation.customer %}
+                                {{ reservation.customer.user.first_name }} {{ reservation.customer.user.last_name }}
+                            {% elif reservation.guest_name %}
+                                {{ reservation.guest_name }} <span class="badge-inactive" style="font-size:0.7rem;">Guest</span>
+                            {% else %}
+                                <span style="color:#aaa;">—</span>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                    <td>{{ reservation.restaurant.name }}</td>
+                    {# show table label if assigned, otherwise show not assigned #}
+                    <td>{% if reservation.table %}{{ reservation.table.label }}{% else %}Not assigned{% endif %}</td>
+                    <td>{{ reservation.reservation_datetime|date:"M d, Y h:i A" }}</td>
+                    <td>{{ reservation.party_size }}</td>
+                    <td><span class="badge-active">{{ reservation.get_status_display }}</span></td>
+                    <td class="table-actions">
+                        <a href="{% url 'reservation_detail' reservation.pk %}">View</a>
+                        {# managers and owners can change reservation status directly #}
+                        {% if user.is_authenticated and user.role != 5 %}
+                            <a href="{% url 'reservation_update_status' reservation.pk %}" class="btn btn-sm btn-secondary">Change Status</a>
+                        {% endif %}
+                        {# only show cancel if reservation is still pending or confirmed #}
+                        {% if reservation.status == 1 or reservation.status == 2 %}
+                            <a href="{% url 'reservation_cancel' reservation.pk %}" class="btn btn-sm btn-danger">Cancel</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No reservations found.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

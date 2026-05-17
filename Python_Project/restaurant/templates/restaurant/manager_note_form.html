@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if note %}Edit Note{% else %}Add Note{% endif %} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== MANAGER NOTE FORM ====== #}
+{# manager creates or edits a broadcast note targeted at a specific staff role #}
+{# note stays visible for 24 hours then auto-expires, manager can delete early #}
+<div class="auth-box" style="max-width:700px;">
+    <h2>{% if note %}Edit Note{% else %}Post a Note{% endif %}</h2>
+    <p style="color:var(--sage-green); font-size:0.85rem; margin-bottom:1.5rem;">
+        Notes appear at the top of the targeted role's dashboard for 24 hours.
+        {% if restaurant %}Scoped to: <strong>{{ restaurant.name }}</strong>{% endif %}
+    </p>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+
+        {# restaurant selector for owners who manage multiple locations #}
+        {% if restaurants %}
+        <div class="form-field-group">
+            <label class="form-label" for="restaurant_id">Restaurant</label>
+            <select name="restaurant_id" id="restaurant_id" class="form-input">
+                {% for r in restaurants %}
+                    <option value="{{ r.pk }}" {% if restaurant and r.pk == restaurant.pk %}selected{% endif %}>
+                        {{ r.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="form-field-group">
+            <label class="form-label" for="target_role">Show To</label>
+            <select name="target_role" id="target_role" class="form-input">
+                {% for value, label in target_choices %}
+                    <option value="{{ value }}" {% if note and note.target_role == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-field-group">
+            <label class="form-label" for="message">Message <span class="required-star">*</span></label>
+            <textarea name="message" id="message" class="form-input" rows="4" required
+                      placeholder="e.g. Kitchen closing 30 mins early tonight. Last orders by 9:30 PM.">{% if note %}{{ note.message }}{% endif %}</textarea>
+        </div>
+
+        <button type="submit" class="auth-button">
+            {% if note %}Update Note{% else %}Post Note (24 hours){% endif %}
+        </button>
+    </form>
+
+    {# ====== ACTIVE NOTES LIST ====== #}
+    {# shows all active notes so manager can edit or delete without leaving this page #}
+    {% if active_notes %}
+    <div style="margin-top:2rem; border-top:2px solid var(--border-mid); padding-top:1.5rem;">
+        <h3 style="font-size:0.85rem; text-transform:uppercase; letter-spacing:1px; color:var(--sage-green); margin-bottom:1rem;">
+            Active Notes
+        </h3>
+        {% for active_note in active_notes %}
+        <div class="manager-note-bar" style="margin-bottom:0.75rem;">
+            <div style="flex:1;">
+                <p style="margin-bottom:0.25rem;">📌 {{ active_note.message }}</p>
+                <p style="font-size:0.75rem; color:#888; margin-bottom:0;">
+                    Target: {{ active_note.get_target_role_display }}
+                    &nbsp;|&nbsp;
+                    Expires: {{ active_note.expires_at|date:"M d, Y g:i A" }}
+                    {% if active_note.restaurant %}
+                        &nbsp;|&nbsp; {{ active_note.restaurant.name }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="note-actions">
+                <a href="{% url 'manager_note_edit' active_note.id %}" class="btn btn-sm btn-secondary" style="font-size:0.75rem;">Edit</a>
+                <a href="{% url 'manager_note_delete' active_note.id %}" class="btn btn-sm btn-danger" style="font-size:0.75rem;">Delete</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="margin-top:1.5rem; font-size:0.9rem; color:#888; text-align:center;">No active notes at the moment.</p>
+    {% endif %}
+
+    <a href="{% url 'manager_view' %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

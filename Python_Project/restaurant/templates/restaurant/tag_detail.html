@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ tag.name }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== TAG DETAIL ====== #}
+{# shows the tag name and a live preview of how it appears on menu items #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>{{ tag.name }}</h2>
+        <div style="display:flex; gap:0.75rem;">
+            <a href="{% url 'tag_edit' tag.pk %}" class="btn btn-sm btn-secondary">Edit</a>
+            <a href="{% url 'tag_confirm_delete' tag.pk %}" class="btn btn-sm btn-danger">Delete</a>
+            <a href="{% url 'tag_list' %}" class="btn btn-sm btn-secondary">Back</a>
+        </div>
+    </div>
+
+    {# live preview of what the tag badge looks like on the menu using the CSS colour class #}
+    <div style="margin-top:1rem;">
+        <p style="font-size:0.85rem; color:#888; margin-bottom:0.5rem;">Preview:</p>
+        <span class="menu-item-tag tag-{{ tag.name|lower|slugify }}">{{ tag.name }}</span>
+    </div>
+
+</div>
+
+{% endblock %}

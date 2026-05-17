@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block title %}Server / Host Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== SERVER HOST DASHBOARD ====== #}
+{# toggle at the top lets the user switch between Server mode and Host mode for the session #}
+{# Server mode: sees only assigned tables, can take orders and manage everything #}
+{# Host mode: sees all tables, can view status and generate bill but cannot take orders #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>
+            {% if request.session.host_mode %}
+                Host Dashboard
+            {% else %}
+                Server Dashboard
+            {% endif %}
+        </h2>
+        <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+            {# toggle between server and host mode, stored in the session #}
+            <form method="POST" action="{% url 'toggle_host_mode' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm {% if request.session.host_mode %}btn-secondary{% endif %}">
+                    Switch to {% if request.session.host_mode %}Server{% else %}Host{% endif %} Mode
+                </button>
+            </form>
+            <a href="{% url 'staff_index' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    {# ====== MODE INDICATOR ====== #}
+    <div style="margin-bottom:1rem; padding:0.6rem 1rem; border-radius:var(--radius-sm); font-size:0.88rem;
+        {% if request.session.host_mode %}
+            background-color:#FFF8E6; border-left:3px solid var(--gold); color:var(--dark-text);
+        {% else %}
+            background-color:rgba(74,90,64,0.08); border-left:3px solid var(--sage-green); color:var(--dark-text);
+        {% endif %}">
+        {% if request.session.host_mode %}
+            🏠 <strong>Host Mode:</strong> You are managing the floor. You can view tables and generate bills but cannot take orders. Use this mode when you are seating and coordinating, not serving.
+        {% else %}
+            🍽 <strong>Server Mode:</strong> You are serving your assigned tables. You can take orders, add items, and process payments.
+        {% endif %}
+    </div>
+
+    <p style="margin-bottom:1rem;">
+        Welcome, {{ request.user.get_full_name|default:request.user.username }}
+    </p>
+
+    {# ====== TRANSFER REQUEST NOTIFICATIONS ====== #}
+    {# shown when another server has requested to transfer a table to this server #}
+    {% for transfer in pending_transfers %}
+    <div class="notification-bar notification-attention" style="margin-bottom:0.75rem;">
+        <span>
+            🔄 <strong>{{ transfer.requesting_server.get_full_name }}</strong> wants to transfer
+            <strong>Table {{ transfer.table.label }}</strong> to you.
+        </span>
+        <form method="POST" action="{% url 'respond_table_transfer' transfer.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" name="action" value="accept" class="btn btn-sm" style="margin-left:0.5rem;">Accept</button>
+            <button type="submit" name="action" value="decline" class="btn btn-sm btn-danger" style="margin-left:0.25rem;">Decline</button>
+        </form>
+    </div>
+    {% endfor %}
+
+    {# ====== NOTIFICATION BAR ====== #}
+    {# shows unread notifications for orders that are ready or tables that need attention #}
+    {% for entry in table_data %}
+        {% if entry.notifications %}
+            {% for notification in entry.notifications %}
+            <div class="notification-bar {% if notification.notification_type == 3 %}notification-attention{% else %}notification-ready{% endif %}">
+                <span>
+                    {% if notification.notification_type == 3 %}
+                        🙋 <strong>Table {{ entry.table.label }}</strong> needs your attention!
+                    {% else %}
+                        🔔 <strong>Order #{{ notification.order.id }}</strong> at
+                        <strong>Table {{ entry.table.label }}</strong> is ready for service!
+                    {% endif %}
+                </span>
+                <form method="POST" action="{% url 'dismiss_notification' notification.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-secondary" style="margin-left:1rem;">Dismiss</button>
+                </form>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+
+    {# ====== TABLE CARDS ====== #}
+    {# cards only show assigned tables for servers, all tables for managers and owners #}
+    {% if table_data %}
+        <div class="server-table-grid">
+            {% for entry in table_data %}
+            <div class="server-table-card {% if entry.notifications %}server-table-card--ready{% endif %}">
+
+                {# table header: label, seat count, current status badge #}
+                <div class="server-table-card-header">
+                    <span class="server-table-label">{{ entry.table.label }}</span>
+                    <span class="server-table-seats">{{ entry.table.seats }} seats</span>
+                    <span class="badge-active">{{ entry.table.get_status_display }}</span>
+                </div>
+
+                {# assigned server for this table #}
+                <p class="server-table-meta">
+                    <strong>Server:</strong>
+                    {% if entry.table.assigned_server %}
+                        {{ entry.table.assigned_server.get_full_name|default:entry.table.assigned_server.username }}
+                    {% else %}
+                        <span style="color:#aaa;">Unassigned</span>
+                    {% endif %}
+                </p>
+
+                {# active order summary if one exists on this table #}
+                {% if entry.active_order %}
+                <div class="server-table-order">
+                    <p>
+                        <strong>Order #{{ entry.active_order.id }}</strong>
+                        <span class="badge-active">{{ entry.active_order.get_order_status_display }}</span>
+                    </p>
+                    <p>Total: ${{ entry.active_order.total_price }}</p>
+                    <p>Payment: {{ entry.active_order.get_payment_status_display }}</p>
+                </div>
+                {% endif %}
+
+                {# action buttons differ based on server vs host mode #}
+                <div class="server-table-actions">
+                    {# view table detail is available in both modes #}
+                    <a href="{% url 'server_table_detail' entry.table.id %}{% if request.session.host_mode %}?host=1{% endif %}"
+                       class="btn btn-sm">View Table</a>
+                    {# update status is available in both modes #}
+                    <a href="{% url 'update_table_status' entry.table.id %}" class="btn btn-sm btn-secondary">Update Status</a>
+                    {% if not request.session.host_mode %}
+                        {# server mode only: add items directly from the dashboard card #}
+                        <a href="{% url 'server_add_to_order' entry.table.id %}" class="btn btn-sm btn-secondary">+ Add Items</a>
+                    {% endif %}
+                    {% if entry.active_order %}
+                        {# generate bill available in both modes once an active order exists #}
+                        {% if entry.active_order.payment_status == 1 and entry.active_order.order_status != 5 %}
+                            <a href="{% url 'generate_bill' entry.active_order.id %}" class="btn btn-sm">Generate Bill</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="dashboard-empty">
+            {% if request.user.role == 2 and not request.session.host_mode %}
+                No tables assigned to you yet. Ask your manager to assign tables.
+            {% else %}
+                No tables found. Please create some tables first.
+            {% endif %}
+        </p>
+    {% endif %}
+
+    {# ====== FLOOR PLAN READ-ONLY GRID ====== #}
+    {# shown below the cards, colour-coded by table status #}
+    {# assigned tables are highlighted with a neon green outline #}
+    {# clicking a table on the grid navigates to its detail view #}
+    {% if grid_tables %}
+        <div style="margin-top:2rem;">
+            <div class="dashboard-section-header" style="margin-bottom:0.5rem;">
+                <h3>Floor Plan</h3>
+                <div style="display:flex; gap:0.75rem; font-size:0.8rem; align-items:center; flex-wrap:wrap;">
+                    {% if request.user.role == 2 %}
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:14px;height:14px;border:2px solid #39FF14;border-radius:3px;display:inline-block;box-shadow:0 0 6px #39FF14;"></span> Your Tables
+                    </span>
+                    {% endif %}
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:14px;height:14px;background:var(--sage-green);border-radius:3px;display:inline-block;"></span> Available
+                    </span>
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:14px;height:14px;background:var(--burnt-orange);border-radius:3px;display:inline-block;"></span> Occupied
+                    </span>
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:14px;height:14px;background:var(--gold);border-radius:3px;display:inline-block;"></span> Reserved
+                    </span>
+                    <span style="display:flex;align-items:center;gap:0.3rem;">
+                        <span style="width:14px;height:14px;background:#7B4F9E;border-radius:3px;display:inline-block;"></span> Needs Cleaning
+                    </span>
+                </div>
+            </div>
+            <div class="floor-plan-container">
+                <div class="floor-plan-grid" id="floor-plan-readonly">
+
+                    {# ====== STATIC FLOOR ELEMENTS ====== #}
+                    {# these are hardcoded and never change, only table positions are dynamic #}
+
+                    {# top wall left to entrance #}
+                    <div class="floor-element wall" style="left:0; top:0; width:calc(6 * var(--cell-size)); height:var(--cell-size);"></div>
+
+                    {# top wall entrance to right #}
+                    <div class="floor-element wall" style="left:calc(9 * var(--cell-size)); top:0; width:calc(7 * var(--cell-size)); height:var(--cell-size);"></div>
+
+                    {# bottom wall left to center #}
+                    <div class="floor-element wall" style="left:0; top:calc(10 * var(--cell-size)); width:calc(6 * var(--cell-size)); height:var(--cell-size);"></div>
+
+                    {# bottom wall center to right #}
+                    <div class="floor-element wall" style="left:calc(11 * var(--cell-size)); top:calc(10 * var(--cell-size)); width:calc(16 * var(--cell-size)); height:var(--cell-size);"></div>
+
+                    {# left wall #}
+                    <div class="floor-element wall" style="left:0; top:0; width:var(--cell-size); height:calc(13 * var(--cell-size));"></div>
+
+                    {# right wall #}
+                    <div class="floor-element wall" style="left:calc(15 * var(--cell-size)); top:0; width:var(--cell-size); height:calc(13 * var(--cell-size));"></div>
+
+                    {# entrance #}
+                    <div class="floor-element entrance" style="left:calc(6 * var(--cell-size)); top:0; width:calc(3 * var(--cell-size)); height:calc(1 * var(--cell-size));">ENTRANCE</div>
+
+                    {# bar #}
+                    <div class="floor-element bar" style="left:calc(9 * var(--cell-size)); top:calc(2 * var(--cell-size)); width:calc(2 * var(--cell-size)); height:calc(5 * var(--cell-size));">BAR</div>
+
+                    {# kitchen #}
+                    <div class="floor-element kitchen" style="left:0; top:calc(12 * var(--cell-size)); width:calc(6 * var(--cell-size)); height:calc(1 * var(--cell-size));">🍳 KITCHEN</div>
+
+                    {# restrooms #}
+                    <div class="floor-element restroom" style="left:calc(10 * var(--cell-size)); top:calc(12 * var(--cell-size)); width:calc(6 * var(--cell-size)); height:calc(1 * var(--cell-size));">🚻 RESTROOMS</div>
+
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+{# ====== FLOOR PLAN JS ====== #}
+{# renders table tiles on top of the static floor elements above #}
+{# table positions come from grid_squares saved on each Table object #}
+{# assigned tables get a neon green highlight so servers can spot their section instantly #}
+<script>
+    var hostMode = {% if request.session.host_mode %}true{% else %}false{% endif %};
+
+    // set of table IDs assigned to this server, used for the neon highlight
+    var assignedTableIds = new Set([
+        {% for table in tables %}{{ table.id }},{% endfor %}
+    ]);
+
+    // build table info from ALL restaurant tables for the grid
+    var tableInfo = {};
+    {% for table in grid_tables %}
+        tableInfo[{{ table.id }}] = {
+            label: "{{ table.label }}",
+            seats: {{ table.seats }},
+            status: {{ table.status }},
+            grid: {% if table.grid_squares %}{{ table.grid_squares|safe }}{% else %}null{% endif %},
+            detailUrl: "{% url 'server_table_detail' table.id %}" + (hostMode ? "?host=1" : ""),
+            isAssigned: assignedTableIds.has({{ table.id }})
+        };
+    {% endfor %}
+
+    var grid = document.getElementById('floor-plan-readonly');
+    if (grid) {
+        var cellSize = 50;
+        Object.keys(tableInfo).forEach(function(id) {
+            var t = tableInfo[id];
+            if (!t.grid || t.grid.x === undefined) return;
+
+            // assigned tables are clickable links, unassigned tables are non-clickable divs
+            var el;
+            if (t.isAssigned) {
+                el = document.createElement('a');
+                el.href = t.detailUrl;
+                el.style.cursor = 'pointer';
+                el.style.textDecoration = 'none';
+                el.title = t.label + ' — your table';
+            } else {
+                el = document.createElement('div');
+                el.style.cursor = 'default';
+                el.title = t.label + (t.grid ? ' — assigned to another server' : '');
+            }
+            el.className = 'floor-plan-table status-' + t.status;
+            el.style.left = (t.grid.x * cellSize) + 'px';
+            el.style.top = (t.grid.y * cellSize) + 'px';
+            el.style.width = (t.grid.w * cellSize) + 'px';
+            el.style.height = (t.grid.h * cellSize) + 'px';
+            el.style.cursor = 'pointer';
+            el.style.textDecoration = 'none';
+
+            // neon green highlight for tables assigned to this server
+            if (t.isAssigned) {
+                el.style.outline = '3px solid #39FF14';
+                el.style.boxShadow = '0 0 8px #39FF14, 0 0 16px rgba(57, 255, 20, 0.4)';
+                el.style.zIndex = '5';
+            }
+
+            el.innerHTML = '<span class="table-label">' + t.label + '</span>' +
+                           '<span class="table-seats">' + t.seats + 'p</span>';
+            grid.appendChild(el);
+        });
+    }
+</script>
+
+{% endblock %}

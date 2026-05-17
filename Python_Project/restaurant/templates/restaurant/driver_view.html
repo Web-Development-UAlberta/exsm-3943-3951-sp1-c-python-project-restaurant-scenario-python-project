@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Driver Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== DRIVER DASHBOARD ====== #}
+{# shows new auto-assigned deliveries, active pickups, and completed history #}
+<div class="dashboard-section">
+
+    <div class="dashboard-section-header">
+        <h2>My Deliveries</h2>
+        <a href="{% url 'staff_index' %}" class="btn btn-sm btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <p style="margin-bottom:1rem;">
+        Welcome, {{ request.user.get_full_name|default:request.user.username }}
+    </p>
+
+    {# ====== NEW ASSIGNMENT NOTIFICATIONS ====== #}
+    {# shown when kitchen auto-assigns a new delivery order to this driver #}
+    {% for notification in driver_notifications %}
+    <div class="notification-bar notification-ready">
+        <span>
+            🚗 <strong>New delivery assigned:</strong> {{ notification.message }}
+        </span>
+    </div>
+    {% endfor %}
+
+    {# ====== NEW ASSIGNMENTS ====== #}
+    {# orders that are READY and assigned to this driver, waiting to be picked up #}
+    <h3 style="margin-bottom:0.75rem;">New Assignments</h3>
+
+    {% if orders %}
+        <table class="orders-table" style="margin-bottom:2rem;">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Delivery Address</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    {# show customer name if linked, otherwise show Guest #}
+                    <td>{% if order.customer %}{{ order.customer }}{% else %}Guest{% endif %}</td>
+                    <td>{{ order.delivery_address }}</td>
+                    <td>${{ order.total_price }}</td>
+                    <td class="table-actions">
+                        {# confirm pickup from kitchen before heading out #}
+                        <a href="{% url 'confirm_pickup' order.id %}" class="btn btn-sm btn-secondary">
+                            Confirm Pickup
+                        </a>
+                        {# mark as delivered once at the customer's door #}
+                        <a href="{% url 'delivery_complete' order.id %}" class="btn btn-sm">
+                            Mark Delivered
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty" style="margin-bottom:2rem;">No new deliveries assigned yet.</p>
+    {% endif %}
+
+    {# ====== COMPLETED DELIVERY HISTORY ====== #}
+    {# read-only history, records are never deleted #}
+    <h3 style="margin-bottom:0.75rem;">Delivery History</h3>
+
+    {% if completed_orders %}
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Delivery Address</th>
+                    <th>Total</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in completed_orders %}
+                <tr>
+                    <td><strong>#{{ order.id }}</strong></td>
+                    <td>{% if order.customer %}{{ order.customer }}{% else %}Guest{% endif %}</td>
+                    <td>{{ order.delivery_address }}</td>
+                    <td>${{ order.total_price }}</td>
+                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="dashboard-empty">No completed deliveries yet.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

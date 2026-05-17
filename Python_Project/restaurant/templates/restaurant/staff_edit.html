@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ staff.get_full_name }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="auth-box">
+    <h2>Edit {{ staff.get_full_name|default:staff.username }}</h2>
+    <p style="color:var(--sage-green); font-size:0.85rem; margin-bottom:1.5rem;">
+        {{ staff.get_role_display }}
+    </p>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+
+        {# render fields individually so shift fields and the toggle get proper styling #}
+        {% for field in form %}
+            {% if field.name == 'is_active_staff' %}
+            {# ====== STYLED TOGGLE SWITCH ====== #}
+            <div class="form-field-group form-toggle-group">
+                <div class="form-toggle-row">
+                    <label class="form-label" style="margin-bottom:0;">{{ field.label }}</label>
+                    <label class="toggle-switch">
+                        {{ field }}
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                {% if field.help_text %}
+                    <p class="form-help-text">{{ field.help_text }}</p>
+                {% endif %}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {% elif field.name == 'shift_start' or field.name == 'shift_end' %}
+            {# ====== SHIFT TIME FIELDS ====== #}
+            <div class="form-field-group">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {% else %}
+            {# ====== STANDARD TEXT / EMAIL FIELDS ====== #}
+            <div class="form-field-group">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                        <p class="form-error">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            {% endif %}
+        {% endfor %}
+
+        <button type="submit" class="auth-button">Save Changes</button>
+    </form>
+
+    <a href="{% url 'staff_detail' staff.pk %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

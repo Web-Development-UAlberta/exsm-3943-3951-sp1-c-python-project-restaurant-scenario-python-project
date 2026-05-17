@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit Ingredient{% else %}Add Ingredient{% endif %} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== INVENTORY CREATE OR EDIT FORM ====== #}
+{# same template is used for both adding and editing an ingredient #}
+{# form.instance.pk is None when creating and has a value when editing #}
+<div class="auth-box">
+    <h2>{% if form.instance.pk %}Edit Ingredient{% else %}Add Ingredient{% endif %}</h2>
+    {# show restaurant name as context so manager knows which restaurant they're editing #}
+    {% if restaurant %}
+        <p style="color:var(--sage-green); font-size:0.9rem; margin-bottom:1.5rem;">{{ restaurant.name }}</p>
+    {% endif %}
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+
+        {# render fields individually so we can apply labels, help text, and error styling #}
+        {% for field in form %}
+        <div class="form-field-group">
+            <label for="{{ field.id_for_label }}" class="form-label">
+                {{ field.label }}
+                {% if field.field.required %}<span class="required-star">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="form-help-text">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+                {% for error in field.errors %}
+                    <p class="form-error">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="auth-button">
+            {% if form.instance.pk %}Save Changes{% else %}Add Ingredient{% endif %}
+        </button>
+    </form>
+
+    {# back link uses the restaurant pk from the form instance if editing #}
+    {# falls back to the inventory list via the restaurant context if creating #}
+    {% if form.instance.pk %}
+        <a href="{% url 'inventory_list' form.instance.restaurant.pk %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+            Cancel
+        </a>
+    {% elif restaurant %}
+        <a href="{% url 'inventory_list' restaurant.pk %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+            Cancel
+        </a>
+    {% endif %}
+</div>
+
+{% endblock %}

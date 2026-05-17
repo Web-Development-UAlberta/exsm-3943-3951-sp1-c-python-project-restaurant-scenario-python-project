@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Transfer Table {{ table.label }} | Urban Spark{% endblock %}
+
+{% block content %}
+
+{# ====== TABLE TRANSFER REQUEST ====== #}
+{# server selects another server to transfer their table to #}
+<div class="auth-box">
+    <h2>Transfer Table {{ table.label }}</h2>
+    <div class="order-status-info">
+        <p><strong>Current Status:</strong> {{ table.get_status_display }}</p>
+        <p><strong>Currently Assigned:</strong> {{ table.assigned_server.get_full_name|default:"Unassigned" }}</p>
+    </div>
+    <p style="font-size:0.85rem; color:#888; margin-bottom:1.5rem;">
+        Select the server you want to transfer this table to.
+        They will receive a notification and can accept or decline.
+    </p>
+
+    <form method="POST" class="auth-form">
+        {% csrf_token %}
+        <div class="form-field-group">
+            <label class="form-label" for="receiving_server_id">Select Server</label>
+            <select name="receiving_server_id" id="receiving_server_id" class="form-input" required>
+                {% for server in available_servers %}
+                    <option value="{{ server.id }}">
+                        {{ server.get_full_name|default:server.username }}
+                    </option>
+                {% empty %}
+                    <option disabled>No other active servers available</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="auth-button">Send Transfer Request</button>
+    </form>
+
+    <a href="{% url 'server_table_detail' table.id %}" style="display:block; text-align:center; margin-top:1rem; font-size:0.9rem;">
+        Cancel
+    </a>
+</div>
+
+{% endblock %}

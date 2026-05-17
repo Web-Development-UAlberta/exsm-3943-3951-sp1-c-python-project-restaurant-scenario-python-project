@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}My Dashboard | Urban Spark{% endblock %}
+
+{% block content %}
+
+<div class="customer-dashboard">
+
+    {# ====== LEFT: QUICK ACCESS PANEL ====== #}
+    <aside class="dashboard-sidebar">
+        <div class="dashboard-welcome">
+            <h2>{{ customer.user.first_name }} {{ customer.user.last_name }}</h2>
+            <p class="dashboard-member-since">Member since {{ customer.user.created_at|date:"M Y" }}</p>
+        </div>
+
+        <nav class="dashboard-nav">
+            <ul>
+                <li><a href="{% url 'menu_item_list' %}">Place an Order</a></li>
+                <li><a href="{% url 'reservation_create' %}">Book a Table</a></li>
+                <li><a href="{% url 'order_list' %}">Order History</a></li>
+                <li><a href="{% url 'reservation_list' %}">My Reservations</a></li>
+                <li><a href="{% url 'customer_edit' customer.pk %}">Edit Profile</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    {# ====== RIGHT: MAIN DASHBOARD CONTENT ====== #}
+    <section class="dashboard-main">
+
+        {# ====== LOYALTY POINTS BOX ====== #}
+        <div class="dashboard-loyalty-box">
+            <div class="loyalty-points-display">
+                <span class="loyalty-points-number">{{ customer.loyalty_points }}</span>
+                <span class="loyalty-points-label">Points</span>
+            </div>
+            <div class="loyalty-points-info">
+                <h3>Your Loyalty Points</h3>
+                {% if customer.loyalty_points >= 2000 %}
+                    <p class="loyalty-eligible">You can redeem <strong>2000 pts</strong> for <strong>$25 off</strong> your next order!</p>
+                {% elif customer.loyalty_points >= 1000 %}
+                    <p class="loyalty-eligible">You can redeem <strong>1000 pts</strong> for <strong>$10 off</strong> your next order!</p>
+                {% else %}
+                    <p>Earn <strong>{{ 1000|add:"-"|add:customer.loyalty_points }}</strong> more points to redeem $10 off.</p>
+                {% endif %}
+                <p class="loyalty-rate">You earn 10 points for every $1 spent.</p>
+            </div>
+        </div>
+
+        {# ====== UPCOMING RESERVATIONS ====== #}
+        <div class="dashboard-section">
+            <div class="dashboard-section-header">
+                <h3>Upcoming Reservations</h3>
+                <a href="{% url 'reservation_create' %}" class="btn btn-sm btn-secondary">Book a Table</a>
+            </div>
+            {% if upcoming_reservations %}
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Restaurant</th>
+                            <th>Party Size</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reservation in upcoming_reservations %}
+                        <tr>
+                            <td>{{ reservation.reservation_datetime|date:"M d, Y h:i A" }}</td>
+                            <td>{{ reservation.restaurant.name }}</td>
+                            <td>{{ reservation.party_size }}</td>
+                            <td>{{ reservation.get_status_display }}</td>
+                            <td>
+                                <div style="display:flex; gap:0.75rem; align-items:center;">
+                                    <a href="{% url 'reservation_detail' reservation.pk %}">View</a>
+                                    <a href="{% url 'reservation_cancel' reservation.pk %}" class="btn btn-sm btn-danger">Cancel</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="dashboard-empty">No upcoming reservations. <a href="{% url 'reservation_create' %}">Book a table</a></p>
+            {% endif %}
+        </div>
+
+        {# ====== RECENT ORDERS ====== #}
+        <div class="dashboard-section">
+            <div class="dashboard-section-header">
+                <h3>Recent Orders</h3>
+                <a href="{% url 'order_list' %}" class="btn btn-sm btn-secondary">View All</a>
+            </div>
+            {% if recent_orders %}
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td>#{{ order.id }}</td>
+                            <td>{{ order.get_order_type_display }}</td>
+                            <td>{{ order.get_order_status_display }}</td>
+                            <td>${{ order.total_price }}</td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td><a href="{% url 'order_detail' order.pk %}">View</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="dashboard-empty">No orders yet. <a href="{% url 'menu_item_list' %}">Browse the menu</a></p>
+            {% endif %}
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
