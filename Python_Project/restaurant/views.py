@@ -14,6 +14,7 @@ import stripe
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
+from django.utils.dateparse import parse_datetime
 
 
 # GST rate applied to all orders
@@ -1065,7 +1066,9 @@ def table_layout_save(request, restaurant_pk):
     return JsonResponse({'success':False, 'error': 'Method not allowed'}, status=405)
 
 def table_layout_view(request, restaurant_pk):
-    """Read only floor plan view for customers during reservation booking.  No authentication required."""
+    """Read only floor plan view for customers during reservation booking.  
+    Accepts datetime query parameter and marks a table if there's conflicting reservation."""
+    
     restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
     
     tables = models.Table.objects.filter(restaurant=restaurant).extra(
@@ -1077,6 +1080,34 @@ def table_layout_view(request, restaurant_pk):
         grid_data = layout.grid_data
     except models.TableLayout.DoesNotExist:
         grid_data = []
+        
+    # check for reservations if datetime was passed
+    reserved_table_ids = set()
+    datetime_str = request.GET.get('datetime') # reads datetime value form the URL query parameter that passes from the JS
+    if datetime_str and grid_data:
+        try:
+            reservation_time = parse_datetime(datetime_str) # converts string into python datetime onbject for conflict window calcuation
+            if reservation_time:
+                conflict_window = reservation_time + timezone.timedelta(hours=1)
+                conflicting = models.Reservation.objects.filter(
+                    restaurant=restaurant,
+                    reservation_datetime__lt=conflict_window,
+                    reservation_datetime__gte=reservation_time,
+                    status__in=[
+                        models.Reservation.Status.PENDING,
+                        models.Reservation.Status.CONFIRMED,
+                    ]
+                ).values_list('table_id', flat=True)
+                reserved_table_ids = set(conflicting)
+        except Exception:
+            pass
+            
+        
+    for table in grid_data:
+        if table['table_id'] in reserved_table_ids:
+            table['status'] = 3 # reserved
+        else:
+            table['status'] = 1 #available
         
     return render(request, 'restaurant/table_layout_view.html', {
         'restaurant': restaurant,

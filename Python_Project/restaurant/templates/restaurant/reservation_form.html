@@ -79,27 +79,31 @@
     const modalBody = document.getElementById('floor-plan-modal-body');
     const modalTitle = document.getElementById('floor-plan-modal-title');
     const modalClose = document.getElementById('floor-plan-modal-close');
+    const datetimeInput = document.getElementById('id_reservation_datetime');
 
-    // display or hide floor plan link based on restaurant selection
-    restaurantSelect.addEventListener('change', function() {
-        if(this.value) {
+    function checkShowFloorPlanLink() {
+        if (restaurantSelect.value && datetimeInput.value) {
             viewFloorPlanLink.style.display = 'inline';
         } else {
             viewFloorPlanLink.style.display = 'none';
         }
-    });
+    }
+
+    restaurantSelect.addEventListener('change', checkShowFloorPlanLink);
+    datetimeInput.addEventListener('change', checkShowFloorPlanLink);
 
     // open modal and fetch floor plan
     viewFloorPlanLink.addEventListener('click', function(e){
         e.preventDefault();
         const restaurantPk = restaurantSelect.value;
         const restaurantName = restaurantSelect.options[restaurantSelect.selectedIndex].text;
+        const datetime = encodeURIComponent(datetimeInput.value);
 
         modalTitle.textContent = restaurantName + '- Floor plan';
         modalBody.innerHTML = '<p>Loading...</p>';
         modal.style.display = 'flex';
 
-        fetch(`/restaurant/${restaurantPk}/layout/view/`)
+        fetch(`/restaurant/${restaurantPk}/layout/view/?datetime=${datetime}`)
             .then(response => response.text())
             .then(html => {
                 modalBody.innerHTML = html;
