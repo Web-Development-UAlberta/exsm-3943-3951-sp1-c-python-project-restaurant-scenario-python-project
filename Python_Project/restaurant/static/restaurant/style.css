@@ -959,13 +959,60 @@ input[type="submit"]:active {
     opacity: 0.9;
 }
 
-
+.floor-plan-table-readonly {
+    cursor: default;
+}
 
 /* Status matching colours Table.Status integer choices */
 .status-1 { background-color: var(--sage-green);}       /* AVAILABLE */
 .status-2 { background-color: var(--burnt-orange);}     /* OCCUPIED */
 .status-3 { background-color: var(--gold);}     /* RESERVED */
 .status-4 { background-color: #7B4F9E;}     /* NEEDS CLEANING */
+
+/* ====================== Floor Plan Modal ====================== */
+
+#floor-plan-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+#floor-plan-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#floor-plan-modal-content {
+    position: relative;
+    background-color: var(--white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    z-index: 1001;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#floor-plan-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+#floor-plan-modal-body {
+    overflow-x: auto;
+}
 
 
 /* ====================== Review Order Page ====================== */

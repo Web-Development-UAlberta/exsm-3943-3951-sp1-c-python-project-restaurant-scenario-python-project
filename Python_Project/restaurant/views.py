@@ -1064,6 +1064,27 @@ def table_layout_save(request, restaurant_pk):
         
     return JsonResponse({'success':False, 'error': 'Method not allowed'}, status=405)
 
+def table_layout_view(request, restaurant_pk):
+    """Read only floor plan view for customers during reservation booking.  No authentication required."""
+    restaurant = get_object_or_404(models.Restaurant, pk=restaurant_pk)
+    
+    tables = models.Table.objects.filter(restaurant=restaurant).extra(
+        select={'label_num': "Cast(SUBSTR(label, 2) AS INTEGER)"}
+    ).order_by('label_num')
+    
+    try:
+        layout = models.TableLayout.objects.get(restaurant=restaurant)
+        grid_data = layout.grid_data
+    except models.TableLayout.DoesNotExist:
+        grid_data = []
+        
+    return render(request, 'restaurant/table_layout_view.html', {
+        'restaurant': restaurant,
+        'tables': tables,
+        'grid_data': grid_data,
+        'status_choices': models.Table.Status.choices,
+    })
+
 #======= Menu Item =======
 
 def menu_item_list(request):
