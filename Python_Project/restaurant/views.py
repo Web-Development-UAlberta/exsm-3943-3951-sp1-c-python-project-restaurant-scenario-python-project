@@ -1087,6 +1087,8 @@ def table_layout_view(request, restaurant_pk):
     if datetime_str and grid_data:
         try:
             reservation_time = parse_datetime(datetime_str) # converts string into python datetime onbject for conflict window calcuation
+            if reservation_time and timezone.is_naive(reservation_time):
+                reservation_time = timezone.make_aware(reservation_time)
             if reservation_time:
                 conflict_window = reservation_time + timezone.timedelta(hours=1)
                 conflicting = models.Reservation.objects.filter(
